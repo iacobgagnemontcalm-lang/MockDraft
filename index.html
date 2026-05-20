@@ -1167,6 +1167,7 @@ let autoMode = 'vor'; // 'vor' | 'ecr' | 'adp'
 let teamModes = {};   // rosterId -> 'manual' | 'vor' | 'ecr' | 'adp'
 let gutFeeling = 50;  // 0 = 100% MoneyBall, 100 = 100% GutFeeling (board default, unused now)
 let teamGutMap = {};  // rosterId -> 0–100 (0=MoneyBall, 100=GutFeeling) for autopilot
+let cachedADPText = null; // raw text of adp_rankings.csv, re-applied after any buildPlayers()
 let autoPilotRunning = false;
 
 // ══════════════════════════════════════════════
@@ -2348,6 +2349,33 @@ function rosterNav(dir) {
   renderRoster();
 }
 
+function assignRosterSlots(allPlayers) {
+  var sorted = allPlayers.slice().sort((a, b) => ((a.ecr || a.adp || 999) - (b.ecr || b.adp || 999)));
+  var used = new Set();
+  var slots = [];
+  var slotDefs = [
+    { base: 'QB',   eligible: ['QB'],           count: 1 },
+    { base: 'RB',   eligible: ['RB'],           count: 2 },
+    { base: 'WR',   eligible: ['WR'],           count: 2 },
+    { base: 'TE',   eligible: ['TE'],           count: 1 },
+    { base: 'FLEX', eligible: ['RB','WR','TE'], count: 1 },
+    { base: 'K',    eligible: ['K'],            count: 1 },
+    { base: 'DST',  eligible: ['DST'],          count: 1 },
+  ];
+  slotDefs.forEach(def => {
+    for (var i = 0; i < def.count; i++) {
+      var label = def.count > 1 ? def.base + (i + 1) : def.base;
+      var player = sorted.find(p => !used.has(p.name) && def.eligible.includes(p.pos));
+      if (player) used.add(player.name);
+      slots.push({ slotLabel: label, player: player || null, isBench: false });
+    }
+  });
+  sorted.filter(p => !used.has(p.name)).forEach(p => {
+    slots.push({ slotLabel: 'BN', player: p, isBench: true });
+  });
+  return slots;
+}
+
 function renderRoster() {
   if (!myTeamId) return;
   var vid = viewingRosterId || myTeamId;
@@ -2355,37 +2383,64 @@ function renderRoster() {
   if (!team) return;
   var area = document.getElementById('roster-area');
   var isMyTeam = (vid === myTeamId);
-  // Update header label
   var nameEl = document.getElementById('roster-team-name');
   if (nameEl) nameEl.textContent = isMyTeam ? ('★ ' + team.shortName) : team.shortName;
-  // Nav arrow colors — highlight if viewing other team
   var prev = document.getElementById('roster-prev');
   var next = document.getElementById('roster-next');
   if (prev) prev.style.color = isMyTeam ? 'var(--muted)' : 'var(--accent)';
   if (next) next.style.color = isMyTeam ? 'var(--muted)' : 'var(--accent)';
-  let html = '';
-  // Keepers
-  if (team.keepers && team.keepers.length > 0) {
-    html += '<div class="roster-sec-hdr">Keepers</div>';
+
+  // Build unified list: keepers + drafted picks, both resolved to player objects
+  var allPlayers = [];
+  if (team.keepers) {
     team.keepers.forEach(kname => {
-      const p = players.find(x => x.name === kname);
-      const pc = p ? posClass(p.pos) : 'RB';
-      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p?p.pos:'?'}</span><span class="r-name">${kname}</span></div>`;
+      var p = players.find(x => x.name === kname);
+      if (p) allPlayers.push(Object.assign({}, p, { _isKeeper: true, _round: null }));
     });
   }
-  // All picks made for the viewed team
-  const teamPicks = draftOrder.filter(s => s.teamId === vid && s.playerName);
-  if (teamPicks.length > 0) {
-    html += '<div class="roster-sec-hdr">Draft picks</div>';
-    teamPicks.forEach(s => {
-      const p = players.find(x => x.name === s.playerName);
-      const pc = p ? posClass(p.pos) : 'WR';
-      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p?p.pos:'?'}</span><span class="r-name">${s.playerName}</span><span class="r-rd">Rd ${s.round}</span></div>`;
+  draftOrder.filter(s => s.teamId === vid && s.playerName).forEach(s => {
+    var p = players.find(x => x.name === s.playerName);
+    if (p) allPlayers.push(Object.assign({}, p, { _isKeeper: false, _round: s.round }));
+  });
+
+  if (allPlayers.length === 0) {
+    area.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--dim)">No picks yet</div>';
+    document.getElementById('roster-count').textContent = '0 players';
+    return;
+  }
+
+  var slots = assignRosterSlots(allPlayers);
+  var starters = slots.filter(s => !s.isBench);
+  var bench    = slots.filter(s => s.isBench);
+
+  var html = '<div class="roster-sec-hdr">Starters</div>';
+  starters.forEach(s => {
+    if (!s.player) {
+      html += `<div class="roster-row"><span class="pos-tag" style="opacity:.35;min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name" style="color:var(--dim)">—</span></div>`;
+      return;
+    }
+    var p = s.player;
+    var pc = posClass(p.pos);
+    var badge = p._isKeeper
+      ? '<span style="font-size:9px;color:var(--gold);margin-left:4px">K</span>'
+      : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
+    html += `<div class="roster-row"><span class="pos-tag pos-${pc}" style="min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name">${p.name}</span>${badge}</div>`;
+  });
+
+  if (bench.length > 0) {
+    html += '<div class="roster-sec-hdr">Bench</div>';
+    bench.forEach(s => {
+      var p = s.player;
+      var pc = posClass(p.pos);
+      var badge = p._isKeeper
+        ? '<span style="font-size:9px;color:var(--gold);margin-left:4px">K</span>'
+        : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
+      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p.pos}</span><span class="r-name">${p.name}</span>${badge}</div>`;
     });
   }
-  area.innerHTML = html || '<div style="padding:12px;font-size:12px;color:var(--dim)">No picks yet</div>';
-  const total = (team.keepers ? team.keepers.length : 0) + teamPicks.length;
-  document.getElementById('roster-count').textContent = total + ' players';
+
+  area.innerHTML = html;
+  document.getElementById('roster-count').textContent = allPlayers.length + ' players';
 }
 
 // ══════════════════════════════════════════════
@@ -3905,6 +3960,7 @@ function apply2026SeasonMode(config) {
 
   // Rebuild players so keeperOf/isKeeper flags are cleared (no keepers in redraft)
   buildPlayers();
+  if (cachedADPText) loadADPCSVText(cachedADPText);
 
   // Build the draft order — buildDraftOrder() now branches on LEAGUE_CONFIG.type,
   // so it returns the snake/linear order automatically.
@@ -4411,6 +4467,13 @@ async function init() {
 
     buildTeams();
     buildPlayers();
+    // Pre-seed dynasty bots with random GF/MB values (same logic as 2026 mode)
+    var _dsid = getSessionId();
+    teams.forEach(function(t) {
+      if (t.rosterId !== myTeamId) {
+        teamGutMap[t.rosterId] = seededGutValue(_dsid, t.rosterId);
+      }
+    });
   }
 
   // Auto-load rankings.csv from repo — must run AFTER buildPlayers() so it
@@ -4441,7 +4504,8 @@ async function init() {
   try {
     const adpRes = await fetch('adp_rankings.csv?v=' + Date.now(), { cache: 'no-cache' });
     if (adpRes.ok) {
-      const matched = loadADPCSVText(await adpRes.text());
+      cachedADPText = await adpRes.text();
+      const matched = loadADPCSVText(cachedADPText);
       if (matched) console.log('Auto-loaded adp_rankings.csv —', matched, 'players updated');
     }
   } catch(e) {
