@@ -3426,6 +3426,38 @@ function loadCSVText(text) {
   return parsed.length;
 }
 
+// Loads an ADP-only CSV (columns: Rank, Player, Team, Bye, POS, AVG) and
+// updates the .adp and .fpAdp fields on matched players without touching ECR.
+function loadADPCSVText(text) {
+  var lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return 0;
+
+  var headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+  var ci = name => headers.indexOf(name);
+
+  var iName = ci('player');
+  var iAdp  = ci('avg');
+  if (iName === -1 || iAdp === -1) {
+    console.warn('ADP CSV missing Player or AVG column'); return 0;
+  }
+
+  // Build a lookup map from the existing players array
+  var byName = {};
+  players.forEach(p => { byName[p.name.toLowerCase()] = p; });
+
+  var matched = 0;
+  for (var i = 1; i < lines.length; i++) {
+    var cells = parseCSVLine(lines[i]);
+    var get = idx => (idx >= 0 && cells[idx] != null) ? cells[idx].trim() : '';
+    var name = get(iName); if (!name) continue;
+    var adp  = parseFloat(get(iAdp)); if (isNaN(adp)) continue;
+    var p = byName[name.toLowerCase()];
+    if (p) { p.adp = adp; p.fpAdp = adp; matched++; }
+  }
+
+  return matched;
+}
+
 function importCSV(event) {
   var file = event.target.files[0];
   if (!file) return;
@@ -4402,6 +4434,18 @@ async function init() {
     }
   } catch(e) {
     console.warn('Could not auto-load rankings.csv:', e.message);
+  }
+
+  // Auto-load adp_rankings.csv — overrides .adp on matched players with the
+  // separate ADP source, leaving ECR ranks from rankings.csv untouched.
+  try {
+    const adpRes = await fetch('adp_rankings.csv?v=' + Date.now(), { cache: 'no-cache' });
+    if (adpRes.ok) {
+      const matched = loadADPCSVText(await adpRes.text());
+      if (matched) console.log('Auto-loaded adp_rankings.csv —', matched, 'players updated');
+    }
+  } catch(e) {
+    console.warn('Could not auto-load adp_rankings.csv:', e.message);
   }
 
   buildDraftOrder();
