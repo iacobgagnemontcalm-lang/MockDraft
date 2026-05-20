@@ -2130,13 +2130,13 @@ function renderVOR() {
   var rankLbl   = rankMode === 'adp' ? 'ADP' : rankMode === 'vor' ? 'VOR' : 'ECR';
 
   // Pre-compute urgency: for each top-5 player, find the next best at their position
-  // Urgency = ECR gap to 2nd best at same pos × slot weight
+  // Urgency = ADP gap to 2nd best at same pos × slot weight
   var byPos = {};
   players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
     if (!byPos[p.pos]) byPos[p.pos] = [];
     byPos[p.pos].push(p);
   });
-  Object.values(byPos).forEach(function(arr){ arr.sort(function(a,b){ return a.ecr-b.ecr; }); });
+  Object.values(byPos).forEach(function(arr){ arr.sort(function(a,b){ return a.adp-b.adp; }); });
 
   var html = '';
   for (var i=0; i<window._vorTop5.length; i++) {
@@ -2150,7 +2150,7 @@ function renderVOR() {
     // Urgency: gap between this player and next best at same position
     var posList  = byPos[p.pos] || [];
     var nextBest = posList[1] || posList[0];
-    var gap      = nextBest ? (nextBest.ecr - p.ecr) : 0;
+    var gap      = nextBest ? (nextBest.adp - p.adp) : 0;
     var urgClr   = gap > 8 ? 'var(--red)' : gap > 3 ? 'var(--gold)' : 'var(--green)';
     var urgTxt   = gap > 8 ? '🔥 Act now' : gap > 3 ? '⚡ Soon' : '✓ Wait';
     var nextName = nextBest && nextBest.name !== p.name ? nextBest.name.split(' ').pop() : '—';
@@ -4660,7 +4660,7 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Best available panel</div>
-        The cards above the board show the top 3 available players adjusted for your roster needs. Each card shows an urgency signal based on the ECR drop to the next player at that same position:
+        The cards above the board show the top 3 available players adjusted for your roster needs. Each card shows an urgency signal based on the ADP drop to the next available player at that same position:
         <div style="margin-top:8px;display:flex;gap:8px;font-size:11px">
           <div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 10px;color:var(--red)">🔥 <strong>Act now</strong><br><span style="color:var(--muted)">Sharp drop to next player at this position</span></div>
           <div style="flex:1;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:6px 10px;color:var(--gold)">⚡ <strong>Soon</strong><br><span style="color:var(--muted)">Moderate drop — worth taking now</span></div>
