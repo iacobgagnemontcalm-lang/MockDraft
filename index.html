@@ -1852,7 +1852,8 @@ function renderVOR() {
     html += '<div class="vc-pos"><span style="color:' + posClr + '">' + p.pos + '</span> <span style="font-size:8px;color:' + tagClr + '">' + tagTxt + '</span></div>';
     html += '<div class="vc-name">' + p.name + '</div>';
     html += '<div style="font-size:9px;color:var(--muted)">' + p.nfl + ' · ECR#' + (p.ecr||'?') + (isSteal ? ' <span style="color:var(--gold)">▲+' + ecrGap + '</span>' : '') + '</div>';
-    html += '<div class="vc-score"><span style="color:' + g.color + ';font-weight:700">VOR ' + g.label + '</span>' + (atTierCliff ? ' <span style="color:var(--gold);font-size:8px" title="Last in tier ' + p.tier + ' — cliff after him">▼ last T' + p.tier + '</span>' : '') + '</div>';
+    var vorNum = p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—';
+    html += '<div class="vc-score"><span style="color:' + g.color + ';font-weight:700">VOR ' + vorNum + '</span>' + (atTierCliff ? ' <span style="color:var(--gold);font-size:8px" title="Last in tier ' + p.tier + ' — cliff after him">▼ last T' + p.tier + '</span>' : '') + '</div>';
     html += '<div class="vc-urgency" style="color:' + probClr + '">' + (goneProb !== null ? goneProb + '% gone · ' : '') + 'Next: ' + nextName + '</div>';
     html += '</div>';
   }
