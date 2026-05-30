@@ -1762,6 +1762,14 @@ function renderVOR() {
     return mvor + scarcityBoost + stealBonus + cliffBonus;
   }
 
+  // Pre-compute byPos so aiScore() can use it for tier-cliff detection
+  var byPos = {};
+  players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
+    if (!byPos[p.pos]) byPos[p.pos] = [];
+    byPos[p.pos].push(p);
+  });
+  Object.values(byPos).forEach(function(arr){ arr.sort(function(a,b){ return a.adp-b.adp; }); });
+
   // Top 3 available filtered by caps and round, sorted by composite score
   window._vorTop5 = players
     .filter(function(p) {
@@ -1803,15 +1811,6 @@ function renderVOR() {
   var posColors = {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DS:'var(--muted)'};
   var rankLbl   = rankMode === 'adp' ? 'ADP' : rankMode === 'vor' ? 'VOR' : 'ECR';
 
-  // Pre-compute urgency: for each top-5 player, find the next best at their position
-  // Urgency = ADP gap to 2nd best at same pos × slot weight
-  var byPos = {};
-  players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
-    if (!byPos[p.pos]) byPos[p.pos] = [];
-    byPos[p.pos].push(p);
-  });
-  Object.values(byPos).forEach(function(arr){ arr.sort(function(a,b){ return a.adp-b.adp; }); });
-
   var html = '';
   for (var i=0; i<window._vorTop5.length; i++) {
     var p      = window._vorTop5[i];
@@ -1830,6 +1829,14 @@ function renderVOR() {
     var ecrGap  = (p.adp && p.ecr && p.adp < 500) ? Math.round(p.adp - p.ecr) : 0;
     var isSteal = ecrGap >= 4;
 
+    // Next best at position (for urgency context and tier-cliff detection)
+    var posList  = byPos[p.pos] || [];
+    var nextBest = posList.find(function(x){ return x.name !== p.name; });
+    var nextName = nextBest ? nextBest.name.split(' ').pop() : '—';
+
+    // Tier cliff: is the next-best player in a worse tier? (must be computed before tag logic)
+    var atTierCliff = nextBest && p.tier != null && nextBest.tier != null && nextBest.tier > p.tier;
+
     // Primary tag: dominant signal (tier cliff overrides gone% — cliff IS the urgency)
     var tagTxt, tagClr;
     if      (atTierCliff && goneProb >= 20){ tagTxt = '🔥 Last of tier'; tagClr = 'var(--red)'; }
@@ -1837,15 +1844,6 @@ function renderVOR() {
     else if (isSteal && !atTierCliff)      { tagTxt = '⭐ ECR steal'; tagClr = 'var(--gold)'; }
     else if (goneProb >= 30 || atTierCliff){ tagTxt = '⚡ Soon'; tagClr = 'var(--gold)'; }
     else                                   { tagTxt = '✓ Wait'; tagClr = 'var(--green)'; }
-
-    // Next best at position (for urgency context)
-    var posList  = byPos[p.pos] || [];
-    var nextBest = posList.find(function(x){ return x.name !== p.name; });
-    var nextName = nextBest ? nextBest.name.split(' ').pop() : '—';
-
-    // Tier cliff at this position: is the next-best player a worse tier?
-    // If so, this is the last player in his tier — a real drop-off looms.
-    var atTierCliff = nextBest && p.tier != null && nextBest.tier != null && nextBest.tier > p.tier;
 
     // VOR grade band (no false precision)
     var g = vorGrade(p.mvor);
