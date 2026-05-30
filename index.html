@@ -1873,6 +1873,9 @@ function renderVOR() {
     }
     if (p.pos === 'QB' && _qbHave >= _qbCap) return false;
     if (p.pos === 'TE' && _teHave >= _teCap) return false;
+    // Don't recommend QB/TE if already holding a top-5 at that position
+    if (p.pos === 'QB' && teamHasTop5(myTeamId, 'QB')) return false;
+    if (p.pos === 'TE' && teamHasTop5(myTeamId, 'TE')) return false;
     return true;
   }
 
