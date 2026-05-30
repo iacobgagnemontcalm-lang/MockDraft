@@ -1743,26 +1743,7 @@ function renderVOR() {
     }
   }
 
-  // Composite AI score: VOR value + scarcity urgency + ECR steal bonus + tier-cliff bonus
-  function aiScore(p) {
-    var mvor = p.mvor || 0;
-    var prob = computePickProb(p);
-    var goneProb = prob !== null ? (1 - prob) : 0.1;
-    var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
-    var scarcityBoost = goneProb * Math.max(0, mvor) * 0.4;
-    // Down-weight steal bonus for high-ADP-variance positions (QB/TE):
-    // their ADP swings wildly, so a "steal" gap there is mostly noise.
-    var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
-    var stealBonus  = Math.min(ecrGap / 2, 10) * stealWeight;
-    // Tier-cliff bonus: if this player is the last in his tier at his position,
-    // waiting means dropping to a materially worse tier — boost him.
-    var posList = byPos[p.pos] || [];
-    var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
-    var cliffBonus = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 8 : 0;
-    return mvor + scarcityBoost + stealBonus + cliffBonus;
-  }
-
-  // Pre-compute byPos so aiScore() can use it for tier-cliff detection
+  // Pre-compute byPos — needed by aiScore() for tier-cliff and depth-scarcity
   var byPos = {};
   players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
     if (!byPos[p.pos]) byPos[p.pos] = [];
@@ -1770,19 +1751,81 @@ function renderVOR() {
   });
   Object.values(byPos).forEach(function(arr){ arr.sort(function(a,b){ return a.adp-b.adp; }); });
 
-  // Top 3 available filtered by caps and round, sorted by composite score
-  window._vorTop5 = players
-    .filter(function(p) {
-      if (p.drafted || p.isKeeper) return false;
-      if (_lateRounds) {
-        if (_myDSCount === 0) return p.pos === 'DST' || p.pos === 'K';
-        if (_myKCount  === 0) return p.pos === 'K'  || p.pos === 'DST';
-        return p.pos === 'K' || p.pos === 'DST';
-      }
-      if (p.pos === 'QB' && _qbHave >= _qbCap) return false;
-      if (p.pos === 'TE' && _teHave >= _teCap) return false;
-      return true;
-    })
+  // Signal 1: positional need — how far behind expected count are we?
+  // Expected: ~1 RB/WR per 2.5 rounds, capped at 3 before late rounds.
+  var _rbNeed = _lateRounds ? 0 : Math.max(0, Math.min(Math.floor(_curRound / 2.5), 3) - _rbHave);
+  var _wrNeed = _lateRounds ? 0 : Math.max(0, Math.min(Math.floor(_curRound / 2.5), 3) - _wrHave);
+
+  // Signal 2: depth-of-position scarcity — count elite players (tier ≤ 3) still on board
+  var _posElite = {};
+  ['QB','RB','WR','TE'].forEach(function(pos) {
+    _posElite[pos] = players.filter(function(p) {
+      return !p.drafted && !p.isKeeper && p.pos === pos && p.tier != null && p.tier <= 3;
+    }).length;
+  });
+
+  // Composite AI score: VOR + scarcity urgency + ECR steal + tier cliff + need mult + depth scarcity
+  function aiScore(p) {
+    var mvor = p.mvor || 0;
+    var prob = computePickProb(p);
+    var goneProb = prob !== null ? (1 - prob) : 0.1;
+    var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
+    var scarcityBoost = goneProb * Math.max(0, mvor) * 0.4;
+    var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
+    var stealBonus  = Math.min(ecrGap / 2, 10) * stealWeight;
+    var posList = byPos[p.pos] || [];
+    var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
+    var cliffBonus = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 8 : 0;
+
+    // Signal 1: positional need multiplier — thin at RB/WR raises all players at that pos
+    var needMult = 1.0;
+    if (p.pos === 'RB' && _rbNeed > 0) needMult = 1 + _rbNeed * 0.35;
+    if (p.pos === 'WR' && _wrNeed > 0) needMult = 1 + _wrNeed * 0.35;
+
+    // Signal 2: depth bonus for elite players when the tier is running dry
+    var eliteLeft = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
+    var isElite = p.tier != null && p.tier <= 3;
+    var depthBonus = isElite ? (eliteLeft <= 2 ? 7 : eliteLeft <= 4 ? 4 : eliteLeft <= 6 ? 2 : 0) : 0;
+
+    return (mvor + scarcityBoost + stealBonus + cliffBonus + depthBonus) * needMult;
+  }
+
+  // Signal 3: 2-pick look-ahead — score the best pick AFTER this one, assuming we take p now.
+  // Stores projected next pick on p._nextPick for card display.
+  function twoPickScore(p, pool) {
+    var base = aiScore(p);
+    var qbAfter = _qbHave + (p.pos === 'QB' ? 1 : 0);
+    var teAfter = _teHave + (p.pos === 'TE' ? 1 : 0);
+    var bestNext = pool
+      .filter(function(x) {
+        if (x.name === p.name) return false;
+        if (x.pos === 'QB' && qbAfter >= _qbCap) return false;
+        if (x.pos === 'TE' && teAfter >= _teCap) return false;
+        // Only count players likely still available at the next pick
+        var prob = computePickProb(x);
+        return prob !== null ? prob > 0.35 : true;
+      })
+      .sort(function(a,b){ return aiScore(b) - aiScore(a); })[0] || null;
+    p._nextPick = bestNext;
+    // Future pick discounted at 0.65 — real but uncertain
+    return base + (bestNext ? aiScore(bestNext) * 0.65 : 0);
+  }
+
+  // Filter candidates for the top picks panel
+  function candidateFilter(p) {
+    if (p.drafted || p.isKeeper) return false;
+    if (_lateRounds) {
+      if (_myDSCount === 0) return p.pos === 'DST' || p.pos === 'K';
+      if (_myKCount  === 0) return p.pos === 'K'  || p.pos === 'DST';
+      return p.pos === 'K' || p.pos === 'DST';
+    }
+    if (p.pos === 'QB' && _qbHave >= _qbCap) return false;
+    if (p.pos === 'TE' && _teHave >= _teCap) return false;
+    return true;
+  }
+
+  // Step 1: pre-sort by aiScore to get top-20 candidate pool
+  var _pool = players.filter(candidateFilter)
     .sort(function(a,b){
       if (_lateRounds && _myDSCount === 0) {
         if (a.pos === 'DST' && b.pos !== 'DST') return -1;
@@ -1793,12 +1836,18 @@ function renderVOR() {
         if (b.pos === 'K' && a.pos !== 'K') return 1;
       }
       var sa = aiScore(a), sb = aiScore(b);
-      // Rank-correlation tiebreak: when composite scores are close (within
-      // projection noise), trust the more reliable signal — better ECR rank.
       if (Math.abs(sa - sb) < 5) return (a.ecr || 999) - (b.ecr || 999);
       return sb - sa;
     })
-    .slice(0,3);
+    .slice(0, 20);
+
+  // Step 2: compute 2-pick score for each candidate (also sets p._nextPick)
+  _pool.forEach(function(p){ p._twoPickScore = twoPickScore(p, _pool); });
+
+  // Step 3: re-sort by 2-pick score and take top 3
+  window._vorTop5 = _pool
+    .sort(function(a,b){ return b._twoPickScore - a._twoPickScore; })
+    .slice(0, 3);
 
   // Fallback if nothing passes filter
   if (window._vorTop5.length === 0) {
@@ -1854,7 +1903,14 @@ function renderVOR() {
     html += '<div style="font-size:9px;color:var(--muted)">' + p.nfl + ' · ECR#' + (p.ecr||'?') + (isSteal ? ' <span style="color:var(--gold)">▲+' + ecrGap + '</span>' : '') + '</div>';
     var vorNum = p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—';
     html += '<div class="vc-score"><span style="color:' + g.color + ';font-weight:700">VOR ' + vorNum + '</span>' + (atTierCliff ? ' <span style="color:var(--gold);font-size:8px" title="Last in tier ' + p.tier + ' — cliff after him">▼ last T' + p.tier + '</span>' : '') + '</div>';
-    html += '<div class="vc-urgency" style="color:' + probClr + '">' + (goneProb !== null ? goneProb + '% gone · ' : '') + 'Next: ' + nextName + '</div>';
+    html += '<div class="vc-urgency" style="color:' + probClr + '">' + (goneProb !== null ? goneProb + '% gone · ' : '') + 'Next pos: ' + nextName + '</div>';
+    // 2-pick look-ahead: show projected best pick after this one
+    var np = p._nextPick;
+    if (np) {
+      var npVor = np.mvor != null ? (np.mvor >= 0 ? '+' : '') + np.mvor.toFixed(1) : '';
+      var npClr = posColors[np.pos] || 'var(--muted)';
+      html += '<div style="font-size:9px;color:var(--dim)">→ 2nd: <span style="color:' + npClr + '">' + np.pos + '</span> ' + np.name.split(' ').pop() + ' <span style="color:var(--green)">' + npVor + '</span></div>';
+    }
     html += '</div>';
   }
   document.getElementById('vor-recs').innerHTML = html;
