@@ -707,7 +707,7 @@ header {
     <div class="player-table" id="player-table"></div>
     <div class="vor-panel" id="vor-panel" style="display:none">
       <div class="vor-title">
-        <span>⚡ Best available <span id="vor-horizon" style="color:var(--accent)"></span></span>
+        <span>⚡ Top picks <span id="vor-horizon" style="color:var(--accent)"></span></span>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="color:var(--dim);font-weight:400;font-size:10px">click to select</span>
           <button id="vor-collapse-btn" onclick="toggleVorPanel()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Syne',sans-serif">▼</button>
@@ -1713,17 +1713,13 @@ function toggleEcrStealsPanel() {
 function toggleVorPanel() {
   vorPanelCollapsed = !vorPanelCollapsed;
   var recs = document.getElementById('vor-recs');
-  var steals = document.getElementById('ecr-steals-panel');
   var btn  = document.getElementById('vor-collapse-btn');
   if (vorPanelCollapsed) {
     recs.style.display = 'none';
-    if (steals) steals.style.display = 'none';
     if (btn) btn.textContent = '▶';
   } else {
     recs.style.display = 'flex';
     if (btn) btn.textContent = '▼';
-    // ECR steals re-render on next renderVOR call; just trigger it
-    renderVOR();
   }
 }
 
@@ -1750,7 +1746,18 @@ function renderVOR() {
   var _myDSCount  = teamPosCount(myTeamId, 'DST');
   var _myKCount   = teamPosCount(myTeamId, 'K');
 
-  // Top 5 available filtered by caps and round
+  // Composite AI score: VOR value + scarcity urgency + ECR steal bonus
+  function aiScore(p) {
+    var mvor = p.mvor || 0;
+    var prob = computePickProb(p);
+    var goneProb = prob !== null ? (1 - prob) : 0.1;
+    var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
+    var scarcityBoost = goneProb * Math.max(0, mvor) * 0.4;
+    var stealBonus    = Math.min(ecrGap / 2, 10);
+    return mvor + scarcityBoost + stealBonus;
+  }
+
+  // Top 3 available filtered by caps and round, sorted by composite score
   window._vorTop5 = players
     .filter(function(p) {
       if (p.drafted || p.isKeeper) return false;
@@ -1764,7 +1771,6 @@ function renderVOR() {
       return true;
     })
     .sort(function(a,b){
-      // In late rounds, if missing DEF, sort DEF before K
       if (_lateRounds && _myDSCount === 0) {
         if (a.pos === 'DST' && b.pos !== 'DST') return -1;
         if (b.pos === 'DST' && a.pos !== 'DST') return 1;
@@ -1773,7 +1779,7 @@ function renderVOR() {
         if (a.pos === 'K' && b.pos !== 'K') return -1;
         if (b.pos === 'K' && a.pos !== 'K') return 1;
       }
-      return rankVal(a) - rankVal(b);
+      return aiScore(b) - aiScore(a);
     })
     .slice(0,3);
 
@@ -1806,130 +1812,43 @@ function renderVOR() {
     var mvSign = mv >= 0 ? '+' : '';
     var mvClr  = mv >= 0 ? 'var(--green)' : 'var(--red)';
 
-    // Urgency: gap between this player and next best at same position
+    // Pick probability
+    var prob      = computePickProb(p);
+    var goneProb  = prob !== null ? Math.round((1 - prob) * 100) : null;
+    var probClr   = goneProb >= 65 ? 'var(--red)' : goneProb >= 35 ? 'var(--gold)' : 'var(--muted)';
+
+    // ECR steal signal
+    var ecrGap  = (p.adp && p.ecr && p.adp < 500) ? Math.round(p.adp - p.ecr) : 0;
+    var isSteal = ecrGap >= 4;
+
+    // Primary tag: dominant signal
+    var tagTxt, tagClr;
+    if      (goneProb >= 60)          { tagTxt = '🔥 Act now'; tagClr = 'var(--red)'; }
+    else if (isSteal && goneProb < 60) { tagTxt = '⭐ ECR steal'; tagClr = 'var(--gold)'; }
+    else if (goneProb >= 30)           { tagTxt = '⚡ Soon'; tagClr = 'var(--gold)'; }
+    else                               { tagTxt = '✓ Wait'; tagClr = 'var(--green)'; }
+
+    // Next best at position (for urgency context)
     var posList  = byPos[p.pos] || [];
-    var nextBest = posList[1] || posList[0];
-    var gap      = nextBest ? (nextBest.adp - p.adp) : 0;
-    var urgClr   = gap > 8 ? 'var(--red)' : gap > 3 ? 'var(--gold)' : 'var(--green)';
-    var urgTxt   = gap > 8 ? '🔥 Act now' : gap > 3 ? '⚡ Soon' : '✓ Wait';
-    var nextName = nextBest && nextBest.name !== p.name ? nextBest.name.split(' ').pop() : '—';
+    var nextBest = posList.find(function(x){ return x.name !== p.name; });
+    var nextName = nextBest ? nextBest.name.split(' ').pop() : '—';
 
     html += '<div class="vor-card' + (isTop?' top-pick':'') + '" onclick="vorCardClick(' + i + ')">';
-    html += '<div class="vc-pos"><span style="color:' + posClr + '">' + p.pos + '</span> <span style="font-size:8px;color:' + urgClr + '">' + urgTxt + '</span></div>';
+    html += '<div class="vc-pos"><span style="color:' + posClr + '">' + p.pos + '</span> <span style="font-size:8px;color:' + tagClr + '">' + tagTxt + '</span></div>';
     html += '<div class="vc-name">' + p.name + '</div>';
-    html += '<div style="font-size:10px;color:var(--muted)">' + p.nfl + ' · ' + rankLbl + ' #' + rankVal(p).toFixed(0) + '</div>';
+    html += '<div style="font-size:9px;color:var(--muted)">' + p.nfl + ' · ECR#' + (p.ecr||'?') + (isSteal ? ' <span style="color:var(--gold)">▲+' + ecrGap + '</span>' : '') + '</div>';
     html += '<div class="vc-score" style="color:' + mvClr + '">VOR ' + mvSign + mv.toFixed(1) + '</div>';
-    html += '<div class="vc-urgency">Next: ' + nextName + '</div>';
+    html += '<div class="vc-urgency" style="color:' + probClr + '">' + (goneProb !== null ? goneProb + '% gone · ' : '') + 'Next: ' + nextName + '</div>';
     html += '</div>';
   }
   document.getElementById('vor-recs').innerHTML = html;
-  // Respect collapsed state
   var recs = document.getElementById('vor-recs');
   var btn  = document.getElementById('vor-collapse-btn');
   if (vorPanelCollapsed) { recs.style.display = 'none'; if (btn) btn.textContent = '▶'; }
   else                   { recs.style.display = 'flex';  if (btn) btn.textContent = '▼'; }
-
-  // ── ECR Steals panel ──────────────────────────────────────────────────────
-  // Show available players where experts rank them significantly better than
-  // where the market drafts them (ECR << ADP) — works in both Redraft and Dynasty.
-  var stealPanel = document.getElementById('ecr-steals-panel');
-  var stealCardsEl = document.getElementById('ecr-steals-cards');
-  if (!stealPanel || !stealCardsEl || vorPanelCollapsed) {
-    if (stealPanel) stealPanel.style.display = 'none';
-  } else {
-    var currentPickNum = curIdx + 1; // 1-based overall pick number
-
-    // Compute byPos for marginalValue fallback
-    var _stealByPos = {};
-    players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
-      if (!_stealByPos[p.pos]) _stealByPos[p.pos] = [];
-      _stealByPos[p.pos].push(p);
-    });
-    Object.values(_stealByPos).forEach(function(arr){ arr.sort(function(a,b){ return a.ecr - b.ecr; }); });
-
-    var MIN_STEAL_GAP = 3; // minimum (adp - ecr) picks to qualify as a steal
-    // Only consider players relevant near the current pick (within ~2 rounds of ECR).
-    // This kills deep-board noise (#233 players with huge but meaningless ADP gaps).
-    var leagueTeams = (LEAGUE_CONFIG && LEAGUE_CONFIG.numTeams) || (teams && teams.length) || 10;
-    var ecrWindow = currentPickNum + 2 * leagueTeams;
-
-    var ecrSteals = players
-      .filter(function(p) {
-        if (p.drafted || p.isKeeper) return false;
-        if (!p.adp || p.adp >= 500 || !p.ecr) return false;
-        // Relevant near the pick: experts would have you draft them within ~2 rounds
-        if (p.ecr > ecrWindow) return false;
-        // Core steal signal: experts rank significantly better than market
-        return (p.adp - p.ecr) >= MIN_STEAL_GAP;
-      })
-      .sort(function(a, b) {
-        // Sort by steal gap (adp - ecr) descending — biggest divergence first
-        return (b.adp - b.ecr) - (a.adp - a.ecr);
-      })
-      .slice(0, 3);
-
-    if (ecrSteals.length === 0) {
-      stealPanel.style.display = 'none';
-    } else {
-      stealPanel.style.display = 'flex';
-      // Sync collapse state
-      var _stealBtn = document.getElementById('ecr-steals-collapse-btn');
-      if (stealCardsEl) stealCardsEl.style.display = ecrStealsPanelCollapsed ? 'none' : 'flex';
-      if (_stealBtn) _stealBtn.textContent = ecrStealsPanelCollapsed ? '▶' : '▼';
-
-      if (ecrStealsPanelCollapsed) return; // cards hidden, no need to re-render
-
-      // Best alternative player by mvor (to compute VOR edge)
-      var allAvailSorted = players
-        .filter(function(p){ return !p.drafted && !p.isKeeper && p.mvor != null; })
-        .sort(function(a, b){ return (b.mvor || 0) - (a.mvor || 0); });
-
-      var stealHtml = '';
-      ecrSteals.forEach(function(p) {
-        var adpGap = Math.round(p.adp - p.ecr); // how many picks the market sleeps on this player
-        var prob = computePickProb(p);
-        // prob = still available probability; goneProb = chance they're gone by next turn
-        var goneProb = prob !== null ? Math.round((1 - prob) * 100) : null;
-
-        // VOR edge: this player's mvor vs. best available alternative
-        var bestAlt = allAvailSorted.find(function(x){ return x.name !== p.name; });
-        var stealMvor = p.mvor != null ? p.mvor : marginalValue(p, myTeamId, _stealByPos);
-        var vorEdge = bestAlt ? stealMvor - (bestAlt.mvor || 0) : 0;
-
-        // Verdict: TAKE NOW if high chance of being gone AND VOR trade-off is acceptable
-        var verdict, verdictClass;
-        if (goneProb !== null && goneProb >= 50 && vorEdge >= -1.5) {
-          verdict = '→ TAKE NOW';
-          verdictClass = 'ecr-steal-verdict-now';
-        } else if (goneProb !== null && goneProb < 35) {
-          verdict = '→ CAN WAIT';
-          verdictClass = 'ecr-steal-verdict-wait';
-        } else {
-          verdict = '→ BORDERLINE';
-          verdictClass = 'ecr-steal-verdict-border';
-        }
-
-        var vorEdgeSign = vorEdge >= 0 ? '+' : '';
-        var vorEdgeClr  = vorEdge >= 0 ? 'var(--green)' : 'var(--red)';
-        var probClr = goneProb >= 65 ? 'var(--red)' : goneProb >= 40 ? 'var(--gold)' : 'var(--green)';
-        var diff = p.ecr - p.adp;
-        var valueIcon = diff < -2 ? ' ▲' : '';
-        var valueClr  = diff < -2 ? 'var(--green)' : 'var(--dim)';
-        var posClr2 = posColors[p.pos] || 'var(--muted)';
-
-        stealHtml += '<div class="ecr-steal-card">';
-        stealHtml += '<div style="font-size:8px;font-weight:700;color:' + posClr2 + '">' + p.pos + ' <span style="color:var(--gold);font-weight:400">+' + adpGap + ' picks</span></div>';
-        stealHtml += '<div style="font-size:10px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + p.name + '<span style="color:' + valueClr + '">' + valueIcon + '</span></div>';
-        stealHtml += '<div style="font-size:8px;color:var(--dim)">ECR#' + p.ecr.toFixed(0) + ' · ADP#' + p.adp.toFixed(0) + '</div>';
-        var probVorLine = (goneProb !== null ? '<span style="color:' + probClr + '">' + goneProb + '% gone</span> · ' : '') + 'VOR <span style="color:' + vorEdgeClr + '">' + vorEdgeSign + vorEdge.toFixed(1) + '</span>';
-        stealHtml += '<div style="font-size:8px;color:var(--muted)">' + probVorLine + '</div>';
-        stealHtml += '<div class="' + verdictClass + '">' + verdict + '</div>';
-        stealHtml += '</div>';
-      });
-
-      stealCardsEl.innerHTML = stealHtml;
-    }
-  }
+  // Hide old ECR Steals sub-panel if it still exists in DOM
+  var _sp = document.getElementById('ecr-steals-panel');
+  if (_sp) _sp.style.display = 'none';
 }
 
 
