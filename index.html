@@ -1978,7 +1978,7 @@ function renderVOR() {
     if (np) {
       var npVor = np.mvor != null ? (np.mvor >= 0 ? '+' : '') + np.mvor.toFixed(1) : '';
       var npClr = posColors[np.pos] || 'var(--muted)';
-      html += '<div style="font-size:9px;color:var(--dim)">→ 2nd: <span style="color:' + npClr + '">' + np.pos + '</span> ' + np.name.split(' ').pop() + ' <span style="color:var(--green)">' + npVor + '</span></div>';
+      html += '<div style="font-size:9px;color:var(--dim)">then → <span style="color:' + npClr + '">' + np.pos + '</span> ' + np.name.split(' ').pop() + ' <span style="color:var(--green)">' + npVor + '</span></div>';
     }
     html += '</div>';
   }
@@ -4496,7 +4496,7 @@ init();
           &nbsp;3. Find the best pick <em>C</em> likely available the turn after — scored with needs after <em>A+B</em><br>
           &nbsp;Total = AI(A) + <span style="color:var(--gold)">0.65</span>×AI(B) + <span style="color:var(--gold)">0.42</span>×AI(C)
         </div>
-        The discount (0.65 per turn) reflects that future picks are less certain. The <strong>→ 2nd: [player] +X.X</strong> line on each card shows the projected best pick for your next turn if you take that card now.
+        The discount (0.65 per turn) reflects that future picks are less certain. The <strong>then → [player] +X.X</strong> line on each card shows the projected best pick for your next turn if you take that card now.
       </div>
 
       <div>
