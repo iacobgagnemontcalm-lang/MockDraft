@@ -496,6 +496,25 @@ header {
 .vor-card .vc-name { font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vor-card .vc-score { font-size: 10px; font-family: 'DM Mono', monospace; }
 .vor-card .vc-urgency { font-size: 9px; color: var(--muted); }
+/* ECR Steals panel */
+#ecr-steals-panel {
+  display: none; flex-direction: column; gap: 5px;
+  border-top: 1px solid var(--border2); padding-top: 6px; margin-top: 2px;
+}
+.ecr-steal-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--gold);
+}
+.ecr-steal-cards { display: flex; gap: 6px; flex-wrap: wrap; }
+.ecr-steal-card {
+  flex: 1; min-width: 100px; background: var(--surface2);
+  border: 1px solid rgba(245,197,66,0.3); border-left: 3px solid var(--gold);
+  border-radius: var(--border-radius-md); padding: 6px 9px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.ecr-steal-verdict-now  { color: var(--green); font-weight: 700; font-size: 10px; }
+.ecr-steal-verdict-wait { color: var(--muted);  font-size: 10px; }
+.ecr-steal-verdict-border { color: var(--gold); font-weight: 700; font-size: 10px; }
 /* sleeper live badge */
 .auto-toggle {
   font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
@@ -689,6 +708,10 @@ header {
         </div>
       </div>
       <div class="vor-recs" id="vor-recs" style="transition:max-height 0.2s ease,opacity 0.2s ease"></div>
+      <div id="ecr-steals-panel">
+        <div class="ecr-steal-title">⭐ ECR Steals — experts say draft now, market says later</div>
+        <div class="ecr-steal-cards" id="ecr-steals-cards"></div>
+      </div>
     </div>
     <div class="action-bar">
       <div class="selected-info" id="sel-info">
@@ -1666,13 +1689,17 @@ let vorPanelCollapsed = false;
 function toggleVorPanel() {
   vorPanelCollapsed = !vorPanelCollapsed;
   var recs = document.getElementById('vor-recs');
+  var steals = document.getElementById('ecr-steals-panel');
   var btn  = document.getElementById('vor-collapse-btn');
   if (vorPanelCollapsed) {
     recs.style.display = 'none';
+    if (steals) steals.style.display = 'none';
     if (btn) btn.textContent = '▶';
   } else {
     recs.style.display = 'flex';
     if (btn) btn.textContent = '▼';
+    // ECR steals re-render on next renderVOR call; just trigger it
+    renderVOR();
   }
 }
 
@@ -1777,6 +1804,97 @@ function renderVOR() {
   var btn  = document.getElementById('vor-collapse-btn');
   if (vorPanelCollapsed) { recs.style.display = 'none'; if (btn) btn.textContent = '▶'; }
   else                   { recs.style.display = 'flex';  if (btn) btn.textContent = '▼'; }
+
+  // ── ECR Steals panel ──────────────────────────────────────────────────────
+  // Show players whose ECR says draft now but ADP says market expects them later.
+  var stealPanel = document.getElementById('ecr-steals-panel');
+  var stealCardsEl = document.getElementById('ecr-steals-cards');
+  if (!stealPanel || !stealCardsEl || vorPanelCollapsed) {
+    if (stealPanel) stealPanel.style.display = 'none';
+  } else {
+    var ECR_WINDOW = 5;
+    var currentPickNum = curIdx + 1; // 1-based overall pick number
+
+    // Compute VOR for available players if mvor isn't set yet
+    var _stealByPos = {};
+    players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
+      if (!_stealByPos[p.pos]) _stealByPos[p.pos] = [];
+      _stealByPos[p.pos].push(p);
+    });
+    Object.values(_stealByPos).forEach(function(arr){ arr.sort(function(a,b){ return a.ecr - b.ecr; }); });
+
+    var ecrSteals = players
+      .filter(function(p) {
+        if (p.drafted || p.isKeeper) return false;
+        if (!p.adp || p.adp >= 500) return false;
+        // Expert window: ECR says the player should go around now (within ECR_WINDOW picks)
+        // but ADP says market still expects them at least 3 picks later
+        return currentPickNum >= (p.ecr - ECR_WINDOW) && p.adp > currentPickNum + 2;
+      })
+      .sort(function(a, b) {
+        // Sort by steal gap (adp - ecr) descending — biggest divergence first
+        return (b.adp - b.ecr) - (a.adp - a.ecr);
+      })
+      .slice(0, 3);
+
+    if (ecrSteals.length === 0) {
+      stealPanel.style.display = 'none';
+    } else {
+      stealPanel.style.display = 'flex';
+
+      // Best alternative player by mvor (to compute VOR edge)
+      var allAvailSorted = players
+        .filter(function(p){ return !p.drafted && !p.isKeeper && p.mvor != null; })
+        .sort(function(a, b){ return (b.mvor || 0) - (a.mvor || 0); });
+
+      var stealHtml = '';
+      ecrSteals.forEach(function(p) {
+        var adpGap = Math.round(p.adp - currentPickNum);
+        var prob = computePickProb(p);
+        // prob = still available probability; goneProb = chance they're gone by next turn
+        var goneProb = prob !== null ? Math.round((1 - prob) * 100) : null;
+
+        // VOR edge: this player's mvor vs. best available alternative
+        var bestAlt = allAvailSorted.find(function(x){ return x.name !== p.name; });
+        var stealMvor = p.mvor != null ? p.mvor : marginalValue(p, myTeamId, _stealByPos);
+        var vorEdge = bestAlt ? stealMvor - (bestAlt.mvor || 0) : 0;
+
+        // Verdict: TAKE NOW if high chance of being gone AND VOR trade-off is acceptable
+        var verdict, verdictClass;
+        if (goneProb !== null && goneProb >= 50 && vorEdge >= -1.5) {
+          verdict = '→ TAKE NOW';
+          verdictClass = 'ecr-steal-verdict-now';
+        } else if (goneProb !== null && goneProb < 35) {
+          verdict = '→ CAN WAIT';
+          verdictClass = 'ecr-steal-verdict-wait';
+        } else {
+          verdict = '→ BORDERLINE';
+          verdictClass = 'ecr-steal-verdict-border';
+        }
+
+        var vorEdgeSign = vorEdge >= 0 ? '+' : '';
+        var vorEdgeClr  = vorEdge >= 0 ? 'var(--green)' : 'var(--red)';
+        var probClr = goneProb >= 65 ? 'var(--red)' : goneProb >= 40 ? 'var(--gold)' : 'var(--green)';
+        var diff = p.ecr - p.adp;
+        var valueIcon = diff < -2 ? ' ▲' : '';
+        var valueClr  = diff < -2 ? 'var(--green)' : 'var(--dim)';
+        var posClr2 = posColors[p.pos] || 'var(--muted)';
+
+        stealHtml += '<div class="ecr-steal-card">';
+        stealHtml += '<div style="font-size:9px;font-weight:700;color:' + posClr2 + '">' + p.pos + '</div>';
+        stealHtml += '<div style="font-size:11px;font-weight:500;color:var(--text)">' + p.name + '<span style="color:' + valueClr + '">' + valueIcon + '</span></div>';
+        stealHtml += '<div style="font-size:9px;color:var(--dim)">ECR #' + p.ecr.toFixed(0) + ' · ADP #' + p.adp.toFixed(0) + ' <span style="color:var(--gold)">(+' + adpGap + ' picks)</span></div>';
+        if (goneProb !== null) {
+          stealHtml += '<div style="font-size:9px;color:' + probClr + '">' + goneProb + '% gone by next pick</div>';
+        }
+        stealHtml += '<div style="font-size:9px;color:var(--muted)">VOR vs best alt: <span style="color:' + vorEdgeClr + '">' + vorEdgeSign + vorEdge.toFixed(1) + '</span></div>';
+        stealHtml += '<div class="' + verdictClass + '">' + verdict + '</div>';
+        stealHtml += '</div>';
+      });
+
+      stealCardsEl.innerHTML = stealHtml;
+    }
+  }
 }
 
 
