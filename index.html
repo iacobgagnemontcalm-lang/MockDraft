@@ -1830,17 +1830,16 @@ function renderVOR() {
   else                   { recs.style.display = 'flex';  if (btn) btn.textContent = '▼'; }
 
   // ── ECR Steals panel ──────────────────────────────────────────────────────
-  // Show players whose ECR says draft now but ADP says market expects them later.
-  // Only valid in 2026 redraft where ADP numbers match the draft pick range.
+  // Show available players where experts rank them significantly better than
+  // where the market drafts them (ECR << ADP) — works in both Redraft and Dynasty.
   var stealPanel = document.getElementById('ecr-steals-panel');
   var stealCardsEl = document.getElementById('ecr-steals-cards');
   if (!stealPanel || !stealCardsEl || vorPanelCollapsed) {
     if (stealPanel) stealPanel.style.display = 'none';
   } else {
-    var ECR_WINDOW = 5;
     var currentPickNum = curIdx + 1; // 1-based overall pick number
 
-    // Compute VOR for available players if mvor isn't set yet
+    // Compute byPos for marginalValue fallback
     var _stealByPos = {};
     players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
       if (!_stealByPos[p.pos]) _stealByPos[p.pos] = [];
@@ -1848,13 +1847,14 @@ function renderVOR() {
     });
     Object.values(_stealByPos).forEach(function(arr){ arr.sort(function(a,b){ return a.ecr - b.ecr; }); });
 
+    var MIN_STEAL_GAP = 3; // minimum (adp - ecr) picks to qualify as a steal
+
     var ecrSteals = players
       .filter(function(p) {
         if (p.drafted || p.isKeeper) return false;
-        if (!p.adp || p.adp >= 500) return false;
-        // Expert window: ECR says the player should go around now (within ECR_WINDOW picks)
-        // but ADP says market still expects them at least 3 picks later
-        return currentPickNum >= (p.ecr - ECR_WINDOW) && p.adp > currentPickNum + 2;
+        if (!p.adp || p.adp >= 500 || !p.ecr) return false;
+        // Core steal signal: experts rank significantly better than market
+        return (p.adp - p.ecr) >= MIN_STEAL_GAP;
       })
       .sort(function(a, b) {
         // Sort by steal gap (adp - ecr) descending — biggest divergence first
@@ -1880,7 +1880,7 @@ function renderVOR() {
 
       var stealHtml = '';
       ecrSteals.forEach(function(p) {
-        var adpGap = Math.round(p.adp - currentPickNum);
+        var adpGap = Math.round(p.adp - p.ecr); // how many picks the market sleeps on this player
         var prob = computePickProb(p);
         // prob = still available probability; goneProb = chance they're gone by next turn
         var goneProb = prob !== null ? Math.round((1 - prob) * 100) : null;
@@ -1914,7 +1914,7 @@ function renderVOR() {
         stealHtml += '<div class="ecr-steal-card">';
         stealHtml += '<div style="font-size:9px;font-weight:700;color:' + posClr2 + '">' + p.pos + '</div>';
         stealHtml += '<div style="font-size:11px;font-weight:500;color:var(--text)">' + p.name + '<span style="color:' + valueClr + '">' + valueIcon + '</span></div>';
-        stealHtml += '<div style="font-size:9px;color:var(--dim)">ECR #' + p.ecr.toFixed(0) + ' · ADP #' + p.adp.toFixed(0) + ' <span style="color:var(--gold)">(+' + adpGap + ' picks)</span></div>';
+        stealHtml += '<div style="font-size:9px;color:var(--dim)">ECR #' + p.ecr.toFixed(0) + ' · ADP #' + p.adp.toFixed(0) + ' <span style="color:var(--gold)">(experts +' + adpGap + ' ahead)</span></div>';
         if (goneProb !== null) {
           stealHtml += '<div style="font-size:9px;color:' + probClr + '">' + goneProb + '% gone by next pick</div>';
         }
