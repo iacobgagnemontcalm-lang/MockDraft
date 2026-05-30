@@ -1834,8 +1834,7 @@ function renderVOR() {
   // Only valid in 2026 redraft where ADP numbers match the draft pick range.
   var stealPanel = document.getElementById('ecr-steals-panel');
   var stealCardsEl = document.getElementById('ecr-steals-cards');
-  var isDynastyMode = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'dynasty';
-  if (!stealPanel || !stealCardsEl || vorPanelCollapsed || isDynastyMode) {
+  if (!stealPanel || !stealCardsEl || vorPanelCollapsed) {
     if (stealPanel) stealPanel.style.display = 'none';
   } else {
     var ECR_WINDOW = 5;
