@@ -1901,10 +1901,22 @@ function renderVOR() {
   // Step 2: compute 3-pick score for each candidate (also sets p._nextPick)
   _pool.forEach(function(p){ p._threePickScore = threePickScore(p, _pool); });
 
-  // Step 3: re-sort by 3-pick score and take top 3
-  window._vorTop5 = _pool
-    .sort(function(a,b){ return b._threePickScore - a._threePickScore; })
-    .slice(0, 3);
+  // Step 3: re-sort by 3-pick score, then enforce position diversity (max 1 per position).
+  // This prevents all 3 cards showing the same position (e.g. 3 TEs) when only 1 is needed.
+  var _sorted = _pool.slice().sort(function(a,b){ return b._threePickScore - a._threePickScore; });
+  var _diverse = [], _seenPos = {};
+  // First pass: best player per position
+  for (var _di = 0; _di < _sorted.length && _diverse.length < 3; _di++) {
+    if (!_seenPos[_sorted[_di].pos]) {
+      _diverse.push(_sorted[_di]);
+      _seenPos[_sorted[_di].pos] = true;
+    }
+  }
+  // Second pass: fill any remaining slots with next best (allows repeats if positions exhausted)
+  for (var _di2 = 0; _di2 < _sorted.length && _diverse.length < 3; _di2++) {
+    if (_diverse.indexOf(_sorted[_di2]) === -1) _diverse.push(_sorted[_di2]);
+  }
+  window._vorTop5 = _diverse;
 
   // Fallback if nothing passes filter
   if (window._vorTop5.length === 0) {
