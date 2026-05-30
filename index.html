@@ -4307,98 +4307,82 @@ init();
     <button onclick="document.getElementById('vor-modal').style.display='none'" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1">×</button>
 
     <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">How it works</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace">VOR · ADP · Pick probability · DEF/K rule</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace">AI score · VOR · ECR steal · Tier cliffs · Pick probability</div>
 
     <div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.7;color:var(--text)">
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">The core idea</div>
-        Raw rankings tell you a player is #25 overall — but that ignores two things: <em>how many similar players are still available</em>, and <em>how badly you need that position</em>. VOR accounts for both, giving every player a score that reflects their actual value to <strong>your specific roster</strong> right now. The score updates live as picks are made.
-      </div>
-
-      <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Step 1 — Dynamic replacement baseline</div>
-        For each position the "replacement player" is the best freely available option after all 10 teams finish drafting. Unlike a fixed table, this baseline <strong>updates live</strong> as players are drafted — if 5 RBs are taken early, the replacement RB shifts down accordingly.
-        <div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">QB — 16th QB</div>
-          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">RB — 41st RB</div>
-          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">WR — 40th WR</div>
-          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">TE — 17th TE</div>
-          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">K — 11th K</div>
-          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">DEF — 11th DEF</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">⚡ Top picks — the AI score</div>
+        The three cards above the board rank available players using a composite score that blends four signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+8.3</span>) shown on each card and board row is the raw marginal value — positive means above replacement, negative means below.
+        <div style="margin-top:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)">
+          AI score = VOR + scarcity boost + ECR steal bonus + tier cliff bonus
         </div>
       </div>
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Step 2 — Roster slot weights</div>
-        Not every roster spot matters equally. Your 1st RB starts every week — your 4th barely matters:
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 1 — VOR (value over replacement)</div>
+        VOR answers: <em>how much better is this player than the best freely available alternative at the same position?</em> The replacement baseline updates live as players are drafted. Roster slot weights mean your 1st RB is worth more than your 4th:
         <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
           <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px">
             <div style="color:var(--green);font-weight:700;margin-bottom:4px">RB / WR</div>
-            <div style="color:var(--muted)">1st → <span style="color:var(--text)">100%</span> (starter)</div>
-            <div style="color:var(--muted)">2nd → <span style="color:var(--text)">90%</span> (starter)</div>
-            <div style="color:var(--muted)">3rd → <span style="color:var(--text)">55%</span> (FLEX)</div>
-            <div style="color:var(--muted)">4th → <span style="color:var(--text)">25%</span> (bench)</div>
-            <div style="color:var(--muted)">5th+ → <span style="color:var(--text)">10%</span> (handcuff)</div>
+            <div style="color:var(--muted)">1st → <span style="color:var(--text)">100%</span> · 2nd → <span style="color:var(--text)">90%</span> · 3rd → <span style="color:var(--text)">55%</span> · 4th → <span style="color:var(--text)">25%</span> · 5th+ → <span style="color:var(--text)">10%</span></div>
           </div>
           <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px">
             <div style="color:var(--orange);font-weight:700;margin-bottom:4px">QB / TE</div>
-            <div style="color:var(--muted)">1st → <span style="color:var(--text)">100%</span> (starter)</div>
-            <div style="color:var(--muted)">2nd → <span style="color:var(--text)">50%</span> (backup)</div>
-            <div style="color:var(--muted)">3rd+ → <span style="color:var(--text)">0%</span> (no value)</div>
-            <div style="color:var(--dim);font-size:10px;margin-top:4px">Single starter — depth drops off steeply</div>
+            <div style="color:var(--muted)">1st → <span style="color:var(--text)">100%</span> · 2nd → <span style="color:var(--text)">50%</span> · 3rd+ → <span style="color:var(--text)">0%</span></div>
+            <div style="color:var(--dim);font-size:10px;margin-top:2px">Single starter — depth drops off steeply</div>
           </div>
         </div>
       </div>
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Step 3 — VOR formula</div>
-        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);margin-bottom:8px">VOR = slot_weight × log(replECR / playerECR) × 100 × (1 + (1 − pickProb) × 0.9)</div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.6">
-          <strong style="color:var(--text)">log(replECR / playerECR) × 100</strong> — log-curve gap above the live replacement baseline. Compresses the scale so the difference between picks #1 and #10 isn't treated the same as #100 and #110.<br><br>
-          <strong style="color:var(--text)">slot_weight</strong> — how important is the Nth slot at this position on your roster right now.<br><br>
-          <strong style="color:var(--text)">(1 + (1 − pickProb) × 0.9)</strong> — scarcity multiplier. A player who is 99% likely to be gone by your next pick gets boosted up to ×1.9. A player who will definitely still be there gets ×1.0.
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 2 — Scarcity urgency (% gone)</div>
+        Each player has a <strong>% gone</strong> probability: the chance they're drafted before your next pick, based on a sigmoid curve around their ADP. If a high-VOR player has 80% gone probability, their score gets a large boost — waiting means likely losing them.
+        <div style="margin-top:8px;display:flex;gap:6px;font-size:11px">
+          <div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 8px;color:var(--red)"><strong>🔥 Act now</strong><br><span style="color:var(--muted)">&gt;60% gone</span></div>
+          <div style="flex:1;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:6px 8px;color:var(--gold)"><strong>⚡ Soon</strong><br><span style="color:var(--muted)">30–60% gone</span></div>
+          <div style="flex:1;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:6px;padding:6px 8px;color:var(--green)"><strong>✓ Wait</strong><br><span style="color:var(--muted)">&lt;30% gone</span></div>
         </div>
       </div>
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Pick probability %</div>
-        The % bar on each player row answers: <em>"what are the odds this player is still available when my next pick comes?"</em> It uses a sigmoid curve centred on the player's weighted ADP, adjusted for picks already made. It updates when you switch teams in the dropdown — each team sees probability relative to <strong>their own next pick</strong>.
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 3 — ECR steal ⭐ ▲</div>
+        When a player's <strong>ECR</strong> (expert rank) is significantly better than their <strong>ADP</strong> (market rank), experts think the market is sleeping on them. The gap boosts their score — the bigger the gap, the more the app nudges you to take them before others wake up. A green <strong>▲+N</strong> on the board row and <strong>⭐ ECR steal</strong> tag on the card flag this. QB/TE steal bonuses are down-weighted since their ADP is more volatile.
+      </div>
+
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 4 — Tier cliff ▼ last T#</div>
+        Players are grouped into tiers (T1, T2…). When a player is the <strong>last of his tier</strong> at his position — meaning the next available player there is in a worse tier — his score gets a cliff bonus of +8. The board shows a dashed gold line between tiers. A <strong>▼ last T4</strong> tag on the card means: take him now or drop to a materially worse tier.
+      </div>
+
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Roster nudge bar</div>
+        The line below the panel header (e.g. <span style="font-family:'DM Mono',monospace;color:var(--muted)">2RB · 1WR · 0QB · 0TE</span>) tracks your current positional balance. If it turns into a warning like <span style="color:var(--gold)">⚠️ 0 RB through R5</span>, the pool at that position is thinning fast — treat that as a hard signal to override the cards.
+      </div>
+
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Pick probability % bar</div>
+        The bar on each board row answers: <em>"what are the odds this player is still here at my next pick?"</em> It uses a sigmoid curve centred on the player's ADP. Switch teams in the dropdown and every probability updates relative to that team's next pick.
         <div style="margin-top:8px;display:flex;gap:6px;font-size:11px">
-          <div style="flex:1;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:6px;padding:6px 8px;color:var(--green)"><strong>90–99%</strong><br><span style="color:var(--muted)">Safe to wait a round</span></div>
-          <div style="flex:1;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:6px 8px;color:var(--gold)"><strong>40–70%</strong><br><span style="color:var(--muted)">Coin flip — take now or risk it</span></div>
-          <div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 8px;color:var(--red)"><strong>&lt;20%</strong><br><span style="color:var(--muted)">Almost certainly gone</span></div>
+          <div style="flex:1;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:6px;padding:6px 8px;color:var(--green)"><strong>90–99%</strong><br><span style="color:var(--muted)">Safe to wait</span></div>
+          <div style="flex:1;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:6px 8px;color:var(--gold)"><strong>40–70%</strong><br><span style="color:var(--muted)">Coin flip</span></div>
+          <div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 8px;color:var(--red)"><strong>&lt;20%</strong><br><span style="color:var(--muted)">Almost gone</span></div>
         </div>
       </div>
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Multi-source ADP & ± risk badge</div>
-        The displayed ADP is a <strong>weighted average across up to 4 sources</strong>: FantasyPros ADP (w=1.0) · Fantasy Football Calculator (w=0.9) · MyFantasyLeague (w=0.8) · Sleeper (w=0.6, only when real draft ADP is available). The <strong>± badge</strong> shows disagreement between sources — higher means more uncertainty:
+        ADP is a <strong>weighted average across up to 4 sources</strong>: FantasyPros (w=1.0) · Fantasy Football Calculator (w=0.9) · MyFantasyLeague (w=0.8) · Sleeper (w=0.6). The <strong>± badge</strong> shows disagreement between sources — higher = more uncertainty about where this player actually goes.
         <div style="margin-top:8px;display:flex;gap:6px;font-size:11px;flex-wrap:wrap">
-          <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:5px;padding:4px 8px;color:var(--green)">±1–3 — Sources agree, low uncertainty</div>
+          <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:5px;padding:4px 8px;color:var(--green)">±1–3 — Sources agree</div>
           <div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:5px;padding:4px 8px;color:var(--gold)">±4–8 — Moderate disagreement</div>
-          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:5px;padding:4px 8px;color:var(--red)">±8+ — High disagreement, boom-or-bust</div>
+          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:5px;padding:4px 8px;color:var(--red)">±8+ — High disagreement / boom-or-bust</div>
         </div>
       </div>
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">DEF / K drafting rule</div>
-        Autopilot will <strong>never draft a DEF or K until a team has 13 total players rostered</strong> (keepers + draft picks combined). Human players can draft DEF/K at any time with no warning.
-      </div>
-
-      <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Best available panel</div>
-        The cards above the board show the top 3 available players adjusted for your roster needs. Each card shows an urgency signal based on the ADP drop to the next available player at that same position:
-        <div style="margin-top:8px;display:flex;gap:8px;font-size:11px">
-          <div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 10px;color:var(--red)">🔥 <strong>Act now</strong><br><span style="color:var(--muted)">Sharp drop to next player at this position</span></div>
-          <div style="flex:1;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:6px 10px;color:var(--gold)">⚡ <strong>Soon</strong><br><span style="color:var(--muted)">Moderate drop — worth taking now</span></div>
-          <div style="flex:1;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:6px;padding:6px 10px;color:var(--green)">✓ <strong>Wait</strong><br><span style="color:var(--muted)">Similar options still available</span></div>
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Risk quintiles — STD DEV badge</div>
-        The coloured badge (✦◆●▲⬥) on each player shows their standard deviation rank <strong>within their position group</strong>. A WR ranked ⬥5 is risky compared to other WRs — not to all players.
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Risk badge ✦◆●▲⬥</div>
+        Shows standard deviation rank <strong>within the position group</strong>. A WR ⬥5 is high-variance vs. other WRs, not all players.
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
           <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:5px;padding:4px 8px;color:#22c55e">✦1 — Experts agree</div>
           <div style="background:rgba(134,239,172,0.08);border:1px solid rgba(134,239,172,0.2);border-radius:5px;padding:4px 8px;color:#86efac">◆2 — Low variance</div>
@@ -4410,21 +4394,26 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">💻 MoneyBall ↔ 🤠 Gut Feeling (autopilot)</div>
-        Each team's autopilot has its own dial controlling how it picks:
+        Each bot team has its own slider controlling how it drafts:
         <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
           <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:6px;padding:8px 10px">
             <div style="color:var(--blue);font-weight:700;margin-bottom:5px">💻 MoneyBall</div>
-            <div style="color:var(--muted);line-height:1.6">Ranks by <strong style="color:var(--text)">ECR</strong>. VOR in a tight window. Small STD DEV penalty. Pure data.</div>
+            <div style="color:var(--muted);line-height:1.6">Drafts by <strong style="color:var(--text)">ECR</strong>. Tight VOR window. Small risk penalty. Pure data — snaps up ECR-undervalued players early.</div>
           </div>
           <div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:8px 10px">
             <div style="color:var(--gold);font-weight:700;margin-bottom:5px">🤠 Gut Feeling</div>
-            <div style="color:var(--muted);line-height:1.6">Ranks by <strong style="color:var(--text)">ADP</strong>. Wider VOR window. Heavy STD DEV penalty. Boosts <strong style="color:var(--text)">last year's roster</strong> and <strong style="color:var(--text)">rookies</strong>.</div>
+            <div style="color:var(--muted);line-height:1.6">Drafts by <strong style="color:var(--text)">ADP</strong>. Wider VOR window. Heavy risk penalty. Boosts rookies &amp; last year's holdovers — leaves ECR steals on the board longer.</div>
           </div>
         </div>
       </div>
 
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">DEF / K rule</div>
+        Autopilot never drafts DEF or K until <strong>Round 14+</strong> in redraft (or 10+ picks made in Dynasty). Human players can draft them any time.
+      </div>
+
       <div style="background:var(--surface2);border-left:2px solid var(--accent);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12px;color:var(--muted)">
-        <strong style="color:var(--text)">Tip:</strong> Switch ECR ↔ ADP ↔ VOR in the header to change board sort order. A green ▲ means ECR ranks a player much higher than ADP — a potential value pick the market is sleeping on.
+        <strong style="color:var(--text)">Tip:</strong> The top picks panel is a shortlist — not a strict instruction. If the roster nudge bar is flashing a warning, trust positional balance over the card score. Switch ECR ↔ ADP ↔ VOR in the header to change board sort order.
       </div>
 
     </div>
