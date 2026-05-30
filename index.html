@@ -1743,7 +1743,7 @@ function renderVOR() {
     }
   }
 
-  // Composite AI score: VOR value + scarcity urgency + ECR steal bonus
+  // Composite AI score: VOR value + scarcity urgency + ECR steal bonus + tier-cliff bonus
   function aiScore(p) {
     var mvor = p.mvor || 0;
     var prob = computePickProb(p);
@@ -1754,7 +1754,12 @@ function renderVOR() {
     // their ADP swings wildly, so a "steal" gap there is mostly noise.
     var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
     var stealBonus  = Math.min(ecrGap / 2, 10) * stealWeight;
-    return mvor + scarcityBoost + stealBonus;
+    // Tier-cliff bonus: if this player is the last in his tier at his position,
+    // waiting means dropping to a materially worse tier — boost him.
+    var posList = byPos[p.pos] || [];
+    var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
+    var cliffBonus = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 8 : 0;
+    return mvor + scarcityBoost + stealBonus + cliffBonus;
   }
 
   // Top 3 available filtered by caps and round, sorted by composite score
@@ -1825,12 +1830,13 @@ function renderVOR() {
     var ecrGap  = (p.adp && p.ecr && p.adp < 500) ? Math.round(p.adp - p.ecr) : 0;
     var isSteal = ecrGap >= 4;
 
-    // Primary tag: dominant signal
+    // Primary tag: dominant signal (tier cliff overrides gone% — cliff IS the urgency)
     var tagTxt, tagClr;
-    if      (goneProb >= 60)          { tagTxt = '🔥 Act now'; tagClr = 'var(--red)'; }
-    else if (isSteal && goneProb < 60) { tagTxt = '⭐ ECR steal'; tagClr = 'var(--gold)'; }
-    else if (goneProb >= 30)           { tagTxt = '⚡ Soon'; tagClr = 'var(--gold)'; }
-    else                               { tagTxt = '✓ Wait'; tagClr = 'var(--green)'; }
+    if      (atTierCliff && goneProb >= 20){ tagTxt = '🔥 Last of tier'; tagClr = 'var(--red)'; }
+    else if (goneProb >= 60)               { tagTxt = '🔥 Act now'; tagClr = 'var(--red)'; }
+    else if (isSteal && !atTierCliff)      { tagTxt = '⭐ ECR steal'; tagClr = 'var(--gold)'; }
+    else if (goneProb >= 30 || atTierCliff){ tagTxt = '⚡ Soon'; tagClr = 'var(--gold)'; }
+    else                                   { tagTxt = '✓ Wait'; tagClr = 'var(--green)'; }
 
     // Next best at position (for urgency context)
     var posList  = byPos[p.pos] || [];
