@@ -716,7 +716,10 @@ header {
       </div>
       <div class="vor-recs" id="vor-recs" style="transition:max-height 0.2s ease,opacity 0.2s ease"></div>
       <div id="ecr-steals-panel">
-        <div class="ecr-steal-title">⭐ ECR Steals — experts say draft now, market says later</div>
+        <div class="ecr-steal-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>⭐ ECR Steals — experts say draft now, market says later</span>
+          <button id="ecr-steals-collapse-btn" onclick="toggleEcrStealsPanel()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Syne',sans-serif">▼</button>
+        </div>
         <div class="ecr-steal-cards" id="ecr-steals-cards"></div>
       </div>
     </div>
@@ -1692,6 +1695,20 @@ function vorCardClick(idx) {
 }
 
 let vorPanelCollapsed = false;
+let ecrStealsPanelCollapsed = false;
+
+function toggleEcrStealsPanel() {
+  ecrStealsPanelCollapsed = !ecrStealsPanelCollapsed;
+  var cards  = document.getElementById('ecr-steals-cards');
+  var btn    = document.getElementById('ecr-steals-collapse-btn');
+  if (ecrStealsPanelCollapsed) {
+    if (cards) cards.style.display = 'none';
+    if (btn)   btn.textContent = '▶';
+  } else {
+    if (cards) cards.style.display = 'flex';
+    if (btn)   btn.textContent = '▼';
+  }
+}
 
 function toggleVorPanel() {
   vorPanelCollapsed = !vorPanelCollapsed;
@@ -1814,6 +1831,7 @@ function renderVOR() {
 
   // ── ECR Steals panel ──────────────────────────────────────────────────────
   // Show players whose ECR says draft now but ADP says market expects them later.
+  // Only valid in 2026 redraft where ADP numbers match the draft pick range.
   var stealPanel = document.getElementById('ecr-steals-panel');
   var stealCardsEl = document.getElementById('ecr-steals-cards');
   if (!stealPanel || !stealCardsEl || vorPanelCollapsed) {
@@ -1848,6 +1866,12 @@ function renderVOR() {
       stealPanel.style.display = 'none';
     } else {
       stealPanel.style.display = 'flex';
+      // Sync collapse state
+      var _stealBtn = document.getElementById('ecr-steals-collapse-btn');
+      if (stealCardsEl) stealCardsEl.style.display = ecrStealsPanelCollapsed ? 'none' : 'flex';
+      if (_stealBtn) _stealBtn.textContent = ecrStealsPanelCollapsed ? '▶' : '▼';
+
+      if (ecrStealsPanelCollapsed) return; // cards hidden, no need to re-render
 
       // Best alternative player by mvor (to compute VOR edge)
       var allAvailSorted = players
