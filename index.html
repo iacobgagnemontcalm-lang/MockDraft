@@ -1848,11 +1848,17 @@ function renderVOR() {
     Object.values(_stealByPos).forEach(function(arr){ arr.sort(function(a,b){ return a.ecr - b.ecr; }); });
 
     var MIN_STEAL_GAP = 3; // minimum (adp - ecr) picks to qualify as a steal
+    // Only consider players relevant near the current pick (within ~2 rounds of ECR).
+    // This kills deep-board noise (#233 players with huge but meaningless ADP gaps).
+    var leagueTeams = (LEAGUE_CONFIG && LEAGUE_CONFIG.numTeams) || (teams && teams.length) || 10;
+    var ecrWindow = currentPickNum + 2 * leagueTeams;
 
     var ecrSteals = players
       .filter(function(p) {
         if (p.drafted || p.isKeeper) return false;
         if (!p.adp || p.adp >= 500 || !p.ecr) return false;
+        // Relevant near the pick: experts would have you draft them within ~2 rounds
+        if (p.ecr > ecrWindow) return false;
         // Core steal signal: experts rank significantly better than market
         return (p.adp - p.ecr) >= MIN_STEAL_GAP;
       })
