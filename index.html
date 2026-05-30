@@ -1615,10 +1615,11 @@ function marginalValue(player, teamId, byPos) {
   // Raw VOR from log curve (computed in computeVOR)
   const rawVOR = player.vor || 0;
 
-  // Dropoff bonus: how far ahead of the next-best at same position
-  const posAvail = (byPos[pos] || []).filter(p => !p.drafted);
+  // Dropoff bonus: how far ahead of the next-best at same position.
+  // Cap at 30 ECR ranks to prevent unranked/ECR=999 players from inflating the bonus.
+  const posAvail = (byPos[pos] || []).filter(p => !p.drafted && p.ecr < 500);
   const sameSlotFallback = posAvail[1] || posAvail[0];
-  const dropoff  = sameSlotFallback ? (sameSlotFallback.ecr - player.ecr) : 0;
+  const dropoff  = sameSlotFallback ? Math.min(Math.max(0, sameSlotFallback.ecr - player.ecr), 30) : 0;
 
   const baseVOR = rawVOR + dropoff * 0.5;
 
