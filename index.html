@@ -1727,7 +1727,11 @@ function renderVOR() {
   // Determine current round (used for late-round force logic)
   var _curIdx = currentPickIndex();
   var _curRound = _curIdx !== -1 ? (draftOrder[_curIdx].round || 1) : 16;
-  var _lateRounds = _curRound >= 14;
+  var _myRosterSize = (function() {
+    var c = teamPosCounts(myTeamId);
+    return Object.values(c).reduce(function(s,v){ return s+v; }, 0);
+  })();
+  var _lateRounds = _myRosterSize >= 13;
   var _myDSCount  = teamPosCount(myTeamId, 'DST');
   var _myKCount   = teamPosCount(myTeamId, 'K');
 
