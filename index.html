@@ -2036,7 +2036,7 @@ function renderBoard() {
     const grade = p.drafted ? null : vorGrade(p.mvor);
     const vorCell = p.drafted
       ? `<span style="min-width:42px"></span>`
-      : `<span title="VOR grade — percentile value among available players" style="font-size:10px;font-weight:700;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${grade.color}">${grade.label}</span>`;
+      : `<span title="Marginal VOR — value over replacement" style="font-size:10px;font-weight:700;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${grade.color}">${p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—'}</span>`;
     return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
       <span class="p-name">${p.name}${rookieBadge}</span>
