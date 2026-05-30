@@ -353,6 +353,16 @@ header {
 .player-row.selected { background: rgba(124,108,255,0.12); border-left: 2px solid var(--accent); }
 .player-row.drafted { opacity: 0.28; cursor: default; pointer-events: none; text-decoration: line-through; }
 .player-row.keeper { opacity: 0.35; cursor: default; pointer-events: none; }
+.tier-cliff {
+  display: flex; align-items: center; justify-content: center;
+  padding: 2px 0; margin: 1px 0;
+  background: linear-gradient(90deg, transparent, rgba(245,197,66,0.10), transparent);
+  border-top: 1px dashed rgba(245,197,66,0.4);
+}
+.tier-cliff span {
+  font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--gold); font-family: 'DM Mono', monospace;
+}
 
 .pos-tag {
   font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500;
@@ -503,25 +513,6 @@ header {
 .vor-card .vc-name { font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vor-card .vc-score { font-size: 10px; font-family: 'DM Mono', monospace; }
 .vor-card .vc-urgency { font-size: 9px; color: var(--muted); }
-/* ECR Steals panel */
-#ecr-steals-panel {
-  display: none; flex-direction: column; gap: 5px;
-  border-top: 1px solid var(--border2); padding-top: 6px; margin-top: 2px;
-}
-.ecr-steal-title {
-  font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--gold);
-}
-.ecr-steal-cards { display: flex; gap: 4px; flex-wrap: nowrap; }
-.ecr-steal-card {
-  flex: 1; min-width: 0; background: var(--surface2);
-  border: 1px solid rgba(245,197,66,0.3); border-left: 2px solid var(--gold);
-  border-radius: var(--border-radius-md); padding: 4px 6px;
-  display: flex; flex-direction: column; gap: 2px;
-}
-.ecr-steal-verdict-now  { color: var(--green); font-weight: 700; font-size: 9px; }
-.ecr-steal-verdict-wait { color: var(--muted);  font-size: 9px; }
-.ecr-steal-verdict-border { color: var(--gold); font-weight: 700; font-size: 9px; }
 /* sleeper live badge */
 .auto-toggle {
   font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
@@ -714,14 +705,8 @@ header {
           <button onclick="document.getElementById('vor-modal').style.display='flex'" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Syne',sans-serif;letter-spacing:0.5px">How it works</button>
         </div>
       </div>
+      <div id="vor-roster-nudge" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);padding:0 2px"></div>
       <div class="vor-recs" id="vor-recs" style="transition:max-height 0.2s ease,opacity 0.2s ease"></div>
-      <div id="ecr-steals-panel">
-        <div class="ecr-steal-title" style="display:flex;align-items:center;justify-content:space-between">
-          <span>⭐ ECR Steals — experts say draft now, market says later</span>
-          <button id="ecr-steals-collapse-btn" onclick="toggleEcrStealsPanel()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Syne',sans-serif">▼</button>
-        </div>
-        <div class="ecr-steal-cards" id="ecr-steals-cards"></div>
-      </div>
     </div>
     <div class="action-bar">
       <div class="selected-info" id="sel-info">
@@ -1695,20 +1680,6 @@ function vorCardClick(idx) {
 }
 
 let vorPanelCollapsed = false;
-let ecrStealsPanelCollapsed = false;
-
-function toggleEcrStealsPanel() {
-  ecrStealsPanelCollapsed = !ecrStealsPanelCollapsed;
-  var cards  = document.getElementById('ecr-steals-cards');
-  var btn    = document.getElementById('ecr-steals-collapse-btn');
-  if (ecrStealsPanelCollapsed) {
-    if (cards) cards.style.display = 'none';
-    if (btn)   btn.textContent = '▶';
-  } else {
-    if (cards) cards.style.display = 'flex';
-    if (btn)   btn.textContent = '▼';
-  }
-}
 
 function toggleVorPanel() {
   vorPanelCollapsed = !vorPanelCollapsed;
@@ -1746,15 +1717,49 @@ function renderVOR() {
   var _myDSCount  = teamPosCount(myTeamId, 'DST');
   var _myKCount   = teamPosCount(myTeamId, 'K');
 
-  // Composite AI score: VOR value + scarcity urgency + ECR steal bonus
+  // ── Roster-structure nudge ──────────────────────────────────────────────
+  // Recent data shows roster STRUCTURE (not isolated value) drives outcomes.
+  // Flag thin/unbalanced builds at RB/WR — the positions that decide leagues.
+  var _rbHave = teamPosCount(myTeamId, 'RB');
+  var _wrHave = teamPosCount(myTeamId, 'WR');
+  var nudges = [];
+  if (!_lateRounds) {
+    if (_curRound >= 5 && _rbHave === 0) nudges.push('⚠️ 0 RB through R' + _curRound + ' — pool thinning fast');
+    if (_curRound >= 5 && _wrHave === 0) nudges.push('⚠️ 0 WR through R' + _curRound + ' — pool thinning fast');
+    if (_curRound >= 7 && (_rbHave + _wrHave) < 3) nudges.push('⚠️ Thin at RB/WR (' + _rbHave + 'RB·' + _wrHave + 'WR) — prioritize starters');
+    if (_curRound >= 4 && _qbHave === 0 && _teHave === 0 && (_rbHave + _wrHave) >= 5) nudges.push('💡 Strong RB/WR core — QB/TE now is fine');
+  }
+  var nudgeEl = document.getElementById('vor-roster-nudge');
+  if (nudgeEl) {
+    if (nudges.length) {
+      nudgeEl.innerHTML = nudges.map(function(n){
+        var clr = n.charAt(0) === '⚠' ? 'var(--gold)' : 'var(--green)';
+        return '<span style="color:' + clr + '">' + n + '</span>';
+      }).join(' &nbsp; ');
+      nudgeEl.style.display = 'block';
+    } else {
+      nudgeEl.innerHTML = 'Roster: ' + _rbHave + 'RB · ' + _wrHave + 'WR · ' + _qbHave + 'QB · ' + _teHave + 'TE';
+      nudgeEl.style.display = 'block';
+    }
+  }
+
+  // Composite AI score: VOR value + scarcity urgency + ECR steal bonus + tier-cliff bonus
   function aiScore(p) {
     var mvor = p.mvor || 0;
     var prob = computePickProb(p);
     var goneProb = prob !== null ? (1 - prob) : 0.1;
     var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
     var scarcityBoost = goneProb * Math.max(0, mvor) * 0.4;
-    var stealBonus    = Math.min(ecrGap / 2, 10);
-    return mvor + scarcityBoost + stealBonus;
+    // Down-weight steal bonus for high-ADP-variance positions (QB/TE):
+    // their ADP swings wildly, so a "steal" gap there is mostly noise.
+    var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
+    var stealBonus  = Math.min(ecrGap / 2, 10) * stealWeight;
+    // Tier-cliff bonus: if this player is the last in his tier at his position,
+    // waiting means dropping to a materially worse tier — boost him.
+    var posList = byPos[p.pos] || [];
+    var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
+    var cliffBonus = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 8 : 0;
+    return mvor + scarcityBoost + stealBonus + cliffBonus;
   }
 
   // Top 3 available filtered by caps and round, sorted by composite score
@@ -1779,7 +1784,11 @@ function renderVOR() {
         if (a.pos === 'K' && b.pos !== 'K') return -1;
         if (b.pos === 'K' && a.pos !== 'K') return 1;
       }
-      return aiScore(b) - aiScore(a);
+      var sa = aiScore(a), sb = aiScore(b);
+      // Rank-correlation tiebreak: when composite scores are close (within
+      // projection noise), trust the more reliable signal — better ECR rank.
+      if (Math.abs(sa - sb) < 5) return (a.ecr || 999) - (b.ecr || 999);
+      return sb - sa;
     })
     .slice(0,3);
 
@@ -1821,23 +1830,31 @@ function renderVOR() {
     var ecrGap  = (p.adp && p.ecr && p.adp < 500) ? Math.round(p.adp - p.ecr) : 0;
     var isSteal = ecrGap >= 4;
 
-    // Primary tag: dominant signal
+    // Primary tag: dominant signal (tier cliff overrides gone% — cliff IS the urgency)
     var tagTxt, tagClr;
-    if      (goneProb >= 60)          { tagTxt = '🔥 Act now'; tagClr = 'var(--red)'; }
-    else if (isSteal && goneProb < 60) { tagTxt = '⭐ ECR steal'; tagClr = 'var(--gold)'; }
-    else if (goneProb >= 30)           { tagTxt = '⚡ Soon'; tagClr = 'var(--gold)'; }
-    else                               { tagTxt = '✓ Wait'; tagClr = 'var(--green)'; }
+    if      (atTierCliff && goneProb >= 20){ tagTxt = '🔥 Last of tier'; tagClr = 'var(--red)'; }
+    else if (goneProb >= 60)               { tagTxt = '🔥 Act now'; tagClr = 'var(--red)'; }
+    else if (isSteal && !atTierCliff)      { tagTxt = '⭐ ECR steal'; tagClr = 'var(--gold)'; }
+    else if (goneProb >= 30 || atTierCliff){ tagTxt = '⚡ Soon'; tagClr = 'var(--gold)'; }
+    else                                   { tagTxt = '✓ Wait'; tagClr = 'var(--green)'; }
 
     // Next best at position (for urgency context)
     var posList  = byPos[p.pos] || [];
     var nextBest = posList.find(function(x){ return x.name !== p.name; });
     var nextName = nextBest ? nextBest.name.split(' ').pop() : '—';
 
+    // Tier cliff at this position: is the next-best player a worse tier?
+    // If so, this is the last player in his tier — a real drop-off looms.
+    var atTierCliff = nextBest && p.tier != null && nextBest.tier != null && nextBest.tier > p.tier;
+
+    // VOR grade band (no false precision)
+    var g = vorGrade(p.mvor);
+
     html += '<div class="vor-card' + (isTop?' top-pick':'') + '" onclick="vorCardClick(' + i + ')">';
     html += '<div class="vc-pos"><span style="color:' + posClr + '">' + p.pos + '</span> <span style="font-size:8px;color:' + tagClr + '">' + tagTxt + '</span></div>';
     html += '<div class="vc-name">' + p.name + '</div>';
     html += '<div style="font-size:9px;color:var(--muted)">' + p.nfl + ' · ECR#' + (p.ecr||'?') + (isSteal ? ' <span style="color:var(--gold)">▲+' + ecrGap + '</span>' : '') + '</div>';
-    html += '<div class="vc-score" style="color:' + mvClr + '">VOR ' + mvSign + mv.toFixed(1) + '</div>';
+    html += '<div class="vc-score"><span style="color:' + g.color + ';font-weight:700">VOR ' + g.label + '</span>' + (atTierCliff ? ' <span style="color:var(--gold);font-size:8px" title="Last in tier ' + p.tier + ' — cliff after him">▼ last T' + p.tier + '</span>' : '') + '</div>';
     html += '<div class="vc-urgency" style="color:' + probClr + '">' + (goneProb !== null ? goneProb + '% gone · ' : '') + 'Next: ' + nextName + '</div>';
     html += '</div>';
   }
@@ -1846,9 +1863,6 @@ function renderVOR() {
   var btn  = document.getElementById('vor-collapse-btn');
   if (vorPanelCollapsed) { recs.style.display = 'none'; if (btn) btn.textContent = '▶'; }
   else                   { recs.style.display = 'flex';  if (btn) btn.textContent = '▼'; }
-  // Hide old ECR Steals sub-panel if it still exists in DOM
-  var _sp = document.getElementById('ecr-steals-panel');
-  if (_sp) _sp.style.display = 'none';
 }
 
 
@@ -1932,6 +1946,23 @@ function rankVal(p) {
   return p.ecr;
 }
 
+// VOR grade band — avoids false precision. Projections explain only ~60% of
+// variance, so a "+335 vs +277" gap is within noise. We bucket by percentile
+// among currently-available players into letter grades instead.
+function vorGrade(mvor) {
+  var avail = players.filter(function(p){ return !p.drafted && !p.isKeeper && p.mvor != null; })
+                     .map(function(p){ return p.mvor; })
+                     .sort(function(a,b){ return b - a; });
+  if (avail.length === 0 || mvor == null) return { label: '—', color: 'var(--dim)' };
+  var rank = avail.filter(function(v){ return v > mvor; }).length;
+  var pct  = rank / avail.length; // 0 = best
+  if (pct <= 0.05) return { label: 'A+', color: 'var(--green)' };
+  if (pct <= 0.15) return { label: 'A',  color: 'var(--green)' };
+  if (pct <= 0.35) return { label: 'B',  color: 'var(--gold)' };
+  if (pct <= 0.60) return { label: 'C',  color: 'var(--muted)' };
+  return { label: 'D', color: 'var(--dim)' };
+}
+
 function renderBoard() {
   const q = document.getElementById('search').value.toLowerCase();
   const table = document.getElementById('player-table');
@@ -1958,8 +1989,22 @@ function renderBoard() {
   const drafted   = allFiltered.filter(p =>  p.drafted).sort((a, b) => rankVal(a) - rankVal(b));
   const filtered  = [...available, ...drafted];
 
+  // Tier-cliff dividers: in ECR/ADP sort, the board is monotonic in tier, so a
+  // tier increase between consecutive available players marks a real talent
+  // "cliff" (Boris-Chen-style). Track the previous available player's tier.
+  const showCliffs = rankMode !== 'vor';
+  let prevTier = null;
+
   const rows = filtered.map(p => {
     if (!p.drafted) avail++;
+    // Insert a cliff divider when the tier worsens between available players
+    let cliffHtml = '';
+    if (showCliffs && !p.drafted && p.tier != null) {
+      if (prevTier != null && p.tier > prevTier) {
+        cliffHtml = `<div class="tier-cliff"><span>▼ Tier ${p.tier} — cliff</span></div>`;
+      }
+      prevTier = p.tier;
+    }
     const isSel = selectedPlayer && selectedPlayer.name === p.name;
     const cls = p.drafted ? 'player-row drafted' : isSel ? 'player-row selected' : 'player-row';
     const pc = posClass(p.pos);
@@ -1989,14 +2034,18 @@ function renderBoard() {
       : `<span style="min-width:40px"></span>`;
     const adpStdBadge = `<span style="min-width:32px"></span>`;
 
-    return `<div class="${cls}" ${dataName}>
+    const grade = p.drafted ? null : vorGrade(p.mvor);
+    const vorCell = p.drafted
+      ? `<span style="min-width:42px"></span>`
+      : `<span title="VOR grade — percentile value among available players" style="font-size:10px;font-weight:700;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${grade.color}">${grade.label}</span>`;
+    return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
       <span class="p-name">${p.name}${rookieBadge}</span>
       <span class="p-nfl">${p.nfl}</span>
       <span class="p-tier" style="color:var(--dim)">T${p.tier}</span>
       ${riskBadge}
       <span style="font-size:9px;color:var(--dim);min-width:48px;text-align:right">${otherLabel} ${otherRank.toFixed(0)}</span>
-      <span style="font-size:9px;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${(p.mvor||0)>=0?'var(--green)':'var(--red)'}">VOR ${(p.mvor!=null?(p.mvor>=0?'+':'')+p.mvor.toFixed(1):'…')}</span>
+      ${vorCell}
       ${adpStdBadge}
       ${probHtml}
       <span class="p-rank">#${activeRank.toFixed(0)}</span>
