@@ -1603,6 +1603,20 @@ function picksUntilTurn(teamId) {
 }
 function picksUntilMyTurn() { return picksUntilTurn(myTeamId); }
 
+// Counts picks between the current turn and the NEXT time myTeamId picks.
+// When it's currently my turn, this returns the round-trip (picks until my next turn).
+function picksToMyNextTurn() {
+  var curIdx = currentPickIndex();
+  if (curIdx === -1) return teams.length || 10;
+  var startSearch = (draftOrder[curIdx] && draftOrder[curIdx].teamId === myTeamId) ? curIdx + 1 : curIdx;
+  var count = 0;
+  for (var i = startSearch; i < draftOrder.length; i++) {
+    if (draftOrder[i].teamId === myTeamId) return count;
+    count++;
+  }
+  return count || (teams.length || 10);
+}
+
 // ── Core: marginal value of drafting player P for teamId ──
 // (c) Pick probability scarcity multiplier applied to final VOR
 // VOR = slotW × rawVOR × (1 + (1 - pickProb) × 0.9)
@@ -1827,19 +1841,32 @@ function renderVOR() {
   // 3-pick look-ahead: score pick A now + best pick B at next turn + best pick C at turn after.
   // Each step uses updated roster state (need multipliers adjust after each hypothetical pick).
   // Stores projected 2nd pick on p._nextPick for card display.
+  // picksToNext / picksToAfter: actual round-trip lengths so availability is realistic.
+  var _picksToNext  = picksToMyNextTurn();
+  var _picksToAfter = _picksToNext + (teams.length || 10);
+
+  function pickProbAtOffset(player, extraPicks) {
+    var adp = player.adp;
+    if (!adp || adp >= 500) return null;
+    var remainingRank = players.filter(function(q){ return !q.drafted && !q.isKeeper && q.adp < adp; }).length;
+    var overshoot = extraPicks - remainingRank;
+    var prob = 1 / (1 + Math.exp(overshoot / 4));
+    return Math.max(0.01, Math.min(0.99, prob));
+  }
+
   function threePickScore(p, pool) {
     var base = aiScore(p);
     var n1   = needAfter1(p.pos);
     var qb1  = _qbHave + (p.pos === 'QB' ? 1 : 0);
     var te1  = _teHave + (p.pos === 'TE' ? 1 : 0);
 
-    // Best 2nd pick: likely available, respects updated caps, scored with updated needs
+    // Best 2nd pick: available at my NEXT turn (not current turn)
     var cands2 = pool.filter(function(x) {
       if (x.name === p.name) return false;
       if (x.pos === 'QB' && qb1 >= _qbCap) return false;
       if (x.pos === 'TE' && te1 >= _teCap) return false;
-      var pr = computePickProb(x);
-      return pr !== null ? pr > 0.35 : true;
+      var pr = pickProbAtOffset(x, _picksToNext);
+      return pr !== null ? pr < 0.65 : true; // <65% gone = likely still available
     });
     if (!cands2.length) { p._nextPick = null; return base; }
     cands2.sort(function(a,b){ return aiScoreWith(b,n1[0],n1[1]) - aiScoreWith(a,n1[0],n1[1]); });
@@ -1847,7 +1874,7 @@ function renderVOR() {
     p._nextPick = bestB;
     var scoreB = aiScoreWith(bestB, n1[0], n1[1]);
 
-    // Best 3rd pick: after A + B, with further updated caps and needs
+    // Best 3rd pick: available at my turn AFTER next
     var n2  = needAfter2(p.pos, bestB.pos);
     var qb2 = qb1 + (bestB.pos === 'QB' ? 1 : 0);
     var te2 = te1 + (bestB.pos === 'TE' ? 1 : 0);
@@ -1855,8 +1882,8 @@ function renderVOR() {
       if (x.name === p.name || x.name === bestB.name) return false;
       if (x.pos === 'QB' && qb2 >= _qbCap) return false;
       if (x.pos === 'TE' && te2 >= _teCap) return false;
-      var pr = computePickProb(x);
-      return pr !== null ? pr > 0.20 : true; // lower threshold — 3rd pick is 2 turns away
+      var pr = pickProbAtOffset(x, _picksToAfter);
+      return pr !== null ? pr < 0.80 : true; // looser threshold — 2 turns away
     });
     var bestC  = cands3.length ? cands3.sort(function(a,b){ return aiScoreWith(b,n2[0],n2[1]) - aiScoreWith(a,n2[0],n2[1]); })[0] : null;
     var scoreC = bestC ? aiScoreWith(bestC, n2[0], n2[1]) : 0;
@@ -1878,6 +1905,7 @@ function renderVOR() {
     // Don't recommend QB/TE if already holding a top-5 at that position
     if (p.pos === 'QB' && teamHasTop5(myTeamId, 'QB')) return false;
     if (p.pos === 'TE' && teamHasTop5(myTeamId, 'TE')) return false;
+    if (p.pos === 'K' || p.pos === 'DST') return false;
     return true;
   }
 
