@@ -2400,23 +2400,23 @@ const STARTERS = {QB:1, RB:2, WR:2, TE:1, FLEX:1, K:1, DS:1};
 const BENCH_SLOTS = 6;
 
 function gradeColor(score) {
-  if (score >= 92) return {color:'var(--gold)',   border:'var(--gold)'};
-  if (score >= 85) return {color:'var(--green)',  border:'var(--green)'};
-  if (score >= 75) return {color:'var(--accent)', border:'var(--accent)'};
-  if (score >= 65) return {color:'var(--orange)', border:'var(--orange)'};
+  if (score >= 63) return {color:'var(--gold)',   border:'var(--gold)'};
+  if (score >= 57) return {color:'var(--green)',  border:'var(--green)'};
+  if (score >= 51) return {color:'var(--accent)', border:'var(--accent)'};
+  if (score >= 45) return {color:'var(--orange)', border:'var(--orange)'};
   return                   {color:'var(--red)',   border:'var(--red)'};
 }
 function letterGrade(score) {
-  if (score >= 97) return 'A+';
-  if (score >= 92) return 'A';
-  if (score >= 89) return 'A-';
-  if (score >= 86) return 'B+';
-  if (score >= 82) return 'B';
-  if (score >= 78) return 'B-';
-  if (score >= 74) return 'C+';
-  if (score >= 68) return 'C';
-  if (score >= 60) return 'C-';
-  if (score >= 50) return 'D';
+  if (score >= 68) return 'A+';
+  if (score >= 65) return 'A';
+  if (score >= 63) return 'A-';
+  if (score >= 61) return 'B+';
+  if (score >= 58) return 'B';
+  if (score >= 55) return 'B-';
+  if (score >= 53) return 'C+';
+  if (score >= 51) return 'C';
+  if (score >= 48) return 'C-';
+  if (score >= 44) return 'D';
   return 'F';
 }
 
@@ -2697,10 +2697,12 @@ async function generateReport() {
   var kQB = myKeepers.filter(p=>p.pos==='QB').length;
   var dRB = myDrafted.filter(p=>p.pos==='RB').length;
   var dWR = myDrafted.filter(p=>p.pos==='WR').length;
+  var qbDbl = myDrafted.filter(p=>p.pos==='QB'&&p.round<=8).length;
+  var teEarly = myDrafted.filter(p=>p.pos==='TE'&&p.round<=6).length;
   if (hasFCData) {
-    if (fcScore>=40) narr.push('📈 Top-tier FantasyCalc trade value — your roster is worth significantly more than league average.');
-    else if (fcScore>=30) narr.push('Solid FantasyCalc trade value — above-average roster strength heading into the season.');
-    else if (fcScore<=15) narr.push('📉 Below-average FantasyCalc trade value — your roster may need upgrade via trades.');
+    if (fcScore>=22) narr.push('📈 Top-tier trade value — your roster is worth significantly more than league average.');
+    else if (fcScore>=17) narr.push('Solid trade value — above-average roster strength heading into the season.');
+    else if (fcScore<=10) narr.push('📉 Below-average trade value — your roster may need upgrade via trades.');
   }
   if (missing.length) narr.push('⚠️ Missing starters at '+missing.join(', ')+' — big hole going into the season.');
   if (qbDbl>1) narr.push('Drafted '+qbDbl+' QBs in the first 8 rounds — wasted picks at the shallowest position.');
@@ -2710,9 +2712,9 @@ async function generateReport() {
   else if (fullRB<2) narr.push('Very thin at RB with only '+fullRB+' — one injury away from trouble.');
   if (kTE>=1&&teEarly>=1) narr.push('Kept a quality TE and drafted another early — double advantage at a scarcity position.');
   else if (kTE>=1) narr.push('Elite TE keeper gives you a positional edge every week.');
-  if (total>=90) narr.push('🏆 Exceptional draft — one of the strongest rosters in the league.');
-  else if (total>=80) narr.push('Strong overall draft with real upside.');
-  else if (total>=70) narr.push('Solid draft with a competitive roster.');
+  if (total>=65) narr.push('🏆 Exceptional draft — one of the strongest rosters in the league.');
+  else if (total>=58) narr.push('Strong overall draft with real upside.');
+  else if (total>=51) narr.push('Solid draft with a competitive roster.');
   else narr.push('Tough draft — will need strong waiver wire work to compete.');
 
   function posColor(pos) {
