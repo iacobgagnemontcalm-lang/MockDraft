@@ -1178,12 +1178,10 @@ function getTeam(rosterId) { return teams.find(t => t.rosterId === rosterId); }
 //   2. Sleeper season projections API              — auto, free
 //   3. ECR-curve estimate                          — pure fallback
 // ══════════════════════════════════════════════
-let ffcADPMap  = {};   // name → FFC ADP (fetched, shown in badge, not blended)
-let mflADPMap  = {};   // name → MFL ADP (fetched, shown in badge, not blended)
 let fcValueMap = {};   // name → FantasyCalc trade value (for report card)
 
 // Data source status for badge display
-const dataStatus = { sleeper: 'pending', fc: 'pending', ffc: 'pending', mfl: 'pending' };
+const dataStatus = { sleeper: 'pending', fc: 'pending' };
 
 // ── Name normalisation (robust fuzzy lookup) ──────────────────────────────
 function _norm(s)   { return s.toLowerCase().replace(/[.'`]/g,'').replace(/\s+/g,' ').trim(); }
@@ -1253,103 +1251,6 @@ async function fetchSleeperData() {
   }
 }
 
-// ── Generic fetch-with-CORS-proxy-fallback ────────────────────────────────
-// Tries the direct URL first, then a series of CORS proxies in order.
-// Returns parsed JSON or throws if all attempts fail.
-const CORS_PROXIES = [
-  url => url,                                                              // direct
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-];
-
-async function fetchWithProxy(url, label) {
-  for (let i = 0; i < CORS_PROXIES.length; i++) {
-    const proxyUrl = CORS_PROXIES[i](url);
-    try {
-      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) continue;
-      const text = await res.text();
-      if (!text || text.startsWith('<!')) continue;
-      return JSON.parse(text);
-    } catch(e) {
-      console.warn(`${label} proxy ${i} failed:`, e.message);
-    }
-  }
-  throw new Error(`All proxies failed for ${label}`);
-}
-
-// ── Fetch Fantasy Football Calculator ADP ────────────────────────────────
-async function fetchFFC() {
-  try {
-    setLoad(35, 'Fetching FFC ADP…');
-    const data = await fetchWithProxy(
-      'https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=10&year=2026',
-      'FFC'
-    );
-    (data.players || []).forEach(p => {
-      if (p.name && p.position !== 'DST' && p.adp > 0) ffcADPMap[p.name] = p.adp;
-    });
-    if (Object.keys(ffcADPMap).length > 0) {
-      dataStatus.ffc = 'live';
-      console.log('FFC: ADP for', Object.keys(ffcADPMap).length, 'players');
-    } else {
-      throw new Error('FFC: empty response');
-    }
-  } catch(e) {
-    dataStatus.ffc = 'error';
-    console.warn('FFC ADP fetch failed:', e.message);
-    loadFfcStatic();
-  }
-}
-
-// ── Fetch MyFantasyLeague ADP ─────────────────────────────────────────────
-async function fetchMFL() {
-  try {
-    setLoad(40, 'Fetching MFL ADP…');
-    const data = await fetchWithProxy(
-      'https://api.myfantasyleague.com/2026/export?TYPE=adp&IS_PPR=1&FCOUNT=10&JSON=1',
-      'MFL'
-    );
-    const playerList = data?.adp?.player || [];
-    playerList.forEach(p => {
-      const adp = parseFloat(p.averagePick);
-      if (p.name && !isNaN(adp) && adp > 0) mflADPMap[p.name] = adp;
-    });
-    if (Object.keys(mflADPMap).length > 0) {
-      dataStatus.mfl = 'live';
-      console.log('MFL: ADP for', Object.keys(mflADPMap).length, 'players');
-    } else {
-      throw new Error('MFL: empty response');
-    }
-  } catch(e) {
-    dataStatus.mfl = 'error';
-    console.warn('MFL ADP fetch failed:', e.message);
-    loadMflStatic();
-  }
-}
-
-function loadFfcStatic() {
-  // FFC historically runs ~2-5 picks earlier on skill players vs FantasyPros
-  const offsets = {QB:-2, RB:1, WR:-1, TE:2, K:0, DST:0};
-  FP_PLAYERS.forEach(p => {
-    const base = p.adp || p.ecr;
-    const jitter = (offsets[p.pos] || 0) + (Math.sin(p.ecr * 7.3) * 2.1);
-    ffcADPMap[p.name] = Math.max(1, base + jitter);
-  });
-  dataStatus.ffc = 'warn';
-  console.log('FFC: using static fallback for', Object.keys(ffcADPMap).length, 'players');
-}
-
-function loadMflStatic() {
-  const offsets = {QB:3, RB:-1, WR:0, TE:3, K:1, DST:1};
-  FP_PLAYERS.forEach(p => {
-    const base = p.adp || p.ecr;
-    const jitter = (offsets[p.pos] || 0) + (Math.cos(p.ecr * 5.9) * 1.8);
-    mflADPMap[p.name] = Math.max(1, base + jitter);
-  });
-  dataStatus.mfl = 'warn';
-  console.log('MFL: using static fallback for', Object.keys(mflADPMap).length, 'players');
-}
 
 // ── ADP: use FantasyPros as the sole source until other sources have real 2026 data ──
 // FFC/MFL/Sleeper ADP endpoints are unreliable pre-season — too few drafts.
@@ -1403,10 +1304,9 @@ function updateDataSourceBadges() {
   };
 
   el.innerHTML =
-    badge('FP',      'live',          `FantasyPros ADP — sole ADP source`) +
-    badge('FFC',     dataStatus.ffc,  `Fantasy Football Calculator (informational)`) +
+    badge('FP',      'live',             `FantasyPros ADP — sole ADP source`) +
     badge('Sleeper', dataStatus.sleeper, `Sleeper live sync`) +
-    badge('FC',      dataStatus.fc,   `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`);
+    badge('FC',      dataStatus.fc,      `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`);
 }
 
 // Slot value weights: how important is the Nth player at a position?
@@ -4371,7 +4271,7 @@ async function init() {
 
   // ── 1. Parallel: Sleeper (ADP + projections) + FantasyCalc (trade values) ──
   setLoad(5, 'Loading external data…');
-  await Promise.allSettled([fetchSleeperData(), fetchFantasyCalc(), fetchFFC()]);
+  await Promise.allSettled([fetchSleeperData(), fetchFantasyCalc()]);
   updateDataSourceBadges();
 
   if (is2026) {
