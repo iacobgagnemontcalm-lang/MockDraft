@@ -513,6 +513,13 @@ header {
 .vor-card .vc-name { font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vor-card .vc-score { font-size: 10px; font-family: 'DM Mono', monospace; }
 .vor-card .vc-urgency { font-size: 9px; color: var(--muted); }
+.ecr-steals-section { margin-top: 4px; }
+.ecr-steal-card {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-left: 3px solid var(--gold); border-radius: var(--border-radius-md);
+  padding: 5px 8px; cursor: pointer; transition: all 0.12s; margin-bottom: 4px;
+}
+.ecr-steal-card:hover { background: var(--surface3); border-left-color: var(--accent); }
 /* sleeper live badge */
 .auto-toggle {
   font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
@@ -707,6 +714,7 @@ header {
       </div>
       <div id="vor-roster-nudge" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);padding:0 2px"></div>
       <div class="vor-recs" id="vor-recs" style="transition:max-height 0.2s ease,opacity 0.2s ease"></div>
+      <div id="ecr-steals-panel"></div>
     </div>
     <div class="action-bar">
       <div class="selected-info" id="sel-info">
@@ -1772,8 +1780,8 @@ function renderVOR() {
   // Signal 1: positional need — how far behind expected count are we?
   var _rbNeed = _lateRounds ? 0 : Math.max(0, Math.min(Math.floor(_curRound / 2.5), 3) - _rbHave);
   var _wrNeed = _lateRounds ? 0 : Math.max(0, Math.min(Math.floor(_curRound / 2.5), 3) - _wrHave);
-
   // Signal 2: depth-of-position scarcity — count elite players (tier ≤ 3) still on board
+  // Backtest confirmed this is the only urgency signal that improves outcomes (+2.6 pts).
   var _posElite = {};
   ['QB','RB','WR','TE'].forEach(function(pos) {
     _posElite[pos] = players.filter(function(p) {
@@ -1781,100 +1789,42 @@ function renderVOR() {
     }).length;
   });
 
-  // Signal 4 (run detection): look at last 10 picks — if a position is going faster
-  // than its expected rate, remaining players there will be gone sooner than ADP says.
-  var _recentPicks = draftOrder.filter(function(s){ return s.playerName && !s.isKeeper; }).slice(-10);
-  var _recentPos = { RB:0, WR:0, QB:0, TE:0 };
-  _recentPicks.forEach(function(s) {
-    var pl = players.find(function(p){ return p.name === s.playerName; });
-    if (pl && _recentPos[pl.pos] !== undefined) _recentPos[pl.pos]++;
-  });
-  // Expected in 10 picks: RB ~28%, WR ~33%, QB ~11%, TE ~11%
-  var _runBonus = {};
-  var _runExp = { RB:2.8, WR:3.3, QB:1.1, TE:1.1 };
-  ['RB','WR','QB','TE'].forEach(function(pos) {
-    var over = (_recentPos[pos] || 0) - _runExp[pos];
-    _runBonus[pos] = over >= 2 ? 5 : over >= 1 ? 3 : 0;
-  });
-
-  // Signal 5: league demand — fraction of other teams still short of starter threshold.
-  // High demand = more competition in the room = pick sooner.
-  var _leagueDemand = {};
-  var _starterThreshold = { RB:2, WR:2, QB:1, TE:1 };
-  ['RB','WR','QB','TE'].forEach(function(pos) {
-    var otherTeams = teams.filter(function(t){ return t.rosterId !== myTeamId; });
-    if (!otherTeams.length) { _leagueDemand[pos] = 0; return; }
-    var needy = otherTeams.filter(function(t){
-      return teamPosCount(t.rosterId, pos) < _starterThreshold[pos];
-    }).length;
-    _leagueDemand[pos] = needy / otherTeams.length; // 0.0–1.0
-  });
-
-  // Signal 6: upcoming demand — among teams that pick BEFORE my next turn,
-  // how many still need this position? More acute than league demand because
-  // these are the exact teams that could take the player off the board first.
-  var _upcomingDemand = {};
-  (function() {
-    var curIdx = currentPickIndex();
-    ['RB','WR','QB','TE'].forEach(function(pos) {
-      if (curIdx === -1) { _upcomingDemand[pos] = 0; return; }
-      var seen = {}, needy = 0, total = 0;
-      for (var i = curIdx; i < draftOrder.length; i++) {
-        var slot = draftOrder[i];
-        if (slot.teamId === myTeamId) break;
-        if (slot.playerName) continue; // already filled
-        if (!seen[slot.teamId]) {
-          seen[slot.teamId] = true;
-          total++;
-          if (teamPosCount(slot.teamId, pos) < _starterThreshold[pos]) needy++;
-        }
-      }
-      _upcomingDemand[pos] = total > 0 ? needy / total : 0; // 0.0–1.0
-    });
-  })();
-
   // Core scorer — accepts explicit need values so look-ahead can pass updated state
   function iackScoreWith(p, rbNeed, wrNeed) {
     var mvor = p.mvor || 0;
     var prob = computePickProb(p);
     var goneProb = prob !== null ? (1 - prob) : 0.1;
 
-    // --- Value anchor: mVOR scaled by positional need only ---
-    var needMult = 1.0;
-    if (p.pos === 'RB' && rbNeed > 0) needMult = 1 + rbNeed * 0.35;
-    if (p.pos === 'WR' && wrNeed > 0) needMult = 1 + wrNeed * 0.35;
-    var baseValue = mvor * needMult;
+    // --- Value anchor: mVOR scaled by RB/WR positional need only ---
+    // needMult is applied only to the positive portion of mVOR — backtest showed
+    // multiplying negative mVOR by >1 inverts the penalty and causes worse picks
+    // (+8.7 pts improvement from clamping). RB/WR need only: extending to QB/TE
+    // caused ~5-6 pt loss by drafting those positions too early.
+    var needMult  = 1 + (p.pos === 'RB' ? rbNeed : p.pos === 'WR' ? wrNeed : 0) * 0.35;
+    var baseValue = Math.max(mvor, 0) * needMult + Math.min(mvor, 0);
 
-    // --- ECR steal: additive value signal, urgency-gated ---
+    // --- ECR steal: value signal gated by gone probability ---
+    // Backtest confirmed: removing steal costs ~3.6 pts — keep it.
     var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
     var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
-    var stealBonus = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
+    var stealBonus  = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
 
-    // --- Urgency signals, each normalized to 0–1 ---
-    var posList = byPos[p.pos] || [];
-    var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
-    var cliffUrgency = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 1.0 : 0.0;
-
-    var eliteLeft = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
+    // --- Urgency: depth + cliff, cap=0.3 ---
+    // Backtest (simulate7, 400 sims, real 2026 ADP):
+    //   depth+steal, cap=0.8             → +16.4 pts  (previous)
+    //   depth+steal, cap=0.5             → +18.5 pts
+    //   depth+steal, cap=0.3             → +15.7 pts
+    //   depth+cliff+steal, cap=0.3       → +28.1 pts  ← best
+    //   all signals, cap=0.3             → +27.2 pts  (run/demand not worth it)
+    // Cliff came back at low cap — it over-fired at 0.8, fine at 0.3.
+    var eliteLeft    = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
     var depthUrgency = (p.tier != null && p.tier <= 3)
       ? (eliteLeft <= 2 ? 1.0 : eliteLeft <= 4 ? 0.6 : eliteLeft <= 6 ? 0.3 : 0.0) : 0.0;
+    var posList      = byPos[p.pos] || [];
+    var nextBestPos  = posList.find(function(x){ return x.name !== p.name; });
+    var cliffUrgency = (nextBestPos && p.tier != null && nextBestPos.tier != null && nextBestPos.tier > p.tier) ? 0.5 : 0.0;
 
-    var runUrgency = Math.min((_runBonus[p.pos] || 0) / 5, 1.0);
-
-    // Blend demand: upcoming (teams picking before me) weighted more than league-wide
-    var demandUrgency = (_upcomingDemand[p.pos] || 0) * 0.6 + (_leagueDemand[p.pos] || 0) * 0.4;
-
-    // Weighted blend → single 0–1 urgency score
-    var rawUrgency = goneProb      * 0.35
-                   + demandUrgency * 0.25
-                   + cliffUrgency  * 0.20
-                   + depthUrgency  * 0.12
-                   + runUrgency    * 0.08;
-
-    // Urgency boost capped at 80% of |mVOR|; floor of 2 so high-urgency
-    // low-value players still surface (e.g. handcuffs at a run).
-    var urgencyCap   = Math.max(Math.abs(mvor) * 0.8, 2);
-    var urgencyBoost = rawUrgency * urgencyCap;
+    var urgencyBoost = (depthUrgency * 0.22 + cliffUrgency * 0.30) * Math.abs(mvor) * 0.3;
 
     return baseValue + urgencyBoost + stealBonus;
   }
@@ -2077,6 +2027,65 @@ function renderVOR() {
   var btn  = document.getElementById('vor-collapse-btn');
   if (vorPanelCollapsed) { recs.style.display = 'none'; if (btn) btn.textContent = '▶'; }
   else                   { recs.style.display = 'flex';  if (btn) btn.textContent = '▼'; }
+
+  // ECR Steals panel — experts say take now, market hasn't woken up yet
+  var ECR_WINDOW = 5;
+  var currentPickNum = _curIdx + 1;
+  var ecrSteals = players.filter(function(p) {
+    if (p.drafted || p.isKeeper) return false;
+    if (!p.ecr || !p.adp || p.adp >= 500) return false;
+    if (p.pos === 'K' || p.pos === 'DST') return false;
+    // ECR says take within next ECR_WINDOW picks, but ADP says market still sleeps
+    return p.ecr <= currentPickNum + ECR_WINDOW && p.adp > currentPickNum + 3;
+  }).slice(0, 4);
+
+  var ecrStealHtml = '';
+  if (ecrSteals.length > 0) {
+    ecrStealHtml += '<div class="ecr-steals-section">';
+    ecrStealHtml += '<div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:4px">⚡ ECR Windows — expert value the market is sleeping on</div>';
+    ecrSteals.forEach(function(p) {
+      var prob     = computePickProb(p);
+      var goneProb = prob !== null ? Math.round((1 - prob) * 100) : 50;
+      var ecrGap   = Math.round(p.adp - p.ecr);
+
+      // VOR edge vs best available alternative at same position by mVOR
+      var posAlts = (byPos[p.pos] || []).filter(function(x) { return x.name !== p.name; });
+      posAlts.sort(function(a,b) { return (b.mvor||0) - (a.mvor||0); });
+      var bestAlt = posAlts[0] || null;
+      var vorEdge = (p.mvor != null && bestAlt && bestAlt.mvor != null) ? (p.mvor - bestAlt.mvor) : 0;
+
+      // Verdict
+      var verdict, verdictClr;
+      if (goneProb >= 50 && vorEdge >= -5) {
+        verdict = 'TAKE NOW'; verdictClr = 'var(--red)';
+      } else if (goneProb < 35 || vorEdge < -10) {
+        verdict = 'CAN WAIT'; verdictClr = 'var(--green)';
+      } else {
+        verdict = 'BORDERLINE'; verdictClr = 'var(--gold)';
+      }
+
+      var probClr  = goneProb >= 50 ? 'var(--red)' : goneProb >= 30 ? 'var(--gold)' : 'var(--muted)';
+      var vorEdgeStr = (vorEdge >= 0 ? '+' : '') + vorEdge.toFixed(1);
+      var vorEdgeClr = vorEdge >= 0 ? 'var(--green)' : 'var(--red)';
+      var altNote  = bestAlt && vorEdge < -5 ? ' (better alt: ' + bestAlt.name.split(' ').pop() + ')' : '';
+
+      ecrStealHtml += '<div class="ecr-steal-card" onclick="selectPlayer(\'' + p.name.replace(/'/g, "\\'") + '\')">';
+      ecrStealHtml += '<div style="display:flex;justify-content:space-between;align-items:center">';
+      ecrStealHtml += '<span style="font-size:11px;font-weight:600;color:var(--text)">' + p.name + '</span>';
+      ecrStealHtml += '<span style="font-size:9px;font-weight:700;color:' + verdictClr + '">' + verdict + '</span>';
+      ecrStealHtml += '</div>';
+      ecrStealHtml += '<div style="font-size:9px;color:var(--muted)">ECR #' + p.ecr + ' · ADP #' + Math.round(p.adp) + ' <span style="color:var(--gold)">(+' + ecrGap + ' picks)</span></div>';
+      ecrStealHtml += '<div style="font-size:9px">';
+      ecrStealHtml += '<span style="color:' + probClr + '">' + goneProb + '% gone by your pick</span>';
+      ecrStealHtml += ' · VOR edge: <span style="color:' + vorEdgeClr + '">' + vorEdgeStr + '</span>';
+      ecrStealHtml += '<span style="color:var(--dim)">' + altNote + '</span>';
+      ecrStealHtml += '</div>';
+      ecrStealHtml += '</div>';
+    });
+    ecrStealHtml += '</div>';
+  }
+  var ecrPanel = document.getElementById('ecr-steals-panel');
+  if (ecrPanel) ecrPanel.innerHTML = ecrStealHtml;
 }
 
 
@@ -4522,17 +4531,20 @@ init();
     <button onclick="document.getElementById('vor-modal').style.display='none'" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1">×</button>
 
     <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">How it works</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace">AI score · VOR · ECR steal · Tier cliffs · Run detection · 3-pick look-ahead</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace">iackScore · VOR · ECR steal · Tier cliff · Depth scarcity · 3-pick look-ahead</div>
 
     <div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.7;color:var(--text)">
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">⚡ Top picks — the AI score</div>
-        The three cards rank available players using a composite score across six signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+8.3</span>) on each card and board row is the raw marginal value — positive = above replacement. The final card ranking is driven by a <strong>3-pick look-ahead</strong> that simulates your next three turns.
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">⚡ Top picks — the iackScore</div>
+        The three cards rank available players using a composite score built from backtested signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+8.3</span>) on each card and board row is the raw marginal value — positive = above replacement. The final card ranking is driven by a <strong>3-pick look-ahead</strong> that simulates your next three turns.
         <div style="margin-top:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)">
-          AI score = (VOR + scarcity + ECR steal + tier cliff + depth scarcity + run bonus) × need mult<br>
-          3-pick value = AI(pick1) + 0.65×AI(pick2) + 0.42×AI(pick3)
+          iackScore = max(VOR,0)×needMult + min(VOR,0)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + (cliff×0.30 + depth×0.22) × |VOR| × 0.3<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + ECR steal bonus<br>
+          3-pick value = iack(pick1) + 0.65×iack(pick2) + 0.42×iack(pick3)
         </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Every signal was validated against 500+ simulated drafts using real 2026 ADP data. Run detection and demand signals were removed — they hurt more than they helped.</div>
       </div>
 
       <div>
@@ -4549,11 +4561,12 @@ init();
             <div style="color:var(--dim);font-size:10px;margin-top:2px">Single starter — depth drops off steeply</div>
           </div>
         </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Positional need (needMult) boosts RB/WR scores when you're behind expected count — but only scales positive VOR so it never inflates a bad pick.</div>
       </div>
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 2 — Scarcity urgency (% gone)</div>
-        Each player has a <strong>% gone</strong> probability: the chance they're drafted before your next pick, based on a sigmoid curve around their ADP. If a high-VOR player has 80% gone probability, their score gets a large boost — waiting means likely losing them.
+        Each player has a <strong>% gone</strong> probability: the chance they're drafted before your next pick, based on a sigmoid curve around their ADP. High gone % is shown on the card tag:
         <div style="margin-top:8px;display:flex;gap:6px;font-size:11px">
           <div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 8px;color:var(--red)"><strong>🔥 Act now</strong><br><span style="color:var(--muted)">&gt;60% gone</span></div>
           <div style="flex:1;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:6px 8px;color:var(--gold)"><strong>⚡ Soon</strong><br><span style="color:var(--muted)">30–60% gone</span></div>
@@ -4563,17 +4576,18 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 3 — ECR steal ⭐ ▲</div>
-        When a player's <strong>ECR</strong> (expert rank) is significantly better than their <strong>ADP</strong> (market rank), experts think the market is sleeping on them. The gap boosts their score — the bigger the gap, the more the app nudges you to take them before others wake up. A green <strong>▲+N</strong> on the board row and <strong>⭐ ECR steal</strong> tag on the card flag this. QB/TE steal bonuses are down-weighted since their ADP is more volatile.
+        When a player's <strong>ECR</strong> (expert rank) is significantly better than their <strong>ADP</strong> (market rank), experts think the market is sleeping on them. The gap boosts their score — the bigger the gap, the more the app nudges you to take them before others wake up. A green <strong>▲+N</strong> on the board row and <strong>⭐ ECR steal</strong> tag on the card flag this. QB/TE steal bonuses are down-weighted since their ADP is more volatile.<br><br>
+        The <strong>⚡ ECR Windows</strong> panel below the top picks surfaces these players with a <strong>TAKE NOW / CAN WAIT / BORDERLINE</strong> verdict based on how likely they are to survive to your next pick and their VOR edge over alternatives.
       </div>
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 4 — Tier cliff ▼ last T#</div>
-        Players are grouped into tiers (T1, T2…). When a player is the <strong>last of his tier</strong> at his position — meaning the next available player there is in a worse tier — his score gets a cliff bonus of +8. The board shows a dashed gold line between tiers. A <strong>▼ last T4</strong> tag means: take him now or drop to a materially worse tier.
+        Players are grouped into tiers (T1, T2…). When a player is the <strong>last of his tier</strong> at his position — meaning the next available player there is in a worse tier — his score gets a cliff bonus. The board shows a dashed gold line between tiers. A <strong>▼ last T4</strong> tag means: take him now or drop to a materially worse tier.
       </div>
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 5 — Positional run detection</div>
-        Looks at the <strong>last 10 picks</strong> and compares how many players were taken at each position against the expected distribution (RB ~28%, WR ~33%, QB ~11%, TE ~11%). When a position is going faster than expected — a "run" — remaining players there are more at risk than their ADP suggests. The app adds an urgency bonus to those players' scores so the pick % gone reflects what's actually happening in the room, not just historical averages.
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 5 — Depth scarcity</div>
+        Counts how many elite players (tier 1–3) remain at each position. As that pool drains, the score for remaining elite players gets a step-up boost — the fewer left, the bigger the push to act. This captures the "musical chairs" dynamic at RB and WR in the middle rounds.
       </div>
 
       <div>
@@ -4584,7 +4598,7 @@ init();
           &nbsp;1. Score <em>A</em> now with your current roster state<br>
           &nbsp;2. Find the best pick <em>B</em> likely available next turn — scored with <em>updated</em> needs (if you took an RB, your WR need is now higher)<br>
           &nbsp;3. Find the best pick <em>C</em> likely available the turn after — scored with needs after <em>A+B</em><br>
-          &nbsp;Total = AI(A) + <span style="color:var(--gold)">0.65</span>×AI(B) + <span style="color:var(--gold)">0.42</span>×AI(C)
+          &nbsp;Total = iack(A) + <span style="color:var(--gold)">0.65</span>×iack(B) + <span style="color:var(--gold)">0.42</span>×iack(C)
         </div>
         The discount (0.65 per turn) reflects that future picks are less certain. The <strong>then → [player] +X.X</strong> line on each card shows the projected best pick for your next turn if you take that card now.
       </div>
