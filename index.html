@@ -2400,23 +2400,23 @@ const STARTERS = {QB:1, RB:2, WR:2, TE:1, FLEX:1, K:1, DS:1};
 const BENCH_SLOTS = 6;
 
 function gradeColor(score) {
-  if (score >= 63) return {color:'var(--gold)',   border:'var(--gold)'};
-  if (score >= 57) return {color:'var(--green)',  border:'var(--green)'};
-  if (score >= 51) return {color:'var(--accent)', border:'var(--accent)'};
-  if (score >= 45) return {color:'var(--orange)', border:'var(--orange)'};
+  if (score >= 82) return {color:'var(--gold)',   border:'var(--gold)'};
+  if (score >= 74) return {color:'var(--green)',  border:'var(--green)'};
+  if (score >= 64) return {color:'var(--accent)', border:'var(--accent)'};
+  if (score >= 55) return {color:'var(--orange)', border:'var(--orange)'};
   return                   {color:'var(--red)',   border:'var(--red)'};
 }
 function letterGrade(score) {
-  if (score >= 68) return 'A+';
-  if (score >= 65) return 'A';
-  if (score >= 63) return 'A-';
-  if (score >= 61) return 'B+';
-  if (score >= 58) return 'B';
-  if (score >= 55) return 'B-';
-  if (score >= 53) return 'C+';
-  if (score >= 51) return 'C';
-  if (score >= 48) return 'C-';
-  if (score >= 44) return 'D';
+  if (score >= 92) return 'A+';
+  if (score >= 88) return 'A';
+  if (score >= 84) return 'A-';
+  if (score >= 80) return 'B+';
+  if (score >= 76) return 'B';
+  if (score >= 72) return 'B-';
+  if (score >= 68) return 'C+';
+  if (score >= 64) return 'C';
+  if (score >= 58) return 'C-';
+  if (score >= 52) return 'D';
   return 'F';
 }
 
@@ -2490,12 +2490,11 @@ function scoreTeam(teamId, fcValuesMap) {
     });
   }
 
-  // Normalize: league avg = 50, ±30% from avg = ±full pillar score
+  // Normalize: league avg = 70% of max (decent draft = B), spread by sensitivity
   function normalize(myVal, allVals, maxPts, sensitivity) {
     var avg = allVals.reduce(function(a,b){return a+b;},0) / allVals.length;
-    if (avg <= 0) return maxPts / 2;
-    var pct = myVal / avg;
-    return Math.min(maxPts, Math.max(0, (maxPts/2) + (pct - 1) * sensitivity * maxPts));
+    if (avg <= 0) return maxPts * 0.7;
+    return Math.min(maxPts, Math.max(0, maxPts * 0.7 + (myVal/avg - 1) * sensitivity * maxPts));
   }
 
   // Pillar 1 (60pts): slot-weighted projected points vs league
@@ -2648,8 +2647,8 @@ async function generateReport() {
   }
   function normScore(myVal, allVals, maxPts, sensitivity) {
     var avg=allVals.reduce(function(a,b){return a+b;},0)/allVals.length;
-    if(avg<=0) return maxPts/2;
-    return Math.min(maxPts,Math.max(0,(maxPts/2)+(myVal/avg-1)*sensitivity*maxPts));
+    if(avg<=0) return maxPts*0.7;
+    return Math.min(maxPts,Math.max(0,maxPts*0.7+(myVal/avg-1)*sensitivity*maxPts));
   }
   var myIdx = teams.findIndex(function(t){return t.rosterId===myTeamId;});
 
@@ -2712,9 +2711,9 @@ async function generateReport() {
   else if (fullRB<2) narr.push('Very thin at RB with only '+fullRB+' — one injury away from trouble.');
   if (kTE>=1&&teEarly>=1) narr.push('Kept a quality TE and drafted another early — double advantage at a scarcity position.');
   else if (kTE>=1) narr.push('Elite TE keeper gives you a positional edge every week.');
-  if (total>=65) narr.push('🏆 Exceptional draft — one of the strongest rosters in the league.');
-  else if (total>=58) narr.push('Strong overall draft with real upside.');
-  else if (total>=51) narr.push('Solid draft with a competitive roster.');
+  if (total>=85) narr.push('🏆 Exceptional draft — one of the strongest rosters in the league.');
+  else if (total>=76) narr.push('Strong overall draft with real upside.');
+  else if (total>=65) narr.push('Solid draft with a competitive roster.');
   else narr.push('Tough draft — will need strong waiver wire work to compete.');
 
   function posColor(pos) {
