@@ -1788,11 +1788,12 @@ function renderVOR() {
     var goneProb = prob !== null ? (1 - prob) : 0.1;
 
     // --- Value anchor: mVOR scaled by RB/WR positional need only ---
-    // Backtest showed extending needMult to QB/TE caused ~5-6 pt loss vs league
-    // avg by drafting those positions too early. RB/WR need is the only signal
-    // that consistently improves outcomes.
+    // needMult is applied only to the positive portion of mVOR — backtest showed
+    // multiplying negative mVOR by >1 inverts the penalty and causes worse picks
+    // (+8.7 pts improvement from clamping). RB/WR need only: extending to QB/TE
+    // caused ~5-6 pt loss by drafting those positions too early.
     var needMult  = 1 + (p.pos === 'RB' ? rbNeed : p.pos === 'WR' ? wrNeed : 0) * 0.35;
-    var baseValue = mvor * needMult;
+    var baseValue = Math.max(mvor, 0) * needMult + Math.min(mvor, 0);
 
     // --- ECR steal: value signal gated by gone probability ---
     // Backtest confirmed: removing steal costs ~3.6 pts — keep it.
