@@ -1797,6 +1797,19 @@ function renderVOR() {
     _runBonus[pos] = over >= 2 ? 5 : over >= 1 ? 3 : 0;
   });
 
+  // Signal 5: league demand — fraction of other teams still short of starter threshold.
+  // High demand = more competition in the room = pick sooner.
+  var _leagueDemand = {};
+  var _starterThreshold = { RB:2, WR:2, QB:1, TE:1 };
+  ['RB','WR','QB','TE'].forEach(function(pos) {
+    var otherTeams = teams.filter(function(t){ return t.rosterId !== myTeamId; });
+    if (!otherTeams.length) { _leagueDemand[pos] = 0; return; }
+    var needy = otherTeams.filter(function(t){
+      return teamPosCount(t.rosterId, pos) < _starterThreshold[pos];
+    }).length;
+    _leagueDemand[pos] = needy / otherTeams.length; // 0.0–1.0
+  });
+
   // Core scorer — accepts explicit need values so look-ahead can pass updated state
   function aiScoreWith(p, rbNeed, wrNeed) {
     var mvor = p.mvor || 0;
@@ -1818,7 +1831,9 @@ function renderVOR() {
     var isElite = p.tier != null && p.tier <= 3;
     var depthBonus = isElite ? (eliteLeft <= 2 ? 7 : eliteLeft <= 4 ? 4 : eliteLeft <= 6 ? 2 : 0) : 0;
     var runBonus = _runBonus[p.pos] || 0;
-    return (mvor + scarcityBoost + stealBonus + cliffBonus + depthBonus + runBonus) * needMult;
+    // League demand: scale 0→+4 based on fraction of other teams still needing this position.
+    var leagueDemandBonus = (_leagueDemand[p.pos] || 0) * 4;
+    return (mvor + scarcityBoost + stealBonus + cliffBonus + depthBonus + runBonus + leagueDemandBonus) * needMult;
   }
 
   // Convenience wrapper using current roster state
