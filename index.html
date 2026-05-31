@@ -1838,28 +1838,45 @@ function renderVOR() {
     var mvor = p.mvor || 0;
     var prob = computePickProb(p);
     var goneProb = prob !== null ? (1 - prob) : 0.1;
-    var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
-    var scarcityBoost = goneProb * Math.max(0, mvor) * 0.4;
-    var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
-    // Steal bonus is urgency-weighted: a player who isn't going anywhere gets minimal credit.
-    // max(goneProb, 0.1) ensures a floor so genuine steals still surface even in early rounds.
-    var stealBonus  = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
-    var posList = byPos[p.pos] || [];
-    var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
-    var cliffBonus = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 8 : 0;
+
+    // --- Value anchor: mVOR scaled by positional need only ---
     var needMult = 1.0;
     if (p.pos === 'RB' && rbNeed > 0) needMult = 1 + rbNeed * 0.35;
     if (p.pos === 'WR' && wrNeed > 0) needMult = 1 + wrNeed * 0.35;
+    var baseValue = mvor * needMult;
+
+    // --- ECR steal: additive value signal, urgency-gated ---
+    var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
+    var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
+    var stealBonus = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
+
+    // --- Urgency signals, each normalized to 0–1 ---
+    var posList = byPos[p.pos] || [];
+    var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
+    var cliffUrgency = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 1.0 : 0.0;
+
     var eliteLeft = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
-    var isElite = p.tier != null && p.tier <= 3;
-    var depthBonus = isElite ? (eliteLeft <= 2 ? 7 : eliteLeft <= 4 ? 4 : eliteLeft <= 6 ? 2 : 0) : 0;
-    var runBonus = _runBonus[p.pos] || 0;
-    // League demand: fraction of all other teams still needing this position → +0–4.
-    var leagueDemandBonus = (_leagueDemand[p.pos] || 0) * 4;
-    // Upcoming demand: fraction of teams picking BEFORE my next turn that still need this → +0–5.
-    // Weighted higher than league demand — these are the teams that could take the player first.
-    var upcomingDemandBonus = (_upcomingDemand[p.pos] || 0) * 5;
-    return (mvor + scarcityBoost + stealBonus + cliffBonus + depthBonus + runBonus + leagueDemandBonus + upcomingDemandBonus) * needMult;
+    var depthUrgency = (p.tier != null && p.tier <= 3)
+      ? (eliteLeft <= 2 ? 1.0 : eliteLeft <= 4 ? 0.6 : eliteLeft <= 6 ? 0.3 : 0.0) : 0.0;
+
+    var runUrgency = Math.min((_runBonus[p.pos] || 0) / 5, 1.0);
+
+    // Blend demand: upcoming (teams picking before me) weighted more than league-wide
+    var demandUrgency = (_upcomingDemand[p.pos] || 0) * 0.6 + (_leagueDemand[p.pos] || 0) * 0.4;
+
+    // Weighted blend → single 0–1 urgency score
+    var rawUrgency = goneProb      * 0.35
+                   + demandUrgency * 0.25
+                   + cliffUrgency  * 0.20
+                   + depthUrgency  * 0.12
+                   + runUrgency    * 0.08;
+
+    // Urgency boost capped at 80% of |mVOR|; floor of 2 so high-urgency
+    // low-value players still surface (e.g. handcuffs at a run).
+    var urgencyCap   = Math.max(Math.abs(mvor) * 0.8, 2);
+    var urgencyBoost = rawUrgency * urgencyCap;
+
+    return baseValue + urgencyBoost + stealBonus;
   }
 
   // Convenience wrapper using current roster state
