@@ -4531,17 +4531,20 @@ init();
     <button onclick="document.getElementById('vor-modal').style.display='none'" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1">×</button>
 
     <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">How it works</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace">AI score · VOR · ECR steal · Tier cliffs · Run detection · 3-pick look-ahead</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace">iackScore · VOR · ECR steal · Tier cliff · Depth scarcity · 3-pick look-ahead</div>
 
     <div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.7;color:var(--text)">
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">⚡ Top picks — the AI score</div>
-        The three cards rank available players using a composite score across six signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+8.3</span>) on each card and board row is the raw marginal value — positive = above replacement. The final card ranking is driven by a <strong>3-pick look-ahead</strong> that simulates your next three turns.
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">⚡ Top picks — the iackScore</div>
+        The three cards rank available players using a composite score built from backtested signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+8.3</span>) on each card and board row is the raw marginal value — positive = above replacement. The final card ranking is driven by a <strong>3-pick look-ahead</strong> that simulates your next three turns.
         <div style="margin-top:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)">
-          AI score = (VOR + scarcity + ECR steal + tier cliff + depth scarcity + run bonus) × need mult<br>
-          3-pick value = AI(pick1) + 0.65×AI(pick2) + 0.42×AI(pick3)
+          iackScore = max(VOR,0)×needMult + min(VOR,0)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + (cliff×0.30 + depth×0.22) × |VOR| × 0.3<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + ECR steal bonus<br>
+          3-pick value = iack(pick1) + 0.65×iack(pick2) + 0.42×iack(pick3)
         </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Every signal was validated against 500+ simulated drafts using real 2026 ADP data. Run detection and demand signals were removed — they hurt more than they helped.</div>
       </div>
 
       <div>
@@ -4558,11 +4561,12 @@ init();
             <div style="color:var(--dim);font-size:10px;margin-top:2px">Single starter — depth drops off steeply</div>
           </div>
         </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Positional need (needMult) boosts RB/WR scores when you're behind expected count — but only scales positive VOR so it never inflates a bad pick.</div>
       </div>
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 2 — Scarcity urgency (% gone)</div>
-        Each player has a <strong>% gone</strong> probability: the chance they're drafted before your next pick, based on a sigmoid curve around their ADP. If a high-VOR player has 80% gone probability, their score gets a large boost — waiting means likely losing them.
+        Each player has a <strong>% gone</strong> probability: the chance they're drafted before your next pick, based on a sigmoid curve around their ADP. High gone % is shown on the card tag:
         <div style="margin-top:8px;display:flex;gap:6px;font-size:11px">
           <div style="flex:1;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:6px 8px;color:var(--red)"><strong>🔥 Act now</strong><br><span style="color:var(--muted)">&gt;60% gone</span></div>
           <div style="flex:1;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:6px 8px;color:var(--gold)"><strong>⚡ Soon</strong><br><span style="color:var(--muted)">30–60% gone</span></div>
@@ -4572,17 +4576,18 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 3 — ECR steal ⭐ ▲</div>
-        When a player's <strong>ECR</strong> (expert rank) is significantly better than their <strong>ADP</strong> (market rank), experts think the market is sleeping on them. The gap boosts their score — the bigger the gap, the more the app nudges you to take them before others wake up. A green <strong>▲+N</strong> on the board row and <strong>⭐ ECR steal</strong> tag on the card flag this. QB/TE steal bonuses are down-weighted since their ADP is more volatile.
+        When a player's <strong>ECR</strong> (expert rank) is significantly better than their <strong>ADP</strong> (market rank), experts think the market is sleeping on them. The gap boosts their score — the bigger the gap, the more the app nudges you to take them before others wake up. A green <strong>▲+N</strong> on the board row and <strong>⭐ ECR steal</strong> tag on the card flag this. QB/TE steal bonuses are down-weighted since their ADP is more volatile.<br><br>
+        The <strong>⚡ ECR Windows</strong> panel below the top picks surfaces these players with a <strong>TAKE NOW / CAN WAIT / BORDERLINE</strong> verdict based on how likely they are to survive to your next pick and their VOR edge over alternatives.
       </div>
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 4 — Tier cliff ▼ last T#</div>
-        Players are grouped into tiers (T1, T2…). When a player is the <strong>last of his tier</strong> at his position — meaning the next available player there is in a worse tier — his score gets a cliff bonus of +8. The board shows a dashed gold line between tiers. A <strong>▼ last T4</strong> tag means: take him now or drop to a materially worse tier.
+        Players are grouped into tiers (T1, T2…). When a player is the <strong>last of his tier</strong> at his position — meaning the next available player there is in a worse tier — his score gets a cliff bonus. The board shows a dashed gold line between tiers. A <strong>▼ last T4</strong> tag means: take him now or drop to a materially worse tier.
       </div>
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 5 — Positional run detection</div>
-        Looks at the <strong>last 10 picks</strong> and compares how many players were taken at each position against the expected distribution (RB ~28%, WR ~33%, QB ~11%, TE ~11%). When a position is going faster than expected — a "run" — remaining players there are more at risk than their ADP suggests. The app adds an urgency bonus to those players' scores so the pick % gone reflects what's actually happening in the room, not just historical averages.
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 5 — Depth scarcity</div>
+        Counts how many elite players (tier 1–3) remain at each position. As that pool drains, the score for remaining elite players gets a step-up boost — the fewer left, the bigger the push to act. This captures the "musical chairs" dynamic at RB and WR in the middle rounds.
       </div>
 
       <div>
@@ -4593,7 +4598,7 @@ init();
           &nbsp;1. Score <em>A</em> now with your current roster state<br>
           &nbsp;2. Find the best pick <em>B</em> likely available next turn — scored with <em>updated</em> needs (if you took an RB, your WR need is now higher)<br>
           &nbsp;3. Find the best pick <em>C</em> likely available the turn after — scored with needs after <em>A+B</em><br>
-          &nbsp;Total = AI(A) + <span style="color:var(--gold)">0.65</span>×AI(B) + <span style="color:var(--gold)">0.42</span>×AI(C)
+          &nbsp;Total = iack(A) + <span style="color:var(--gold)">0.65</span>×iack(B) + <span style="color:var(--gold)">0.42</span>×iack(C)
         </div>
         The discount (0.65 per turn) reflects that future picks are less certain. The <strong>then → [player] +X.X</strong> line on each card shows the projected best pick for your next turn if you take that card now.
       </div>
