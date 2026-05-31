@@ -1761,7 +1761,7 @@ function renderVOR() {
     }
   }
 
-  // Pre-compute byPos — needed by jackScore for tier-cliff and depth-scarcity
+  // Pre-compute byPos — needed by iackScore for tier-cliff and depth-scarcity
   var byPos = {};
   players.filter(function(p){ return !p.drafted && !p.isKeeper; }).forEach(function(p){
     if (!byPos[p.pos]) byPos[p.pos] = [];
@@ -1834,7 +1834,7 @@ function renderVOR() {
   })();
 
   // Core scorer — accepts explicit need values so look-ahead can pass updated state
-  function jackScoreWith(p, rbNeed, wrNeed) {
+  function iackScoreWith(p, rbNeed, wrNeed) {
     var mvor = p.mvor || 0;
     var prob = computePickProb(p);
     var goneProb = prob !== null ? (1 - prob) : 0.1;
@@ -1880,7 +1880,7 @@ function renderVOR() {
   }
 
   // Convenience wrapper using current roster state
-  function jackScore(p) { return jackScoreWith(p, _rbNeed, _wrNeed); }
+  function iackScore(p) { return iackScoreWith(p, _rbNeed, _wrNeed); }
 
   // Compute updated need values after hypothetically drafting one or two players
   function needAfter1(pos1) {
@@ -1917,7 +1917,7 @@ function renderVOR() {
   }
 
   function threePickScore(p, pool) {
-    var base = jackScore(p);
+    var base = iackScore(p);
     var n1   = needAfter1(p.pos);
     var qb1  = _qbHave + (p.pos === 'QB' ? 1 : 0);
     var te1  = _teHave + (p.pos === 'TE' ? 1 : 0);
@@ -1931,10 +1931,10 @@ function renderVOR() {
       return pr !== null ? pr < 0.65 : true; // <65% gone = likely still available
     });
     if (!cands2.length) { p._nextPick = null; return base; }
-    cands2.sort(function(a,b){ return jackScoreWith(b,n1[0],n1[1]) - jackScoreWith(a,n1[0],n1[1]); });
+    cands2.sort(function(a,b){ return iackScoreWith(b,n1[0],n1[1]) - iackScoreWith(a,n1[0],n1[1]); });
     var bestB  = cands2[0];
     p._nextPick = bestB;
-    var scoreB = jackScoreWith(bestB, n1[0], n1[1]);
+    var scoreB = iackScoreWith(bestB, n1[0], n1[1]);
 
     // Best 3rd pick: available at my turn AFTER next
     var n2  = needAfter2(p.pos, bestB.pos);
@@ -1947,8 +1947,8 @@ function renderVOR() {
       var pr = pickProbAtOffset(x, _picksToAfter);
       return pr !== null ? pr < 0.80 : true; // looser threshold — 2 turns away
     });
-    var bestC  = cands3.length ? cands3.sort(function(a,b){ return jackScoreWith(b,n2[0],n2[1]) - jackScoreWith(a,n2[0],n2[1]); })[0] : null;
-    var scoreC = bestC ? jackScoreWith(bestC, n2[0], n2[1]) : 0;
+    var bestC  = cands3.length ? cands3.sort(function(a,b){ return iackScoreWith(b,n2[0],n2[1]) - iackScoreWith(a,n2[0],n2[1]); })[0] : null;
+    var scoreC = bestC ? iackScoreWith(bestC, n2[0], n2[1]) : 0;
 
     // Discount: 0.65 per turn (0.65² ≈ 0.42 for the 3rd pick)
     return base + scoreB * 0.65 + scoreC * 0.42;
@@ -1971,7 +1971,7 @@ function renderVOR() {
     return true;
   }
 
-  // Step 1: pre-sort by jackScore to get top-20 candidate pool
+  // Step 1: pre-sort by iackScore to get top-20 candidate pool
   var _pool = players.filter(candidateFilter)
     .sort(function(a,b){
       if (_lateRounds && _myDSCount === 0) {
@@ -1982,7 +1982,7 @@ function renderVOR() {
         if (a.pos === 'K' && b.pos !== 'K') return -1;
         if (b.pos === 'K' && a.pos !== 'K') return 1;
       }
-      var sa = jackScore(a), sb = jackScore(b);
+      var sa = iackScore(a), sb = iackScore(b);
       if (Math.abs(sa - sb) < 5) return (a.ecr || 999) - (b.ecr || 999);
       return sb - sa;
     })
