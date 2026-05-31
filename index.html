@@ -513,13 +513,6 @@ header {
 .vor-card .vc-name { font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vor-card .vc-score { font-size: 10px; font-family: 'DM Mono', monospace; }
 .vor-card .vc-urgency { font-size: 9px; color: var(--muted); }
-.ecr-steals-section { margin-top: 4px; }
-.ecr-steal-card {
-  background: var(--surface2); border: 1px solid var(--border2);
-  border-left: 3px solid var(--gold); border-radius: var(--border-radius-md);
-  padding: 5px 8px; cursor: pointer; transition: all 0.12s; margin-bottom: 4px;
-}
-.ecr-steal-card:hover { background: var(--surface3); border-left-color: var(--accent); }
 /* sleeper live badge */
 .auto-toggle {
   font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
@@ -714,7 +707,6 @@ header {
       </div>
       <div id="vor-roster-nudge" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);padding:0 2px"></div>
       <div class="vor-recs" id="vor-recs" style="transition:max-height 0.2s ease,opacity 0.2s ease"></div>
-      <div id="ecr-steals-panel"></div>
     </div>
     <div class="action-bar">
       <div class="selected-info" id="sel-info">
@@ -1928,64 +1920,6 @@ function renderVOR() {
   if (vorPanelCollapsed) { recs.style.display = 'none'; if (btn) btn.textContent = '▶'; }
   else                   { recs.style.display = 'flex';  if (btn) btn.textContent = '▼'; }
 
-  // ECR Steals panel — experts say take now, market hasn't woken up yet
-  var ECR_WINDOW = 5;
-  var currentPickNum = _curIdx + 1;
-  var ecrSteals = players.filter(function(p) {
-    if (p.drafted || p.isKeeper) return false;
-    if (!p.ecr || !p.adp || p.adp >= 500) return false;
-    if (p.pos === 'K' || p.pos === 'DST') return false;
-    // ECR says take within next ECR_WINDOW picks, but ADP says market still sleeps
-    return p.ecr <= currentPickNum + ECR_WINDOW && p.adp > currentPickNum + 3;
-  }).slice(0, 4);
-
-  var ecrStealHtml = '';
-  if (ecrSteals.length > 0) {
-    ecrStealHtml += '<div class="ecr-steals-section">';
-    ecrStealHtml += '<div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:4px">⚡ ECR Windows — expert value the market is sleeping on</div>';
-    ecrSteals.forEach(function(p) {
-      var prob     = computePickProb(p);
-      var goneProb = prob !== null ? Math.round((1 - prob) * 100) : 50;
-      var ecrGap   = Math.round(p.adp - p.ecr);
-
-      // VOR edge vs best available alternative at same position by mVOR
-      var posAlts = (byPos[p.pos] || []).filter(function(x) { return x.name !== p.name; });
-      posAlts.sort(function(a,b) { return (b.mvor||0) - (a.mvor||0); });
-      var bestAlt = posAlts[0] || null;
-      var vorEdge = (p.mvor != null && bestAlt && bestAlt.mvor != null) ? (p.mvor - bestAlt.mvor) : 0;
-
-      // Verdict
-      var verdict, verdictClr;
-      if (goneProb >= 50 && vorEdge >= -5) {
-        verdict = 'TAKE NOW'; verdictClr = 'var(--red)';
-      } else if (goneProb < 35 || vorEdge < -10) {
-        verdict = 'CAN WAIT'; verdictClr = 'var(--green)';
-      } else {
-        verdict = 'BORDERLINE'; verdictClr = 'var(--gold)';
-      }
-
-      var probClr  = goneProb >= 50 ? 'var(--red)' : goneProb >= 30 ? 'var(--gold)' : 'var(--muted)';
-      var vorEdgeStr = (vorEdge >= 0 ? '+' : '') + vorEdge.toFixed(1);
-      var vorEdgeClr = vorEdge >= 0 ? 'var(--green)' : 'var(--red)';
-      var altNote  = bestAlt && vorEdge < -5 ? ' (better alt: ' + bestAlt.name.split(' ').pop() + ')' : '';
-
-      ecrStealHtml += '<div class="ecr-steal-card" onclick="selectPlayer(\'' + p.name.replace(/'/g, "\\'") + '\')">';
-      ecrStealHtml += '<div style="display:flex;justify-content:space-between;align-items:center">';
-      ecrStealHtml += '<span style="font-size:11px;font-weight:600;color:var(--text)">' + p.name + '</span>';
-      ecrStealHtml += '<span style="font-size:9px;font-weight:700;color:' + verdictClr + '">' + verdict + '</span>';
-      ecrStealHtml += '</div>';
-      ecrStealHtml += '<div style="font-size:9px;color:var(--muted)">ECR #' + p.ecr + ' · ADP #' + Math.round(p.adp) + ' <span style="color:var(--gold)">(+' + ecrGap + ' picks)</span></div>';
-      ecrStealHtml += '<div style="font-size:9px">';
-      ecrStealHtml += '<span style="color:' + probClr + '">' + goneProb + '% gone by your pick</span>';
-      ecrStealHtml += ' · VOR edge: <span style="color:' + vorEdgeClr + '">' + vorEdgeStr + '</span>';
-      ecrStealHtml += '<span style="color:var(--dim)">' + altNote + '</span>';
-      ecrStealHtml += '</div>';
-      ecrStealHtml += '</div>';
-    });
-    ecrStealHtml += '</div>';
-  }
-  var ecrPanel = document.getElementById('ecr-steals-panel');
-  if (ecrPanel) ecrPanel.innerHTML = ecrStealHtml;
 }
 
 
@@ -4476,8 +4410,7 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 3 — ECR steal ⭐ ▲</div>
-        When a player's <strong>ECR</strong> (expert rank) is significantly better than their <strong>ADP</strong> (market rank), experts think the market is sleeping on them. The gap boosts their score — the bigger the gap, the more the app nudges you to take them before others wake up. A green <strong>▲+N</strong> on the board row and <strong>⭐ ECR steal</strong> tag on the card flag this. QB/TE steal bonuses are down-weighted since their ADP is more volatile.<br><br>
-        The <strong>⚡ ECR Windows</strong> panel below the top picks surfaces these players with a <strong>TAKE NOW / CAN WAIT / BORDERLINE</strong> verdict based on how likely they are to survive to your next pick and their VOR edge over alternatives.
+        When a player's <strong>ECR</strong> (expert rank) is significantly better than their <strong>ADP</strong> (market rank), experts think the market is sleeping on them. The gap boosts their score — the bigger the gap, the more the app nudges you to take them before others wake up. A green <strong>▲+N</strong> on the board row and <strong>⭐ ECR steal</strong> tag on the card flag this. QB/TE steal bonuses are down-weighted since their ADP is more volatile.
       </div>
 
       <div>
