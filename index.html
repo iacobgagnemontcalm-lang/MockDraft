@@ -2430,83 +2430,94 @@ function scoreTeam(teamId, fcValuesMap) {
   const keepers   = team.keepers.map(k => players.find(p => p.name === k)).filter(Boolean);
   const full      = [...keepers, ...drafted];
 
-  const have = {QB:0,RB:0,WR:0,TE:0,K:0,DST:0};
-  full.forEach(p => { if (have[p.pos]!==undefined) have[p.pos]++; });
-
   // Helper: get FC value with robust name matching
   function getFCV(p) {
     var fc = fcValuesMap || window._lastFCValues || {};
     if (fc[p.name] !== undefined) return fc[p.name];
     function norm(s) { return s.toLowerCase().replace(/[.']/g, '').replace(/\s+/g, ' ').trim(); }
     function noSfx(s) { return norm(s).replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g,' ').trim(); }
-    var normName = norm(p.name);
-    var noSufName = noSfx(p.name);
-    var match = Object.keys(fc).find(n => norm(n) === normName);
-    if (match) return fc[match];
-    match = Object.keys(fc).find(n => noSfx(n) === noSufName);
-    if (match) return fc[match];
+    var normName = norm(p.name), noSufName = noSfx(p.name);
+    var match = Object.keys(fc).find(n => norm(n) === normName); if (match) return fc[match];
+    match = Object.keys(fc).find(n => noSfx(n) === noSufName);  if (match) return fc[match];
     var parts = noSufName.split(' ').filter(Boolean);
     if (parts.length >= 2) {
-      var firstLast = parts[0] + ' ' + parts[parts.length - 1];
-      match = Object.keys(fc).find(n => { var np = noSfx(n).split(' ').filter(Boolean); return np.length >= 2 && np[0]+' '+np[np.length-1] === firstLast; });
+      var fl = parts[0]+' '+parts[parts.length-1];
+      match = Object.keys(fc).find(n => { var np=noSfx(n).split(' ').filter(Boolean); return np.length>=2&&np[0]+' '+np[np.length-1]===fl; });
       if (match) return fc[match];
-    }
-    if (parts.length >= 2) {
-      var lastName = parts[parts.length-1];
-      if (lastName.length > 4) {
-        var candidates = Object.keys(fc).filter(n => noSfx(n).endsWith(' '+lastName));
-        if (candidates.length === 1) return fc[candidates[0]];
-      }
+      var ln = parts[parts.length-1];
+      if (ln.length > 4) { var cands=Object.keys(fc).filter(n=>noSfx(n).endsWith(' '+ln)); if(cands.length===1) return fc[cands[0]]; }
     }
     return null;
   }
 
-  // Score 1: FantasyCalc value (50pts) — compare vs league average
-  var fcScore = 25; // neutral default when no FC data
-  var fc = fcValuesMap || window._lastFCValues;
-  if (fc && Object.keys(fc).length > 0) {
-    var allTeamValues = teams.map(function(t) {
-      var tAll = [
-        ...t.keepers.map(k => players.find(p => p.name === k)).filter(Boolean),
-        ...draftOrder.filter(s => s.teamId === t.rosterId && s.playerName)
-          .map(s => players.find(x => x.name === s.playerName)).filter(Boolean)
-      ];
-      return tAll.map(p => getFCV(p) || 0).sort((a,b)=>b-a).slice(0,13).reduce((s,v)=>s+v,0);
-    });
-    var leagueAvg = allTeamValues.reduce((a,b)=>a+b,0) / allTeamValues.length;
-    var myTotal   = allTeamValues[teams.findIndex(t => t.rosterId === teamId)] || 0;
-    var fcPct     = leagueAvg > 0 ? myTotal / leagueAvg : 1;
-    fcScore = Math.min(50, Math.max(0, 25 + (fcPct - 1) * 83));
+  // Assign players to lineup slots, apply weights to both projPts and FC value
+  // Slots: QB(1.0) RB×2(1.0) WR×2(1.0) TE(1.0) FLEX=best RB3/WR3/TE2(0.8) bench(0.3)
+  function buildWeightedRoster(roster) {
+    var byPos = {QB:[], RB:[], WR:[], TE:[], K:[], DST:[]};
+    roster.forEach(function(p){ if(byPos[p.pos]) byPos[p.pos].push(p); });
+    Object.values(byPos).forEach(function(arr){ arr.sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); }); });
+    var starters = [
+      ...(byPos.QB||[]).slice(0,1),
+      ...(byPos.RB||[]).slice(0,2),
+      ...(byPos.WR||[]).slice(0,2),
+      ...(byPos.TE||[]).slice(0,1),
+    ];
+    var flexCands = [
+      ...(byPos.RB||[]).slice(2,3),
+      ...(byPos.WR||[]).slice(2,3),
+      ...(byPos.TE||[]).slice(1,2),
+    ].sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
+    var flex  = flexCands.slice(0,1);
+    var used  = new Set([...starters, ...flex].map(p=>p.name));
+    var bench = roster.filter(function(p){ return !used.has(p.name) && p.pos!=='K' && p.pos!=='DST'; })
+                      .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
+    var result = [];
+    starters.forEach(function(p){ result.push({p:p, w:1.0}); });
+    flex.forEach(function(p){     result.push({p:p, w:0.8}); });
+    bench.forEach(function(p){    result.push({p:p, w:0.3}); });
+    return result;
   }
 
-  // Score 2: Roster balance (25pts)
-  let balScore = 25;
-  if ((have.QB||0)<1) balScore-=10;
-  if ((have.RB||0)<2) balScore-=8;
-  if ((have.WR||0)<2) balScore-=8;
-  if ((have.TE||0)<1) balScore-=5;
-  if ((have.K||0)<1)  balScore-=2;
-  if ((have.DST||0)<1) balScore-=2;
-  if ((have.RB||0)>=4) balScore+=2;
-  if ((have.WR||0)>=4) balScore+=2;
-  balScore = Math.min(25, Math.max(0, balScore));
+  // Compute slot-weighted sum for a metric fn across all teams (for normalization)
+  function leagueWeightedSums(metricFn) {
+    return teams.map(function(t) {
+      var tRoster = [
+        ...t.keepers.map(k=>players.find(p=>p.name===k)).filter(Boolean),
+        ...draftOrder.filter(s=>s.teamId===t.rosterId&&s.playerName)
+          .map(s=>players.find(x=>x.name===s.playerName)).filter(Boolean)
+      ];
+      return buildWeightedRoster(tRoster).reduce(function(sum,slot){ return sum + (metricFn(slot.p)||0)*slot.w; }, 0);
+    });
+  }
 
-  // Score 3: Scarcity timing (15pts)
-  let scarScore = 15;
-  const rbEarly = drafted.filter(p=>p.pos==='RB'&&p.round<=4).length;
-  const teEarly = drafted.filter(p=>p.pos==='TE'&&p.round<=6).length;
-  const qbDbl   = drafted.filter(p=>p.pos==='QB'&&p.round<=8).length;
-  if (rbEarly===0&&(have.RB||0)<3) scarScore-=7;
-  if (teEarly===0&&(have.TE||0)<2) scarScore-=5;
-  if (qbDbl>1) scarScore-=4;
-  scarScore = Math.max(0, scarScore);
+  // Normalize: league avg = 50, ±30% from avg = ±full pillar score
+  function normalize(myVal, allVals, maxPts, sensitivity) {
+    var avg = allVals.reduce(function(a,b){return a+b;},0) / allVals.length;
+    if (avg <= 0) return maxPts / 2;
+    var pct = myVal / avg;
+    return Math.min(maxPts, Math.max(0, (maxPts/2) + (pct - 1) * sensitivity * maxPts));
+  }
 
-  // Score 4: Value over ADP (10pts)
-  const deltas   = drafted.map(p => p.adp - p.ecr);
-  const avgDelta = deltas.length ? deltas.reduce((a,b)=>a+b,0)/deltas.length : 0;
-  const valScore = Math.min(10, Math.max(0, 5 + avgDelta * 0.5));
+  // Pillar 1 (60pts): slot-weighted projected points vs league
+  var projSums = leagueWeightedSums(function(p){ return p.projPts || 0; });
+  var myProjIdx = teams.findIndex(function(t){ return t.rosterId === teamId; });
+  var projScore = normalize(projSums[myProjIdx] || 0, projSums, 60, 1.5);
 
-  return Math.min(100, Math.max(0, Math.round(fcScore + balScore + scarScore + valScore)));
+  // Pillar 2 (30pts): slot-weighted FC value vs league
+  var fc = fcValuesMap || window._lastFCValues;
+  var fcScore = 15; // neutral if no FC data
+  if (fc && Object.keys(fc).length > 0) {
+    var fcSums = leagueWeightedSums(function(p){ return getFCV(p) || 0; });
+    fcScore = normalize(fcSums[myProjIdx] || 0, fcSums, 30, 1.5);
+  }
+
+  // Pillar 3 (10pts): value over ADP — avg(ADP - ECR) across drafted players
+  var deltas   = drafted.filter(function(p){ return p.adp && p.ecr && p.adp < 500; })
+                        .map(function(p){ return p.adp - p.ecr; });
+  var avgDelta = deltas.length ? deltas.reduce(function(a,b){return a+b;},0) / deltas.length : 0;
+  var vadScore = Math.min(10, Math.max(0, 5 + avgDelta * 0.4));
+
+  return Math.min(100, Math.max(0, Math.round(projScore + fcScore + vadScore)));
 }
 
 function scoreAllTeams(fcValuesMap) {
@@ -2613,62 +2624,63 @@ async function generateReport() {
     return null;
   }
 
-  // ── Score 1: FantasyCalc roster value (50pts) ─────────────────────────
-  // Compare total FC trade value of your roster vs league average
-  var fcScore = 25; // default if no data
-  if (hasFCData) {
-    var allTeamValues = teams.map(function(t) {
-      var tPicks   = draftOrder.filter(s => s.teamId === t.rosterId && s.playerName)
-        .map(s => players.find(x => x.name === s.playerName)).filter(Boolean);
-      var tKeepers = t.keepers.map(k => players.find(p => p.name === k)).filter(Boolean);
-      var tRoster  = [...tKeepers, ...tPicks];
-      return tRoster.map(function(p){ return getFCValue(p) || 0; })
-        .sort(function(a,b){return b-a;}).slice(0,13).reduce(function(s,v){return s+v;},0);
-    });
-    var leagueAvg = allTeamValues.reduce((a, b) => a + b, 0) / allTeamValues.length;
-    var myFCTotal = allTeamValues[teams.findIndex(t => t.rosterId === myTeamId)] || 0;
-    var fcPct     = leagueAvg > 0 ? myFCTotal / leagueAvg : 1;
-    // 50pts: 1.0x avg = 25pts, 1.3x = 50pts, 0.7x = 0pts
-    fcScore = Math.min(50, Math.max(0, 25 + (fcPct - 1) * 83));
-
-    // Individual player FC values for display
-    fullRoster.forEach(function(p) {
-      p.fcValue = getFCValue(p);
+  // Slot-weighted roster builder (starters 1.0, FLEX 0.8, bench 0.3)
+  function buildSlotWeights(roster) {
+    var bp={QB:[],RB:[],WR:[],TE:[],K:[],DST:[]};
+    roster.forEach(function(p){if(bp[p.pos])bp[p.pos].push(p);});
+    Object.values(bp).forEach(function(a){a.sort(function(a,b){return(b.projPts||0)-(a.projPts||0);});});
+    var starters=[...(bp.QB||[]).slice(0,1),...(bp.RB||[]).slice(0,2),...(bp.WR||[]).slice(0,2),...(bp.TE||[]).slice(0,1)];
+    var flex=[(bp.RB||[])[2],(bp.WR||[])[2],(bp.TE||[])[1]].filter(Boolean).sort(function(a,b){return(b.projPts||0)-(a.projPts||0);}).slice(0,1);
+    var used=new Set([...starters,...flex].map(function(p){return p.name;}));
+    var bench=roster.filter(function(p){return!used.has(p.name)&&p.pos!=='K'&&p.pos!=='DST';});
+    var out=[];
+    starters.forEach(function(p){out.push({p:p,w:1.0});});
+    flex.forEach(function(p){out.push({p:p,w:0.8});});
+    bench.forEach(function(p){out.push({p:p,w:0.3});});
+    return out;
+  }
+  function leagueSlotSums(metricFn) {
+    return teams.map(function(t){
+      var r=[...t.keepers.map(k=>players.find(p=>p.name===k)).filter(Boolean),
+             ...draftOrder.filter(s=>s.teamId===t.rosterId&&s.playerName).map(s=>players.find(x=>x.name===s.playerName)).filter(Boolean)];
+      return buildSlotWeights(r).reduce(function(s,slot){return s+(metricFn(slot.p)||0)*slot.w;},0);
     });
   }
+  function normScore(myVal, allVals, maxPts, sensitivity) {
+    var avg=allVals.reduce(function(a,b){return a+b;},0)/allVals.length;
+    if(avg<=0) return maxPts/2;
+    return Math.min(maxPts,Math.max(0,(maxPts/2)+(myVal/avg-1)*sensitivity*maxPts));
+  }
+  var myIdx = teams.findIndex(function(t){return t.rosterId===myTeamId;});
 
-  // ── Score 2: Roster balance (25pts) ──────────────────────────────────
-  var have = {QB:0,RB:0,WR:0,TE:0,K:0,DST:0};
-  fullRoster.forEach(function(p){ if(have[p.pos]!==undefined) have[p.pos]++; });
-  var balanceScore = 25;
-  var missing = [];
-  if((have.QB||0)<1){balanceScore-=10;missing.push('QB');}
-  if((have.RB||0)<2){balanceScore-=8; missing.push('RB');}
-  if((have.WR||0)<2){balanceScore-=8; missing.push('WR');}
-  if((have.TE||0)<1){balanceScore-=5; missing.push('TE');}
-  if((have.K||0) <1) balanceScore-=2;
-  if((have.DST||0)<1) balanceScore-=2;
-  if((have.RB||0)>=4) balanceScore+=2;
-  if((have.WR||0)>=4) balanceScore+=2;
-  balanceScore = Math.min(25, Math.max(0, balanceScore));
+  // ── Pillar 1: Slot-weighted projected points (60pts) ─────────────────
+  var projSums  = leagueSlotSums(function(p){return p.projPts||0;});
+  var projScore = normScore(projSums[myIdx]||0, projSums, 60, 1.5);
 
-  // ── Score 3: Scarcity timing (15pts) ─────────────────────────────────
-  var scarceScore = 15;
-  var rbEarly = myDrafted.filter(p => p.pos==='RB' && p.round<=4).length;
-  var teEarly = myDrafted.filter(p => p.pos==='TE' && p.round<=6).length;
-  var qbDbl   = myDrafted.filter(p => p.pos==='QB' && p.round<=8).length;
-  if(rbEarly===0 && (have.RB||0)<3) scarceScore-=7;
-  if(teEarly===0 && (have.TE||0)<2) scarceScore-=5;
-  if(qbDbl>1) scarceScore-=4;
-  scarceScore = Math.max(0, scarceScore);
+  // ── Pillar 2: Slot-weighted FC value (30pts) ──────────────────────────
+  var fcScore = 15; // neutral default
+  if (hasFCData) {
+    fullRoster.forEach(function(p){ p.fcValue = getFCValue(p); });
+    var fcSums = leagueSlotSums(function(p){return getFCValue(p)||0;});
+    fcScore = normScore(fcSums[myIdx]||0, fcSums, 30, 1.5);
+  }
 
-  // ── Score 4: Value pick (10pts) — best vs worst ADP delta ─────────────
-  var deltas      = myDrafted.map(p => p.adp - p.ecr);
-  var avgDelta    = deltas.length ? deltas.reduce((a,b)=>a+b,0)/deltas.length : 0;
-  var valueScore  = Math.min(10, Math.max(0, 5 + avgDelta * 0.5));
+  // ── Pillar 3: Value over ADP (10pts) ─────────────────────────────────
+  var deltas      = myDrafted.filter(function(p){return p.adp&&p.ecr&&p.adp<500;}).map(function(p){return p.adp-p.ecr;});
+  var avgDelta    = deltas.length ? deltas.reduce(function(a,b){return a+b;},0)/deltas.length : 0;
+  var valueScore  = Math.min(10, Math.max(0, 5 + avgDelta * 0.4));
   var sortedByDelta = [...myDrafted].sort((a,b)=>(b.adp-b.ecr)-(a.adp-a.ecr));
   var bestValue   = sortedByDelta[0];
   var worstValue  = sortedByDelta[sortedByDelta.length-1];
+
+  // Keep have for narrative narr block below
+  var have = {QB:0,RB:0,WR:0,TE:0,K:0,DST:0};
+  fullRoster.forEach(function(p){ if(have[p.pos]!==undefined) have[p.pos]++; });
+  var missing = [];
+  if((have.QB||0)<1) missing.push('QB');
+  if((have.RB||0)<2) missing.push('RB');
+  if((have.WR||0)<2) missing.push('WR');
+  if((have.TE||0)<1) missing.push('TE');
 
   var total  = scoreTeam(myTeamId, fcValues);
   var grade  = letterGrade(total);
@@ -2928,10 +2940,9 @@ async function generateReport() {
     '</div>'+
 
     '<div class="report-section"><div class="report-section-title">Score breakdown</div>'+
-      bar('FantasyCalc value', fcScore, 50, 'var(--accent)', hasFCData?'live trade values':'offline — using fallback')+
-      bar('Roster balance', balanceScore, 25, 'var(--blue)')+
-      bar('Scarcity timing', scarceScore, 15, 'var(--gold)')+
-      bar('Value over ADP', valueScore, 10, 'var(--green)')+
+      bar('Projected points (lineup)', projScore, 60, 'var(--green)', 'slot-weighted vs league avg')+
+      bar('FC trade value (lineup)', fcScore, 30, 'var(--accent)', hasFCData?'slot-weighted vs league avg':'offline — no FC data')+
+      bar('Value over ADP', valueScore, 10, 'var(--gold)', 'avg ECR steal across your picks')+
     '</div>'+
 
     fcSlotHtml +
