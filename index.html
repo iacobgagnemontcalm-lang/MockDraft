@@ -2471,7 +2471,7 @@ function scoreTeam(teamId, fcValuesMap) {
         ...draftOrder.filter(s => s.teamId === t.rosterId && s.playerName)
           .map(s => players.find(x => x.name === s.playerName)).filter(Boolean)
       ];
-      return tAll.reduce((sum, p) => sum + (getFCV(p) || 0), 0);
+      return tAll.map(p => getFCV(p) || 0).sort((a,b)=>b-a).slice(0,13).reduce((s,v)=>s+v,0);
     });
     var leagueAvg = allTeamValues.reduce((a,b)=>a+b,0) / allTeamValues.length;
     var myTotal   = allTeamValues[teams.findIndex(t => t.rosterId === teamId)] || 0;
@@ -2622,9 +2622,8 @@ async function generateReport() {
         .map(s => players.find(x => x.name === s.playerName)).filter(Boolean);
       var tKeepers = t.keepers.map(k => players.find(p => p.name === k)).filter(Boolean);
       var tRoster  = [...tKeepers, ...tPicks];
-      return tRoster.reduce(function(sum, p) {
-        var v = getFCValue(p); return sum + (v || 0);
-      }, 0);
+      return tRoster.map(function(p){ return getFCValue(p) || 0; })
+        .sort(function(a,b){return b-a;}).slice(0,13).reduce(function(s,v){return s+v;},0);
     });
     var leagueAvg = allTeamValues.reduce((a, b) => a + b, 0) / allTeamValues.length;
     var myFCTotal = allTeamValues[teams.findIndex(t => t.rosterId === myTeamId)] || 0;
