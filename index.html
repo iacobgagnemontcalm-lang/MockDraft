@@ -1772,6 +1772,9 @@ function renderVOR() {
   // Signal 1: positional need — how far behind expected count are we?
   var _rbNeed = _lateRounds ? 0 : Math.max(0, Math.min(Math.floor(_curRound / 2.5), 3) - _rbHave);
   var _wrNeed = _lateRounds ? 0 : Math.max(0, Math.min(Math.floor(_curRound / 2.5), 3) - _wrHave);
+  // QB/TE: 1 starter each; need kicks in once we're past the expected window without one
+  var _qbNeed = (!_lateRounds && _qbHave < 1 && _curRound >= 6) ? 1 : 0;
+  var _teNeed = (!_lateRounds && _teHave < 1 && _curRound >= 5) ? 1 : 0;
 
   // Signal 2: depth-of-position scarcity — count elite players (tier ≤ 3) still on board
   var _posElite = {};
@@ -1810,26 +1813,32 @@ function renderVOR() {
     _leagueDemand[pos] = needy / otherTeams.length; // 0.0–1.0
   });
 
-  // Signal 6: upcoming demand — among teams that pick BEFORE my next turn,
-  // how many still need this position? More acute than league demand because
-  // these are the exact teams that could take the player off the board first.
-  var _upcomingDemand = {};
+  // Signal 6: upcoming threat — probability-weighted model of what positions
+  // teams picking before me will likely target. For each unfilled slot, allocates
+  // probability proportionally across positions by need; falls back to historical
+  // base rates when a team already has all starters (drafting for depth/value).
+  var _upcomingThreat = { RB:0, WR:0, QB:0, TE:0 };
   (function() {
     var curIdx = currentPickIndex();
-    ['RB','WR','QB','TE'].forEach(function(pos) {
-      if (curIdx === -1) { _upcomingDemand[pos] = 0; return; }
-      var seen = {}, needy = 0, total = 0;
-      for (var i = curIdx; i < draftOrder.length; i++) {
-        var slot = draftOrder[i];
-        if (slot.teamId === myTeamId) break;
-        if (slot.playerName) continue; // already filled
-        if (!seen[slot.teamId]) {
-          seen[slot.teamId] = true;
-          total++;
-          if (teamPosCount(slot.teamId, pos) < _starterThreshold[pos]) needy++;
-        }
-      }
-      _upcomingDemand[pos] = total > 0 ? needy / total : 0; // 0.0–1.0
+    if (curIdx === -1) return;
+    var baseRates = { RB:0.28, WR:0.33, QB:0.11, TE:0.11 };
+    var pickCount = 0;
+    for (var i = curIdx; i < draftOrder.length; i++) {
+      var slot = draftOrder[i];
+      if (slot.teamId === myTeamId) break;
+      if (slot.playerName) continue;
+      pickCount++;
+      var tNeeds = {}, tTotal = 0;
+      ['RB','WR','QB','TE'].forEach(function(pos) {
+        var n = Math.max(0, _starterThreshold[pos] - teamPosCount(slot.teamId, pos));
+        tNeeds[pos] = n; tTotal += n;
+      });
+      ['RB','WR','QB','TE'].forEach(function(pos) {
+        _upcomingThreat[pos] += tTotal > 0 ? tNeeds[pos] / tTotal : baseRates[pos];
+      });
+    }
+    if (pickCount > 0) ['RB','WR','QB','TE'].forEach(function(pos) {
+      _upcomingThreat[pos] /= pickCount;
     });
   })();
 
@@ -1839,42 +1848,51 @@ function renderVOR() {
     var prob = computePickProb(p);
     var goneProb = prob !== null ? (1 - prob) : 0.1;
 
-    // --- Value anchor: mVOR scaled by positional need only ---
-    var needMult = 1.0;
-    if (p.pos === 'RB' && rbNeed > 0) needMult = 1 + rbNeed * 0.35;
-    if (p.pos === 'WR' && wrNeed > 0) needMult = 1 + wrNeed * 0.35;
+    // --- Value anchor: mVOR scaled by positional need ---
+    // Covers all 4 positions; QB/TE read pre-computed globals since the
+    // 1–2 pick look-ahead horizon doesn't meaningfully shift their need.
+    var needWeights = { RB:0.35, WR:0.35, QB:0.20, TE:0.18 };
+    var posNeed = p.pos === 'RB' ? rbNeed
+                : p.pos === 'WR' ? wrNeed
+                : p.pos === 'QB' ? _qbNeed
+                : p.pos === 'TE' ? _teNeed : 0;
+    var needMult  = 1 + posNeed * (needWeights[p.pos] || 0.25);
     var baseValue = mvor * needMult;
 
-    // --- ECR steal: additive value signal, urgency-gated ---
+    // --- ECR steal: value signal gated by gone probability ---
     var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
     var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
-    var stealBonus = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
+    var stealBonus  = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
 
-    // --- Urgency signals, each normalized to 0–1 ---
-    var posList = byPos[p.pos] || [];
+    // --- Urgency signals, each normalized 0–1 ---
+    // goneProb intentionally excluded: it's already baked into mVOR via the
+    // scarcity multiplier in marginalValue(), so adding it here double-counts.
+    var posList   = byPos[p.pos] || [];
     var nextAtPos = posList.find(function(x){ return x.name !== p.name; });
     var cliffUrgency = (nextAtPos && p.tier != null && nextAtPos.tier != null && nextAtPos.tier > p.tier) ? 1.0 : 0.0;
 
-    var eliteLeft = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
+    var eliteLeft  = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
     var depthUrgency = (p.tier != null && p.tier <= 3)
       ? (eliteLeft <= 2 ? 1.0 : eliteLeft <= 4 ? 0.6 : eliteLeft <= 6 ? 0.3 : 0.0) : 0.0;
 
     var runUrgency = Math.min((_runBonus[p.pos] || 0) / 5, 1.0);
 
-    // Blend demand: upcoming (teams picking before me) weighted more than league-wide
-    var demandUrgency = (_upcomingDemand[p.pos] || 0) * 0.6 + (_leagueDemand[p.pos] || 0) * 0.4;
+    // Demand: probability-weighted threat from upcoming pickers (primary) blended
+    // with league-wide starter-need context (secondary). _upcomingThreat models
+    // likely pick targets, not just binary need, so it's the stronger signal.
+    var demandUrgency = (_upcomingThreat[p.pos] || 0) * 0.65
+                      + (_leagueDemand[p.pos]   || 0) * 0.35;
 
-    // Weighted blend → single 0–1 urgency score
-    var rawUrgency = goneProb      * 0.35
-                   + demandUrgency * 0.25
-                   + cliffUrgency  * 0.20
-                   + depthUrgency  * 0.12
-                   + runUrgency    * 0.08;
+    // Weighted blend → single 0–1 urgency score (weights sum to 1.0)
+    var rawUrgency = demandUrgency * 0.35
+                   + cliffUrgency  * 0.30
+                   + depthUrgency  * 0.22
+                   + runUrgency    * 0.13;
 
-    // Urgency boost capped at 80% of |mVOR|; floor of 2 so high-urgency
-    // low-value players still surface (e.g. handcuffs at a run).
-    var urgencyCap   = Math.max(Math.abs(mvor) * 0.8, 2);
-    var urgencyBoost = rawUrgency * urgencyCap;
+    // Urgency boost capped at 80% of |mVOR| — value stays the anchor.
+    // No artificial floor: a replacement-level player doesn't deserve urgency
+    // credit just because competition is high.
+    var urgencyBoost = rawUrgency * Math.abs(mvor) * 0.8;
 
     return baseValue + urgencyBoost + stealBonus;
   }
