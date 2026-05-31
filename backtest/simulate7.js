@@ -168,3 +168,30 @@ bench('depth+steal, cap=0.5, +mVOR',                    {needAll:false,cliff:fal
 bench('depth+steal, cap=0.3, +mVOR',                    {needAll:false,cliff:false,depth:true,run:false,demand:false,steal:true,capMult:0.3,positiveMVOR:true});
 bench('depth+cliff+steal, cap=0.3, +mVOR',              {needAll:false,cliff:true, depth:true,run:false,demand:false,steal:true,capMult:0.3,positiveMVOR:true});
 bench('all signals, cap=0.3, +mVOR',                    {needAll:false,cliff:true, depth:true,run:true, demand:true, steal:true,capMult:0.3,positiveMVOR:true});
+
+console.log('\n── needMult weight scan (depth+cliff+steal, cap=0.3, +mVOR) ──\n');
+function benchNeed(w, N=400) {
+  const fn = function(p, state) {
+    const {picks, draftOrder, curIdx, myTeamId, round} = state;
+    const avail = state.pool.filter(x=>!x.drafted);
+    const s = buildSignals(p, picks, draftOrder, curIdx, myTeamId, round, avail);
+    const lateR = picks.filter(x=>x.teamId===myTeamId).length >= 13;
+    const rbNeed = lateR ? 0 : Math.max(0, Math.min(Math.floor(round/2.5),3) - cnt(picks,myTeamId,'RB'));
+    const wrNeed = lateR ? 0 : Math.max(0, Math.min(Math.floor(round/2.5),3) - cnt(picks,myTeamId,'WR'));
+    const nm = 1 + (p.pos==='RB' ? rbNeed : p.pos==='WR' ? wrNeed : 0) * w;
+    const baseValue = Math.max(s.mvor,0)*nm + Math.min(s.mvor,0);
+    const rawU = s.cliff*0.30 + s.depth*0.22;
+    const urgencyBoost = rawU * Math.abs(s.mvor) * 0.3;
+    return baseValue + urgencyBoost + s.steal;
+  };
+  let total=0;
+  for(let sim=0;sim<N;sim++){
+    const rand=rng(sim*7919+1234),myTeamId=sim%NT;
+    const ts=runDraft(myTeamId,fn,rand);
+    const avg=Object.values(ts).reduce((s,v)=>s+v,0)/NT;
+    total+=ts[myTeamId]-avg;
+  }
+  const avg=total/N;
+  console.log((avg>=0?'+':'')+avg.toFixed(1).padStart(7)+' pts  needWeight='+w);
+}
+for(const w of [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]) benchNeed(w);
