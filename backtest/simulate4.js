@@ -88,15 +88,18 @@ function buildSignals(p, picks, draftOrder, curIdx, myTeamId, round, poolAvail) 
 }
 
 function makeScorer(opts) {
-  // opts: {needAll, cliff, depth, run, demand, steal, capMult}
+  // opts: {needAll, cliff, depth, run, demand, steal, capMult, positiveMVOR}
   return function(p, state) {
     const {picks, draftOrder, curIdx, myTeamId, round} = state;
     const avail = state.pool.filter(x=>!x.drafted);
     const s = buildSignals(p, picks, draftOrder, curIdx, myTeamId, round, avail);
     const nm = opts.needAll ? s.needMult : s.needMultRBWR;
+    const baseValue = opts.positiveMVOR
+      ? Math.max(s.mvor, 0) * nm + Math.min(s.mvor, 0)
+      : s.mvor * nm;
     const rawU = (opts.cliff?s.cliff:0)*0.30 + (opts.depth?s.depth:0)*0.22 + (opts.run?s.run:0)*0.13 + (opts.demand?s.dem:0)*0.35;
     const cap = opts.capMult != null ? opts.capMult : 0.8;
-    return s.mvor * nm + rawU * Math.abs(s.mvor) * cap + (opts.steal ? s.steal : 0);
+    return baseValue + rawU * Math.abs(s.mvor) * cap + (opts.steal ? s.steal : 0);
   };
 }
 
@@ -169,3 +172,13 @@ bench('run+cliff, no QB/TE need, cap=0.8',  {needAll:false,cliff:true, depth:fal
 bench('run+cliff+depth, no QB/TE, cap=0.8', {needAll:false,cliff:true, depth:true, run:true, demand:false,steal:false,capMult:0.8});
 bench('run+cliff, steal, no QB/TE, cap=0.8',{needAll:false,cliff:true, depth:false,run:true, demand:false,steal:true, capMult:0.8});
 bench('run+cliff+depth+steal, no QB/TE',    {needAll:false,cliff:true, depth:true, run:true, demand:false,steal:true, capMult:0.8});
+
+console.log('\n── positiveMVOR clamp + cap investigation ──\n');
+bench('depth+steal, cap=0.8, no +mVOR (baseline)',    {needAll:false,cliff:false,depth:true,run:false,demand:false,steal:true,capMult:0.8,positiveMVOR:false});
+bench('depth+steal, cap=0.8, +mVOR (current actual)', {needAll:false,cliff:false,depth:true,run:false,demand:false,steal:true,capMult:0.8,positiveMVOR:true});
+bench('depth+steal, cap=0.3, +mVOR',                  {needAll:false,cliff:false,depth:true,run:false,demand:false,steal:true,capMult:0.3,positiveMVOR:true});
+bench('depth+steal, cap=0.5, +mVOR',                  {needAll:false,cliff:false,depth:true,run:false,demand:false,steal:true,capMult:0.5,positiveMVOR:true});
+bench('depth+cliff+steal, cap=0.3, +mVOR',            {needAll:false,cliff:true, depth:true,run:false,demand:false,steal:true,capMult:0.3,positiveMVOR:true});
+bench('depth+cliff+steal, cap=0.3, no +mVOR',         {needAll:false,cliff:true, depth:true,run:false,demand:false,steal:true,capMult:0.3,positiveMVOR:false});
+bench('all signals, cap=0.3, +mVOR',                  {needAll:false,cliff:true, depth:true,run:true, demand:true, steal:true,capMult:0.3,positiveMVOR:true});
+bench('all signals, cap=0.3, no +mVOR',               {needAll:false,cliff:true, depth:true,run:true, demand:true, steal:true,capMult:0.3,positiveMVOR:false});
