@@ -1810,6 +1810,29 @@ function renderVOR() {
     _leagueDemand[pos] = needy / otherTeams.length; // 0.0–1.0
   });
 
+  // Signal 6: upcoming demand — among teams that pick BEFORE my next turn,
+  // how many still need this position? More acute than league demand because
+  // these are the exact teams that could take the player off the board first.
+  var _upcomingDemand = {};
+  (function() {
+    var curIdx = currentPickIndex();
+    ['RB','WR','QB','TE'].forEach(function(pos) {
+      if (curIdx === -1) { _upcomingDemand[pos] = 0; return; }
+      var seen = {}, needy = 0, total = 0;
+      for (var i = curIdx; i < draftOrder.length; i++) {
+        var slot = draftOrder[i];
+        if (slot.teamId === myTeamId) break;
+        if (slot.playerName) continue; // already filled
+        if (!seen[slot.teamId]) {
+          seen[slot.teamId] = true;
+          total++;
+          if (teamPosCount(slot.teamId, pos) < _starterThreshold[pos]) needy++;
+        }
+      }
+      _upcomingDemand[pos] = total > 0 ? needy / total : 0; // 0.0–1.0
+    });
+  })();
+
   // Core scorer — accepts explicit need values so look-ahead can pass updated state
   function aiScoreWith(p, rbNeed, wrNeed) {
     var mvor = p.mvor || 0;
@@ -1831,9 +1854,12 @@ function renderVOR() {
     var isElite = p.tier != null && p.tier <= 3;
     var depthBonus = isElite ? (eliteLeft <= 2 ? 7 : eliteLeft <= 4 ? 4 : eliteLeft <= 6 ? 2 : 0) : 0;
     var runBonus = _runBonus[p.pos] || 0;
-    // League demand: scale 0→+4 based on fraction of other teams still needing this position.
+    // League demand: fraction of all other teams still needing this position → +0–4.
     var leagueDemandBonus = (_leagueDemand[p.pos] || 0) * 4;
-    return (mvor + scarcityBoost + stealBonus + cliffBonus + depthBonus + runBonus + leagueDemandBonus) * needMult;
+    // Upcoming demand: fraction of teams picking BEFORE my next turn that still need this → +0–5.
+    // Weighted higher than league demand — these are the teams that could take the player first.
+    var upcomingDemandBonus = (_upcomingDemand[p.pos] || 0) * 5;
+    return (mvor + scarcityBoost + stealBonus + cliffBonus + depthBonus + runBonus + leagueDemandBonus + upcomingDemandBonus) * needMult;
   }
 
   // Convenience wrapper using current roster state
