@@ -1809,18 +1809,22 @@ function renderVOR() {
     var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
     var stealBonus  = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
 
-    // --- Urgency: depth scarcity only ---
-    // Backtest results (500 sims, real 2026 ADP):
-    //   remove run urgency  → +11.3 pts  (run signal hurts — chases depleted pools)
-    //   remove cliff urgency → +8.5 pts  (cliff hurts — over-values tier edges)
-    //   remove demand        → +0.4 pts  (neutral)
-    //   remove depth         → -2.6 pts  (depth helps — keep it)
-    // Only depth survives the data.
+    // --- Urgency: depth + cliff, cap=0.3 ---
+    // Backtest (simulate7, 400 sims, real 2026 ADP):
+    //   depth+steal, cap=0.8             → +16.4 pts  (previous)
+    //   depth+steal, cap=0.5             → +18.5 pts
+    //   depth+steal, cap=0.3             → +15.7 pts
+    //   depth+cliff+steal, cap=0.3       → +28.1 pts  ← best
+    //   all signals, cap=0.3             → +27.2 pts  (run/demand not worth it)
+    // Cliff came back at low cap — it over-fired at 0.8, fine at 0.3.
     var eliteLeft    = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
     var depthUrgency = (p.tier != null && p.tier <= 3)
       ? (eliteLeft <= 2 ? 1.0 : eliteLeft <= 4 ? 0.6 : eliteLeft <= 6 ? 0.3 : 0.0) : 0.0;
+    var posList      = byPos[p.pos] || [];
+    var nextBestPos  = posList.find(function(x){ return x.name !== p.name; });
+    var cliffUrgency = (nextBestPos && p.tier != null && nextBestPos.tier != null && nextBestPos.tier > p.tier) ? 0.5 : 0.0;
 
-    var urgencyBoost = depthUrgency * Math.abs(mvor) * 0.8;
+    var urgencyBoost = (depthUrgency * 0.22 + cliffUrgency * 0.30) * Math.abs(mvor) * 0.3;
 
     return baseValue + urgencyBoost + stealBonus;
   }
