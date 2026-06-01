@@ -1171,9 +1171,10 @@ function getTeam(rosterId) { return teams.find(t => t.rosterId === rosterId); }
 //   3. ECR-curve estimate                          — pure fallback
 // ══════════════════════════════════════════════
 let fcValueMap = {};   // name → FantasyCalc trade value (for report card)
+let projPtsMap  = {};  // name → season projected PPR pts (Sleeper wk1 × 16)
 
 // Data source status for badge display
-const dataStatus = { sleeper: 'pending', fc: 'pending' };
+const dataStatus = { sleeper: 'pending', fc: 'pending', proj: 'pending' };
 
 // ── Name normalisation (robust fuzzy lookup) ──────────────────────────────
 function _norm(s)   { return s.toLowerCase().replace(/[.'`]/g,'').replace(/\s+/g,' ').trim(); }
@@ -1275,12 +1276,45 @@ async function fetchFantasyCalc() {
   }
 }
 
+// ── Fetch Sleeper 2026 week 1 projections → season estimate (×16 games) ──
+async function fetchSleeperProjections() {
+  try {
+    const url = 'https://api.sleeper.app/projections/nfl/2026/1?season_type=regular' +
+      '&position[]=QB&position[]=RB&position[]=WR&position[]=TE&position[]=K&position[]=DEF';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('proj ' + res.status);
+    const data = await res.json();
+    var count = 0;
+    data.forEach(function(item) {
+      var pts = item.stats && item.stats.pts_ppr;
+      if (!pts || pts <= 0) return;
+      var name = item.player
+        ? ((item.player.first_name || '') + ' ' + (item.player.last_name || '')).trim()
+        : null;
+      if (!name) return;
+      projPtsMap[name] = Math.round(pts * 16 * 10) / 10;
+      count++;
+    });
+    players.forEach(function(p) {
+      var v = fuzzyGet(projPtsMap, p.name);
+      if (v != null) p.projPts = v;
+    });
+    dataStatus.proj = 'live';
+    console.log('Sleeper projections: ' + count + ' players loaded');
+  } catch(e) {
+    dataStatus.proj = 'error';
+    console.warn('Sleeper projections failed:', e.message);
+  }
+}
+
 // ── Merge multi-source weighted ADP + FC values into a player object ──────
 function enrichPlayerADP(p) {
   const weighted = computeWeightedADP(p);
   if (weighted) p.adp = weighted.adp;
   const fcv = fuzzyGet(fcValueMap, p.name);
   if (fcv !== undefined) p.fcValue = fcv;
+  const pts = fuzzyGet(projPtsMap, p.name);
+  if (pts != null) p.projPts = pts;
 }
 
 // ── Data source status badges ─────────────────────────────────────────────
@@ -1298,7 +1332,8 @@ function updateDataSourceBadges() {
   el.innerHTML =
     badge('FP',      'live',             `FantasyPros ADP — sole ADP source`) +
     badge('Sleeper', dataStatus.sleeper, `Sleeper live sync`) +
-    badge('FC',      dataStatus.fc,      `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`);
+    badge('FC',      dataStatus.fc,      `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`) +
+    badge('Proj',    dataStatus.proj,    `Sleeper 2026 projections × 16 — ${Object.keys(projPtsMap).length} players`);
 }
 
 // Slot value weights: how important is the Nth player at a position?
@@ -2095,6 +2130,9 @@ function renderBoard() {
     const vorCell = p.drafted
       ? `<span style="min-width:42px"></span>`
       : `<span title="Marginal VOR — value over replacement" style="font-size:10px;font-weight:700;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${grade.color}">${p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—'}</span>`;
+    const projCell = p.projPts
+      ? `<span title="Projected season PPR points" style="font-size:9px;font-family:DM Mono,monospace;color:var(--dim);min-width:38px;text-align:right">${Math.round(p.projPts)}</span>`
+      : `<span style="min-width:38px"></span>`;
     return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
       <span class="p-name">${p.name}${rookieBadge}</span>
@@ -2103,6 +2141,7 @@ function renderBoard() {
       ${riskBadge}
       <span style="font-size:9px;color:var(--dim);min-width:48px;text-align:right">${otherLabel} ${otherRank.toFixed(0)}</span>
       ${vorCell}
+      ${projCell}
       ${adpStdBadge}
       ${probHtml}
       <span class="p-rank">#${activeRank.toFixed(0)}</span>
@@ -4184,7 +4223,7 @@ async function init() {
 
   // ── 1. Parallel: Sleeper (ADP + projections) + FantasyCalc (trade values) ──
   setLoad(5, 'Loading external data…');
-  await Promise.allSettled([fetchSleeperData(), fetchFantasyCalc()]);
+  await Promise.allSettled([fetchSleeperData(), fetchFantasyCalc(), fetchSleeperProjections()]);
   updateDataSourceBadges();
 
   if (is2026) {
