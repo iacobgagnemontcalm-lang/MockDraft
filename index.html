@@ -1276,31 +1276,63 @@ async function fetchFantasyCalc() {
   }
 }
 
-// ── Fetch Sleeper 2026 week 1 projections → season estimate (×16 games) ──
+// ── Fetch Sleeper 2026 projections — all 17 weeks, extrapolate missing from wk1 ──
+var _projLiveWeeks = 0; // how many weeks had real data (shown in badge + report note)
 async function fetchSleeperProjections() {
   try {
-    const url = 'https://api.sleeper.app/projections/nfl/2026/1?season_type=regular' +
-      '&position[]=QB&position[]=RB&position[]=WR&position[]=TE&position[]=K&position[]=DEF';
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('proj ' + res.status);
-    const data = await res.json();
-    var count = 0;
-    data.forEach(function(item) {
-      var pts = item.stats && item.stats.pts_ppr;
-      if (!pts || pts <= 0) return;
-      var name = item.player
-        ? ((item.player.first_name || '') + ' ' + (item.player.last_name || '')).trim()
-        : null;
-      if (!name) return;
-      projPtsMap[name] = Math.round(pts * 16 * 10) / 10;
-      count++;
+    var PARAMS = '?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE&position[]=K&position[]=DEF';
+    var BASE   = 'https://api.sleeper.app/projections/nfl/2026/';
+
+    // Fetch all 17 weeks in parallel
+    var fetches = Array.from({length: 17}, function(_, i) {
+      return fetch(BASE + (i + 1) + PARAMS)
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .catch(function() { return []; });
     });
+    var weeks = await Promise.all(fetches);
+
+    // Build name → [wk1pts, wk2pts, …, wk17pts] (null = no data that week)
+    var weeklyMap = {}; // name → array(17)
+    var wk1Map    = {}; // name → wk1 pts (extrapolation base)
+
+    weeks.forEach(function(data, wi) {
+      if (!Array.isArray(data)) return;
+      data.forEach(function(item) {
+        var pts  = item.stats && item.stats.pts_ppr;
+        var name = item.player
+          ? ((item.player.first_name || '') + ' ' + (item.player.last_name || '')).trim()
+          : null;
+        if (!name || !pts || pts <= 0) return;
+        if (!weeklyMap[name]) weeklyMap[name] = new Array(17).fill(null);
+        weeklyMap[name][wi] = pts;
+        if (wi === 0) wk1Map[name] = pts;
+      });
+    });
+
+    // Count weeks with real projection data
+    _projLiveWeeks = weeks.filter(function(data) {
+      return Array.isArray(data) && data.some(function(item) {
+        return item.stats && item.stats.pts_ppr > 0;
+      });
+    }).length;
+
+    // Season total: sum real weeks + extrapolate missing with wk1 (cap at 16 playable games)
+    Object.keys(weeklyMap).forEach(function(name) {
+      var arr     = weeklyMap[name];
+      var wk1     = wk1Map[name] || 0;
+      var realSum = 0;
+      var realCount = 0;
+      arr.forEach(function(v) { if (v !== null) { realSum += v; realCount++; } });
+      var missingGames = Math.max(0, 16 - realCount); // 16 playable games (1 bye)
+      projPtsMap[name] = Math.round((realSum + wk1 * missingGames) * 10) / 10;
+    });
+
     players.forEach(function(p) {
       var v = fuzzyGet(projPtsMap, p.name);
       if (v != null) p.projPts = v;
     });
     dataStatus.proj = 'live';
-    console.log('Sleeper projections: ' + count + ' players loaded');
+    console.log('Sleeper projections: ' + Object.keys(projPtsMap).length + ' players, ' + _projLiveWeeks + '/17 weeks with data');
   } catch(e) {
     dataStatus.proj = 'error';
     console.warn('Sleeper projections failed:', e.message);
@@ -1333,7 +1365,7 @@ function updateDataSourceBadges() {
     badge('FP',      'live',             `FantasyPros ADP — sole ADP source`) +
     badge('Sleeper', dataStatus.sleeper, `Sleeper live sync`) +
     badge('FC',      dataStatus.fc,      `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`) +
-    badge('Proj',    dataStatus.proj,    `Sleeper 2026 projections × 16 — ${Object.keys(projPtsMap).length} players`);
+    badge('Proj',    dataStatus.proj,    `Sleeper 2026 projections — ${Object.keys(projPtsMap).length} players, ${_projLiveWeeks}/17 weeks loaded`);
 }
 
 // Slot value weights: how important is the Nth player at a position?
@@ -3006,7 +3038,7 @@ async function generateReport() {
           '</span>' +
         '</div>';
       }).join('') +
-      '<div style="font-size:9px;color:var(--dim);margin-top:8px">Based on Sleeper 2026 week 1 projections × 16, 20% weekly variance, random H2H schedule</div>' +
+      '<div style="font-size:9px;color:var(--dim);margin-top:8px">Sleeper 2026 projections — ' + _projLiveWeeks + '/17 weeks loaded, remainder extrapolated from wk1 · 20% weekly variance · random H2H</div>' +
     '</div>';
   }
 
