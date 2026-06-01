@@ -2578,6 +2578,63 @@ async function viewTeamGrade(rosterId) {
   myTeamId = prev;
 }
 
+// ── Simulate regular season W/L using projPts as weekly baseline ──────────
+function simulateRegularSeason(numSims) {
+  var WEEKS = 13;
+  // Box-Muller normal sample
+  function randn() {
+    return Math.sqrt(-2 * Math.log(Math.random() || 1e-10)) * Math.cos(2 * Math.PI * Math.random());
+  }
+  var teamList = teams.map(function(t) {
+    var roster = [
+      ...t.keepers.map(k => players.find(p => p.name === k)).filter(Boolean),
+      ...draftOrder.filter(s => s.teamId === t.rosterId && s.playerName)
+        .map(s => players.find(x => x.name === s.playerName)).filter(Boolean)
+    ];
+    var seasonProj = roster.reduce(function(sum, p) { return sum + (p.projPts || 0); }, 0);
+    return { rosterId: t.rosterId, shortName: t.shortName, weeklyProj: seasonProj / 16 };
+  });
+
+  var hasProjData = teamList.some(function(t) { return t.weeklyProj > 0; });
+  if (!hasProjData) return null;
+
+  var totalWins = {};
+  teamList.forEach(function(t) { totalWins[t.rosterId] = 0; });
+
+  for (var sim = 0; sim < numSims; sim++) {
+    var simWins = {};
+    teamList.forEach(function(t) { simWins[t.rosterId] = 0; });
+
+    for (var week = 0; week < WEEKS; week++) {
+      // Score each team: weeklyProj + 20% normal noise
+      var scores = teamList.map(function(t) {
+        return { rosterId: t.rosterId, score: Math.max(0, t.weeklyProj * (1 + randn() * 0.20)) };
+      });
+      // Pair teams randomly for H2H matchups
+      var shuffled = scores.slice().sort(function() { return Math.random() - 0.5; });
+      for (var i = 0; i + 1 < shuffled.length; i += 2) {
+        if (shuffled[i].score > shuffled[i+1].score) {
+          simWins[shuffled[i].rosterId]++;
+        } else {
+          simWins[shuffled[i+1].rosterId]++;
+        }
+      }
+    }
+    teamList.forEach(function(t) { totalWins[t.rosterId] += simWins[t.rosterId]; });
+  }
+
+  return teamList.map(function(t) {
+    var avgW = totalWins[t.rosterId] / numSims;
+    return {
+      rosterId:  t.rosterId,
+      shortName: t.shortName,
+      weeklyProj: t.weeklyProj,
+      avgWins:   avgW,
+      avgLosses: WEEKS - avgW,
+    };
+  }).sort(function(a, b) { return b.avgWins - a.avgWins; });
+}
+
 async function generateReport() {
   var myTeam = getTeam(myTeamId);
   if (!myTeam) return;
@@ -2919,6 +2976,40 @@ async function generateReport() {
       '</div></div></div>';
   }
 
+  // ── Season simulation ────────────────────────────────────────────────────
+  var simResults = simulateRegularSeason(500);
+  var simHtml = '';
+  if (simResults) {
+    var mySimIdx = simResults.findIndex(function(t) { return t.rosterId === myTeamId; });
+    var myRecord = simResults[mySimIdx];
+    var maxWeekly = simResults[0].weeklyProj;
+    simHtml = '<div class="report-section"><div class="report-section-title">Projected regular season (500 sims · 13 wks)</div>'+
+      (myRecord ? '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Your projected record: <span style="color:var(--text);font-weight:700">'
+        + myRecord.avgWins.toFixed(1) + '–' + myRecord.avgLosses.toFixed(1) + '</span></div>' : '') +
+      simResults.map(function(t, i) {
+        var isMe = t.rosterId === myTeamId;
+        var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+        var wPct = Math.round((t.avgWins / 13) * 100);
+        var barColor = isMe ? 'var(--accent)' : 'var(--surface3)';
+        var barBorder = isMe ? 'var(--accent)' : 'var(--border2)';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:0.5px solid var(--border)'+(i===simResults.length-1?';border-bottom:none':'')+'">' +
+          '<span style="font-size:12px;min-width:22px">' + medal + '</span>' +
+          '<span style="font-size:12px;font-weight:'+(isMe?700:400)+';color:'+(isMe?'var(--text)':'var(--muted)')+';min-width:52px">'+(isMe?'★ ':'')+t.shortName+'</span>' +
+          '<div style="flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden">' +
+            '<div style="height:100%;width:'+wPct+'%;background:'+barColor+';border:none;border-radius:3px"></div>' +
+          '</div>' +
+          '<span style="font-size:11px;font-family:\'DM Mono\',monospace;color:'+(isMe?'var(--accent)':'var(--dim)')+';min-width:60px;text-align:right">' +
+            t.avgWins.toFixed(1)+'-'+t.avgLosses.toFixed(1) +
+          '</span>' +
+          '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--dim);min-width:48px;text-align:right">' +
+            Math.round(t.weeklyProj) + ' pts/wk' +
+          '</span>' +
+        '</div>';
+      }).join('') +
+      '<div style="font-size:9px;color:var(--dim);margin-top:8px">Based on Sleeper 2026 week 1 projections × 16, 20% weekly variance, random H2H schedule</div>' +
+    '</div>';
+  }
+
   var allScores = scoreAllTeams(fcValues);
   var lbHtml = allScores.map(function(t,i) {
     var tc = gradeColor(t.score).color;
@@ -2965,6 +3056,8 @@ async function generateReport() {
     '</div>'+
 
     bwHtml +
+
+    simHtml +
 
     '<div class="report-section"><div class="report-section-title">All team scores</div>'+
       lbHtml+
