@@ -2450,32 +2450,10 @@ function scoreTeam(teamId, fcValuesMap) {
     return null;
   }
 
-  // Assign players to lineup slots, apply weights to both projPts and FC value
-  // Slots: QB(1.0) RB×2(1.0) WR×2(1.0) TE(1.0) FLEX=best RB3/WR3/TE2(0.8) bench(0.3)
+  // Equal weight for the first 13 non-K/DST players on the roster
   function buildWeightedRoster(roster) {
-    var byPos = {QB:[], RB:[], WR:[], TE:[], K:[], DST:[]};
-    roster.forEach(function(p){ if(byPos[p.pos]) byPos[p.pos].push(p); });
-    Object.values(byPos).forEach(function(arr){ arr.sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); }); });
-    var starters = [
-      ...(byPos.QB||[]).slice(0,1),
-      ...(byPos.RB||[]).slice(0,2),
-      ...(byPos.WR||[]).slice(0,2),
-      ...(byPos.TE||[]).slice(0,1),
-    ];
-    var flexCands = [
-      ...(byPos.RB||[]).slice(2,3),
-      ...(byPos.WR||[]).slice(2,3),
-      ...(byPos.TE||[]).slice(1,2),
-    ].sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
-    var flex  = flexCands.slice(0,1);
-    var used  = new Set([...starters, ...flex].map(p=>p.name));
-    var bench = roster.filter(function(p){ return !used.has(p.name) && p.pos!=='K' && p.pos!=='DST'; })
-                      .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
-    var result = [];
-    starters.forEach(function(p){ result.push({p:p, w:1.0}); });
-    flex.forEach(function(p){     result.push({p:p, w:0.8}); });
-    bench.forEach(function(p){    result.push({p:p, w:0.3}); });
-    return result;
+    var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
+    return eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
   }
 
   // Compute slot-weighted sum for a metric fn across all teams (for normalization)
@@ -2623,20 +2601,10 @@ async function generateReport() {
     return null;
   }
 
-  // Slot-weighted roster builder (starters 1.0, FLEX 0.8, bench 0.3)
+  // Equal weight for the first 13 non-K/DST players on the roster
   function buildSlotWeights(roster) {
-    var bp={QB:[],RB:[],WR:[],TE:[],K:[],DST:[]};
-    roster.forEach(function(p){if(bp[p.pos])bp[p.pos].push(p);});
-    Object.values(bp).forEach(function(a){a.sort(function(a,b){return(b.projPts||0)-(a.projPts||0);});});
-    var starters=[...(bp.QB||[]).slice(0,1),...(bp.RB||[]).slice(0,2),...(bp.WR||[]).slice(0,2),...(bp.TE||[]).slice(0,1)];
-    var flex=[(bp.RB||[])[2],(bp.WR||[])[2],(bp.TE||[])[1]].filter(Boolean).sort(function(a,b){return(b.projPts||0)-(a.projPts||0);}).slice(0,1);
-    var used=new Set([...starters,...flex].map(function(p){return p.name;}));
-    var bench=roster.filter(function(p){return!used.has(p.name)&&p.pos!=='K'&&p.pos!=='DST';});
-    var out=[];
-    starters.forEach(function(p){out.push({p:p,w:1.0});});
-    flex.forEach(function(p){out.push({p:p,w:0.8});});
-    bench.forEach(function(p){out.push({p:p,w:0.3});});
-    return out;
+    var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
+    return eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
   }
   function leagueSlotSums(metricFn) {
     return teams.map(function(t){
@@ -2941,8 +2909,8 @@ async function generateReport() {
     '</div>'+
 
     '<div class="report-section"><div class="report-section-title">Score breakdown</div>'+
-      bar('Projected points (lineup)', projScore, 60, 'var(--green)', 'slot-weighted vs league avg')+
-      bar('FC trade value (lineup)', fcScore, 30, 'var(--accent)', hasFCData?'slot-weighted vs league avg':'offline — no FC data')+
+      bar('Projected points (lineup)', projScore, 60, 'var(--green)', 'first 13 players vs league avg')+
+      bar('FC trade value (lineup)', fcScore, 30, 'var(--accent)', hasFCData?'first 13 players vs league avg':'offline — no FC data')+
       bar('Value over ADP', valueScore, 10, 'var(--gold)', 'avg ECR steal across your picks')+
     '</div>'+
 
