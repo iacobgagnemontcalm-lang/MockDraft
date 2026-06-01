@@ -1171,9 +1171,10 @@ function getTeam(rosterId) { return teams.find(t => t.rosterId === rosterId); }
 //   3. ECR-curve estimate                          — pure fallback
 // ══════════════════════════════════════════════
 let fcValueMap = {};   // name → FantasyCalc trade value (for report card)
+let projPtsMap  = {};  // name → season projected PPR pts (Sleeper wk1 × 16)
 
 // Data source status for badge display
-const dataStatus = { sleeper: 'pending', fc: 'pending' };
+const dataStatus = { sleeper: 'pending', fc: 'pending', proj: 'pending' };
 
 // ── Name normalisation (robust fuzzy lookup) ──────────────────────────────
 function _norm(s)   { return s.toLowerCase().replace(/[.'`]/g,'').replace(/\s+/g,' ').trim(); }
@@ -1275,12 +1276,45 @@ async function fetchFantasyCalc() {
   }
 }
 
+// ── Fetch Sleeper 2026 week 1 projections → season estimate (×16 games) ──
+async function fetchSleeperProjections() {
+  try {
+    const url = 'https://api.sleeper.app/projections/nfl/2026/1?season_type=regular' +
+      '&position[]=QB&position[]=RB&position[]=WR&position[]=TE&position[]=K&position[]=DEF';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('proj ' + res.status);
+    const data = await res.json();
+    var count = 0;
+    data.forEach(function(item) {
+      var pts = item.stats && item.stats.pts_ppr;
+      if (!pts || pts <= 0) return;
+      var name = item.player
+        ? ((item.player.first_name || '') + ' ' + (item.player.last_name || '')).trim()
+        : null;
+      if (!name) return;
+      projPtsMap[name] = Math.round(pts * 16 * 10) / 10;
+      count++;
+    });
+    players.forEach(function(p) {
+      var v = fuzzyGet(projPtsMap, p.name);
+      if (v != null) p.projPts = v;
+    });
+    dataStatus.proj = 'live';
+    console.log('Sleeper projections: ' + count + ' players loaded');
+  } catch(e) {
+    dataStatus.proj = 'error';
+    console.warn('Sleeper projections failed:', e.message);
+  }
+}
+
 // ── Merge multi-source weighted ADP + FC values into a player object ──────
 function enrichPlayerADP(p) {
   const weighted = computeWeightedADP(p);
   if (weighted) p.adp = weighted.adp;
   const fcv = fuzzyGet(fcValueMap, p.name);
   if (fcv !== undefined) p.fcValue = fcv;
+  const pts = fuzzyGet(projPtsMap, p.name);
+  if (pts != null) p.projPts = pts;
 }
 
 // ── Data source status badges ─────────────────────────────────────────────
@@ -1298,7 +1332,8 @@ function updateDataSourceBadges() {
   el.innerHTML =
     badge('FP',      'live',             `FantasyPros ADP — sole ADP source`) +
     badge('Sleeper', dataStatus.sleeper, `Sleeper live sync`) +
-    badge('FC',      dataStatus.fc,      `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`);
+    badge('FC',      dataStatus.fc,      `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`) +
+    badge('Proj',    dataStatus.proj,    `Sleeper 2026 projections × 16 — ${Object.keys(projPtsMap).length} players`);
 }
 
 // Slot value weights: how important is the Nth player at a position?
@@ -2095,6 +2130,9 @@ function renderBoard() {
     const vorCell = p.drafted
       ? `<span style="min-width:42px"></span>`
       : `<span title="Marginal VOR — value over replacement" style="font-size:10px;font-weight:700;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${grade.color}">${p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—'}</span>`;
+    const projCell = p.projPts
+      ? `<span title="Projected season PPR points" style="font-size:9px;font-family:DM Mono,monospace;color:var(--dim);min-width:38px;text-align:right">${Math.round(p.projPts)}</span>`
+      : `<span style="min-width:38px"></span>`;
     return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
       <span class="p-name">${p.name}${rookieBadge}</span>
@@ -2103,6 +2141,7 @@ function renderBoard() {
       ${riskBadge}
       <span style="font-size:9px;color:var(--dim);min-width:48px;text-align:right">${otherLabel} ${otherRank.toFixed(0)}</span>
       ${vorCell}
+      ${projCell}
       ${adpStdBadge}
       ${probHtml}
       <span class="p-rank">#${activeRank.toFixed(0)}</span>
@@ -2694,21 +2733,23 @@ async function generateReport() {
       '<span class="score-bar-val">'+Math.round(score)+'/'+max+'</span></div>';
   }
 
-  // ── Projected points positional slot breakdown ────────────────────────
+  // ── FantasyCalc positional slot breakdown ─────────────────────────────
   var fcSlotHtml = '';
-  {
-    function slotByProj(pos) {
+  if (hasFCData) {
+    // Sort each position group by FC value descending — include ALL players even without FC value
+    function slotPlayers(pos) {
       return fullRoster.filter(p => p.pos === pos)
-        .sort((a, b) => (b.projPts || 0) - (a.projPts || 0));
+        .sort((a, b) => (b.fcValue || 0) - (a.fcValue || 0));
     }
-    var qbs  = slotByProj('QB');
-    var rbs  = slotByProj('RB');
-    var wrs  = slotByProj('WR');
-    var tes  = slotByProj('TE');
-    var ks   = slotByProj('K');
+    var qbs  = slotPlayers('QB');
+    var rbs  = slotPlayers('RB');
+    var wrs  = slotPlayers('WR');
+    var tes  = slotPlayers('TE');
+    var ks   = slotPlayers('K');
     var dsts = fullRoster.filter(p => p.pos === 'DST' || p.pos === 'DS')
-                 .sort((a, b) => (b.projPts||0) - (a.projPts||0));
+                 .sort((a, b) => (b.fcValue||0) - (a.fcValue||0));
 
+    // Identify starters set (FLEX added below after candidates computed)
     var starters = new Set();
     if (qbs[0])  starters.add(qbs[0].name);
     if (rbs[0])  starters.add(rbs[0].name);
@@ -2719,14 +2760,21 @@ async function generateReport() {
     if (ks[0])   starters.add(ks[0].name);
     if (dsts[0]) starters.add(dsts[0].name);
 
-    var maxProjPts = Math.max(...fullRoster.map(p => p.projPts || 0), 1);
+    // Max FC value in league for scaling bars
+    var allFCVals = Object.values(fcValues);
+    var maxFC = allFCVals.length ? Math.max(...allFCVals) : 9000;
 
-    function projValStr(player) {
-      if (!player || player.projPts == null) return '<span style="font-size:10px;color:var(--dim);min-width:52px;text-align:right">–</span>';
-      return '<span style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--muted);min-width:52px;text-align:right">'+(player.projPts||0).toFixed(1)+'</span>';
+    // No FC value positions (DST, K) show ECR instead
+    function valDisplay(player, noFC) {
+      if (noFC || player.fcValue == null) return 'ECR #' + Math.round(player.ecr);
+      return player.fcValue;
+    }
+    function valStr(player, col, noFC) {
+      if (noFC || player.fcValue == null) return '<span style="font-size:10px;color:var(--dim);min-width:52px;text-align:right">ECR #'+Math.round(player.ecr)+'</span>';
+      return '<span style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--muted);min-width:52px;text-align:right">'+player.fcValue+'</span>';
     }
 
-    function projRow(label, player, col, isKeeper) {
+    function fcRow(label, player, col, isKeeper, noFC) {
       if (!player) {
         return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;opacity:0.4">'+
           '<span style="font-size:9px;font-weight:700;min-width:40px;color:var(--dim)">'+label+'</span>'+
@@ -2734,73 +2782,81 @@ async function generateReport() {
           '<span style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--dim)">–</span>'+
         '</div>';
       }
-      var pv  = player.projPts || 0;
-      var pct = maxProjPts > 0 ? Math.min(100, Math.round((pv / maxProjPts) * 100)) : 0;
+      var fcv  = (!noFC && player.fcValue != null) ? player.fcValue : 0;
+      var pct  = maxFC > 0 ? Math.min(100, Math.round((fcv / maxFC) * 100)) : 0;
+      var barCol = (noFC || player.fcValue == null) ? 'var(--dim)' : col;
       var keeperTag = isKeeper ? ' <span style="font-size:8px;color:var(--gold);font-weight:700">K</span>' : '';
       return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'+
         '<span style="font-size:9px;font-weight:700;min-width:40px;color:'+col+'">'+label+'</span>'+
         '<span style="font-size:12px;flex:1;color:var(--text)">'+player.name+keeperTag+'</span>'+
         '<div style="flex:1.5;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden">'+
-          '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px;transition:width 0.4s"></div>'+
+          '<div style="height:100%;width:'+pct+'%;background:'+barCol+';border-radius:3px;transition:width 0.4s"></div>'+
         '</div>'+
-        projValStr(player)+
+        valStr(player, col, noFC || player.fcValue == null)+
       '</div>';
     }
 
-    function projBenchRow(p) {
+    function benchRow(p) {
       var isKp = myKeepers.some(k => k.name === p.name);
       var col  = posColor(p.pos);
-      var pv   = p.projPts || 0;
-      var pct  = maxProjPts > 0 ? Math.min(100, Math.round((pv / maxProjPts) * 100)) : 0;
+      var noFC = p.pos === 'DST' || p.pos === 'DS' || p.pos === 'K';
+      var fcv  = (!noFC && p.fcValue != null) ? p.fcValue : 0;
+      var pct  = maxFC > 0 ? Math.min(100, Math.round((fcv / maxFC) * 100)) : 0;
       var keeperTag = isKp ? ' <span style="font-size:8px;color:var(--gold);font-weight:700">K</span>' : '';
+      var valTxt = (noFC || p.fcValue == null)
+        ? '<span style="font-size:10px;color:var(--dim);min-width:52px;text-align:right">ECR #'+Math.round(p.ecr)+'</span>'
+        : '<span style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--dim);min-width:52px;text-align:right">'+p.fcValue+'</span>';
       return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'+
         '<span style="font-size:9px;font-weight:700;min-width:40px;color:'+col+'">'+p.pos+'</span>'+
         '<span style="font-size:12px;flex:1;color:var(--muted)">'+p.name+keeperTag+'</span>'+
         '<div style="flex:1.5;height:4px;background:var(--surface3);border-radius:3px;overflow:hidden">'+
           '<div style="height:100%;width:'+pct+'%;background:'+col+';opacity:0.5;border-radius:3px"></div>'+
         '</div>'+
-        '<span style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--dim);min-width:52px;text-align:right">'+pv.toFixed(1)+'</span>'+
+        valTxt+
       '</div>';
     }
 
     var isK = n => myKeepers.some(k => k.name === n);
 
+    // FLEX: best RB/WR/TE not already used as a starter (RB1/RB2/WR1/WR2/TE1)
     var starterNames = new Set([qbs[0], rbs[0], rbs[1], wrs[0], wrs[1], tes[0]].filter(Boolean).map(p => p.name));
     var flexCandidates = fullRoster.filter(p =>
       (p.pos === 'RB' || p.pos === 'WR' || p.pos === 'TE') && !starterNames.has(p.name)
-    ).sort((a, b) => (b.projPts || 0) - (a.projPts || 0));
+    ).sort((a, b) => (b.fcValue || 0) - (a.fcValue || 0));
     var flexPlayer = flexCandidates[0] || null;
     if (flexPlayer) starters.add(flexPlayer.name);
 
+    // Recompute bench excluding FLEX starter
     var bench = fullRoster.filter(p => !starters.has(p.name))
-                  .sort((a, b) => (b.projPts || 0) - (a.projPts || 0));
+                  .sort((a, b) => (b.fcValue || 0) - (a.fcValue || 0));
 
     var flexCol = flexPlayer
       ? (flexPlayer.pos === 'RB' ? 'var(--green)' : flexPlayer.pos === 'WR' ? 'var(--blue)' : 'var(--accent)')
       : 'var(--dim)';
 
     var slotRows =
-      projRow('QB1',  qbs[0],    'var(--orange)', qbs[0]     && isK(qbs[0].name))  +
-      projRow('RB1',  rbs[0],    'var(--green)',  rbs[0]     && isK(rbs[0].name))  +
-      projRow('RB2',  rbs[1],    'var(--green)',  rbs[1]     && isK(rbs[1].name))  +
-      projRow('WR1',  wrs[0],    'var(--blue)',   wrs[0]     && isK(wrs[0].name))  +
-      projRow('WR2',  wrs[1],    'var(--blue)',   wrs[1]     && isK(wrs[1].name))  +
-      projRow('TE1',  tes[0],    'var(--accent)', tes[0]     && isK(tes[0].name))  +
-      projRow('FLEX', flexPlayer, flexCol,         flexPlayer && isK(flexPlayer.name)) +
-      projRow('K',    ks[0],     'var(--gold)',   ks[0]      && isK(ks[0].name))   +
-      projRow('DEF',  dsts[0],   'var(--muted)',  dsts[0]    && isK(dsts[0]?.name));
+      fcRow('QB1',  qbs[0],    'var(--orange)', qbs[0]     && isK(qbs[0].name))  +
+      fcRow('RB1',  rbs[0],    'var(--green)',  rbs[0]     && isK(rbs[0].name))  +
+      fcRow('RB2',  rbs[1],    'var(--green)',  rbs[1]     && isK(rbs[1].name))  +
+      fcRow('WR1',  wrs[0],    'var(--blue)',   wrs[0]     && isK(wrs[0].name))  +
+      fcRow('WR2',  wrs[1],    'var(--blue)',   wrs[1]     && isK(wrs[1].name))  +
+      fcRow('TE1',  tes[0],    'var(--accent)', tes[0]     && isK(tes[0].name))  +
+      fcRow('FLEX', flexPlayer, flexCol,         flexPlayer && isK(flexPlayer.name)) +
+      fcRow('K',    ks[0],     'var(--gold)',   ks[0]      && isK(ks[0].name),   true) +
+      fcRow('DEF',  dsts[0],   'var(--muted)',  dsts[0]    && isK(dsts[0]?.name), true);
 
     var benchRows = bench.length
-      ? bench.map(p => projBenchRow(p)).join('')
+      ? bench.map(p => benchRow(p)).join('')
       : '<div style="font-size:11px;color:var(--dim);padding:4px 0">No bench players</div>';
 
+    // League comparison bar for this team
     var allTeamVals = teams.map(function(t) {
       var tAll = [
         ...t.keepers.map(k => players.find(p => p.name === k)).filter(Boolean),
         ...draftOrder.filter(s => s.teamId === t.rosterId && s.playerName)
           .map(s => players.find(x => x.name === s.playerName)).filter(Boolean)
       ];
-      var total = tAll.reduce((sum, p) => sum + (p.projPts || 0), 0);
+      var total = tAll.reduce((sum, p) => sum + (getFCValue(p) || 0), 0);
       return { short: t.shortName, rosterId: t.rosterId, total };
     }).sort((a, b) => b.total - a.total);
     var maxTeamVal = allTeamVals[0].total || 1;
@@ -2816,17 +2872,17 @@ async function generateReport() {
             ';border:1px solid '+(isMe?'var(--accent)':'var(--border2)')+';border-radius:3px"></div>'+
         '</div>'+
         '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:'+(isMe?'var(--accent)':'var(--dim)')+
-          ';min-width:44px;text-align:right">'+t.total.toFixed(0)+'</span>'+
+          ';min-width:44px;text-align:right">'+t.total+'</span>'+
       '</div>';
     }).join('');
 
     fcSlotHtml =
       '<div class="report-section">'+
-        '<div class="report-section-title">Projected points — by slot</div>'+
+        '<div class="report-section-title">FantasyCalc value — by slot</div>'+
         '<div style="margin-bottom:12px">'+slotRows+'</div>'+
         '<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin:10px 0 6px">Bench</div>'+
         '<div style="margin-bottom:12px">'+benchRows+'</div>'+
-        '<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin:10px 0 6px">League projected points ranking</div>'+
+        '<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin:10px 0 6px">League total FC value ranking</div>'+
         leagueRows+
       '</div>';
   }
@@ -4167,7 +4223,7 @@ async function init() {
 
   // ── 1. Parallel: Sleeper (ADP + projections) + FantasyCalc (trade values) ──
   setLoad(5, 'Loading external data…');
-  await Promise.allSettled([fetchSleeperData(), fetchFantasyCalc()]);
+  await Promise.allSettled([fetchSleeperData(), fetchFantasyCalc(), fetchSleeperProjections()]);
   updateDataSourceBadges();
 
   if (is2026) {
