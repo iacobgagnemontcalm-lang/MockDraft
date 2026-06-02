@@ -2601,7 +2601,7 @@ function scoreTeam(teamId, fcValuesMap) {
   var projSums  = leagueWeightedSums(function(p){ return p.projPts || 0; });
   var myProjIdx = teams.findIndex(function(t){ return t.rosterId === teamId; });
   var projMax   = isCFLScore ? 90 : 60;
-  var projScore = normalize(projSums[myProjIdx] || 0, projSums, projMax, 1.5);
+  var projScore = normalize(projSums[myProjIdx] || 0, projSums, projMax, isCFLScore ? 1.0 : 1.5);
 
   // Pillar 2 (30pts): slot-weighted FC value vs league — NFL only
   var fcScore = 0;
@@ -2818,7 +2818,7 @@ async function generateReport() {
   // CFL: 90pts (no FC pillar). NFL: 60pts.
   var projSums  = leagueSlotSums(function(p){return p.projPts||0;});
   var projMax   = isCFLReport ? 90 : 60;
-  var projScore = normScore(projSums[myIdx]||0, projSums, projMax, 1.5);
+  var projScore = normScore(projSums[myIdx]||0, projSums, projMax, isCFLReport ? 1.0 : 1.5);
 
   // ── Pillar 2: Slot-weighted FC value (30pts) — NFL only ───────────────
   var fcScore = 0;
