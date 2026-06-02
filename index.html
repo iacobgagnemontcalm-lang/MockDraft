@@ -4231,7 +4231,7 @@ function applyCFLMode(config) {
   console.log('Applying CFL mode:', config);
   LEAGUE_CONFIG = Object.assign({}, LEAGUE_CONFIG, config, { type: 'cfl' });
   if (document.body) document.body.classList.add('mode-cfl');
-  var nT = LEAGUE_CONFIG.numTeams || 10;
+  var nT = LEAGUE_CONFIG.numTeams || 6;
   teams = build2026Teams(nT);
   buildPlayers();
   buildDraftOrder();
@@ -4519,7 +4519,7 @@ function parseHashConfig() {
       scoring: 'ppr',
       draftType: (params.d === 'linear' ? 'linear' : 'snake'),
       userPosition: null,
-      numTeams: 10,
+      numTeams: 6,
       numRounds: 13,
     };
   }
