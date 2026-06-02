@@ -3241,14 +3241,14 @@ function autoPickForTeam(rosterId, mode) {
   // DEF/K gate
   // Dynasty keeps the old behavior: unlock after 10 actual draft picks (not counting keepers).
   // 2026 Season uses round-based redraft behavior: no DST/K before Round 14.
-  // CFL Season: no DST/K before Round 10 (13 total rounds).
+  // CFL Season: no DST/K before Round 7 (13 total rounds, 74 skill players available).
   var draftedPickCount = draftOrder.filter(function(s){ return s.teamId === rosterId && s.playerName && !s.isKeeper; }).length;
   var currentIdx = currentPickIndex();
   var currentSlot = currentIdx !== -1 ? draftOrder[currentIdx] : null;
   var currentRound = currentSlot && currentSlot.teamId === rosterId ? currentSlot.round : null;
   var is2026Season = LEAGUE_CONFIG && LEAGUE_CONFIG.type === '2026';
   var isCFLSeason  = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  var defkUnlocked = isCFLSeason ? (currentRound >= 10) : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
+  var defkUnlocked = isCFLSeason ? (currentRound >= 7) : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
 
   // Force DEF/K immediately once the relevant gate opens.
   // In 2026 Season this means Round 14+, while Dynasty is unchanged.
@@ -3291,7 +3291,7 @@ function autoPickForTeam(rosterId, mode) {
         if (p.pos === 'TE' && teCount >= teLimit) return false;
       }
       if ((is2026Season && currentRound < 14) && (p.pos === 'DST' || p.pos === 'K')) return false;
-      if ((isCFLSeason  && currentRound < 10) && (p.pos === 'DST' || p.pos === 'K')) return false;
+      if ((isCFLSeason  && currentRound < 7)  && (p.pos === 'DST' || p.pos === 'K')) return false;
       return true;
     });
   }
@@ -3300,9 +3300,13 @@ function autoPickForTeam(rosterId, mode) {
     avail = players.filter(function(p) {
       if (p.drafted || p.isKeeper) return false;
       if ((is2026Season && currentRound < 14) && (p.pos === 'DST' || p.pos === 'K')) return false;
-      if ((isCFLSeason  && currentRound < 10) && (p.pos === 'DST' || p.pos === 'K')) return false;
+      if ((isCFLSeason  && currentRound < 7)  && (p.pos === 'DST' || p.pos === 'K')) return false;
       return true;
     });
+  }
+  // Absolute last resort: ignore all gates — pick any undrafted player by ECR
+  if (avail.length === 0) {
+    avail = players.filter(function(p) { return !p.drafted && !p.isKeeper; });
   }
 
   var best;
@@ -3345,7 +3349,11 @@ async function runAutopilot() {
 
     // Auto pick for this team using gut score
     var best = autoPickForTeam(slot.teamId, 'gut');
-    if (!best) break;
+    if (!best) {
+      autoPilotRunning = false;
+      document.getElementById('ap-run-btn').textContent = '▶ Run';
+      break;
+    }
 
     slot.playerName = best.name;
     best.drafted    = true;
