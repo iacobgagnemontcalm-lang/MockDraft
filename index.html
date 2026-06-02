@@ -3422,11 +3422,10 @@ function autoPickForTeam(rosterId, mode) {
   var is2026Season = LEAGUE_CONFIG && LEAGUE_CONFIG.type === '2026';
   var isCFLSeason  = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
   var defkUnlocked = isCFLSeason ? true : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
-  // For CFL: K/DST are in the pool from round 1 (defkUnlocked=true) so gutScore can pick them
-  // naturally, but we only FORCE them once it's round 11+ so they don't get taken 1st overall.
-  var defkForced = isCFLSeason ? (currentRound != null && currentRound >= 11) : defkUnlocked;
+  // CFL: no forced K/DST window — they compete on gut score like any other player.
+  var defkForced = isCFLSeason ? false : defkUnlocked;
 
-  // Force DEF/K once the relevant gate opens (CFL: round 11+; NFL 2026: round 14+; Dynasty: 10 picks).
+  // Force DEF/K once the relevant gate opens (NFL 2026: round 14+; Dynasty: 10 picks).
   if (defkForced) {
     var needed = [];
     if (teamDSCount === 0) needed.push('DST');
