@@ -1748,7 +1748,7 @@ function renderVOR() {
       }).join(' &nbsp; ');
       nudgeEl.style.display = 'block';
     } else {
-      nudgeEl.innerHTML = 'Roster: ' + _rbHave + 'RB · ' + _wrHave + 'WR · ' + _qbHave + 'QB · ' + _teHave + 'TE';
+      nudgeEl.innerHTML = 'Roster: ' + _rbHave + 'RB · ' + _wrHave + 'WR · ' + _qbHave + 'QB' + (LEAGUE_CONFIG&&LEAGUE_CONFIG.type==='cfl' ? '' : ' · ' + _teHave + 'TE');
       nudgeEl.style.display = 'block';
     }
   }
@@ -1889,6 +1889,7 @@ function renderVOR() {
   }
 
   // Filter candidates for the top picks panel
+  var _isCFLVor = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
   function candidateFilter(p) {
     if (p.drafted || p.isKeeper) return false;
     if (_lateRounds) {
@@ -1897,10 +1898,15 @@ function renderVOR() {
       return p.pos === 'K' || p.pos === 'DST';
     }
     if (p.pos === 'QB' && _qbHave >= _qbCap) return false;
-    if (p.pos === 'TE' && _teHave >= _teCap) return false;
-    // Don't recommend QB/TE if already holding a top-5 at that position
-    if (p.pos === 'QB' && teamHasTop5(myTeamId, 'QB')) return false;
-    if (p.pos === 'TE' && teamHasTop5(myTeamId, 'TE')) return false;
+    if (!_isCFLVor && p.pos === 'TE' && _teHave >= _teCap) return false;
+    if (!_isCFLVor && p.pos === 'QB' && teamHasTop5(myTeamId, 'QB')) return false;
+    if (!_isCFLVor && p.pos === 'TE' && teamHasTop5(myTeamId, 'TE')) return false;
+    // CFL: recommend K/DST any time until team already has one
+    if (_isCFLVor) {
+      if (p.pos === 'DST' && _myDSCount >= 1) return false;
+      if (p.pos === 'K'   && _myKCount  >= 1) return false;
+      return true;
+    }
     if (p.pos === 'K' || p.pos === 'DST') return false;
     return true;
   }
@@ -1992,7 +1998,8 @@ function renderVOR() {
 
     html += '<div class="vor-card' + (isTop?' top-pick':'') + '" onclick="vorCardClick(' + i + ')">';
     html += '<div class="vc-pos"><span style="color:' + posClr + '">' + p.pos + '</span> <span style="font-size:8px;color:' + tagClr + '">' + tagTxt + '</span></div>';
-    html += '<div class="vc-name">' + p.name + '</div>';
+    var natBadgeVor = p.isNational ? ' <span style="font-size:9px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 4px;border-radius:3px">NAT</span>' : '';
+    html += '<div class="vc-name">' + p.name + natBadgeVor + '</div>';
     html += '<div style="font-size:9px;color:var(--muted)">' + p.nfl + ' · ECR#' + (p.ecr||'?') + (isSteal ? ' <span style="color:var(--gold)">▲+' + ecrGap + '</span>' : '') + '</div>';
     var vorNum = p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—';
     html += '<div class="vc-score"><span style="color:' + g.color + ';font-weight:700">VOR ' + vorNum + '</span>' + (atTierCliff ? ' <span style="color:var(--gold);font-size:8px" title="Last in tier ' + p.tier + ' — cliff after him">▼ last T' + p.tier + '</span>' : '') + '</div>';
@@ -2556,10 +2563,16 @@ function scoreTeam(teamId, fcValuesMap) {
     return null;
   }
 
-  // Equal weight for the first 13 non-K/DST players on the roster
+  // Equal weight for the first 13 non-K/DST players; CFL: best national RB/WR gets 1.5× (fills 2 slots)
   function buildWeightedRoster(roster) {
     var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
-    return eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
+    var result = eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
+    if (LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl') {
+      var natSlot = result.filter(function(s){ return s.p.isNational && (s.p.pos==='RB'||s.p.pos==='WR'); })
+                         .sort(function(a,b){ return (b.p.projPts||0)-(a.p.projPts||0); })[0];
+      if (natSlot) natSlot.w = 1.5;
+    }
+    return result;
   }
 
   // Compute slot-weighted sum for a metric fn across all teams (for normalization)
@@ -2776,10 +2789,16 @@ async function generateReport() {
     return null;
   }
 
-  // Equal weight for the first 13 non-K/DST players on the roster
+  // Equal weight for the first 13 non-K/DST players; CFL: best national RB/WR gets 1.5× (fills 2 slots)
   function buildSlotWeights(roster) {
     var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
-    return eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
+    var result = eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
+    if (isCFLReport) {
+      var natSlot = result.filter(function(s){ return s.p.isNational && (s.p.pos==='RB'||s.p.pos==='WR'); })
+                         .sort(function(a,b){ return (b.p.projPts||0)-(a.p.projPts||0); })[0];
+      if (natSlot) natSlot.w = 1.5;
+    }
+    return result;
   }
   function leagueSlotSums(metricFn) {
     return teams.map(function(t){
@@ -2907,8 +2926,13 @@ async function generateReport() {
     var cKs   = cflSlotPlayers('K');
     var cDSTs = fullRoster.filter(function(p){ return p.pos==='DST'; })
                   .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
-    var cNatPlayer = fullRoster.filter(function(p){ return p.isNational && (p.pos==='RB'||p.pos==='WR'); })
-                      .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); })[0] || null;
+    // NAT slot: best national RB/WR NOT already filling RB1/WR1/WR2/WR3
+    var _preStarters = new Set([cRBs[0], cWRs[0], cWRs[1], cWRs[2]].filter(Boolean).map(function(p){return p.name;}));
+    var cNatPlayer = fullRoster.filter(function(p){ return p.isNational && (p.pos==='RB'||p.pos==='WR') && !_preStarters.has(p.name); })
+                      .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); })[0]
+                   || fullRoster.filter(function(p){ return p.isNational && (p.pos==='RB'||p.pos==='WR'); })
+                      .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); })[0]
+                   || null;
 
     var cStarters = new Set();
     [cQBs[0], cRBs[0], cWRs[0], cWRs[1], cWRs[2], cNatPlayer, cKs[0], cDSTs[0]]
@@ -3397,7 +3421,7 @@ function autoPickForTeam(rosterId, mode) {
   var currentRound = currentSlot && currentSlot.teamId === rosterId ? currentSlot.round : null;
   var is2026Season = LEAGUE_CONFIG && LEAGUE_CONFIG.type === '2026';
   var isCFLSeason  = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  var defkUnlocked = isCFLSeason ? (currentRound >= 7) : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
+  var defkUnlocked = isCFLSeason ? true : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
 
   // Force DEF/K immediately once the relevant gate opens.
   // In 2026 Season this means Round 14+, while Dynasty is unchanged.
@@ -3440,7 +3464,6 @@ function autoPickForTeam(rosterId, mode) {
         if (p.pos === 'TE' && teCount >= teLimit) return false;
       }
       if ((is2026Season && currentRound < 14) && (p.pos === 'DST' || p.pos === 'K')) return false;
-      if ((isCFLSeason  && currentRound < 7)  && (p.pos === 'DST' || p.pos === 'K')) return false;
       return true;
     });
   }
@@ -3449,7 +3472,6 @@ function autoPickForTeam(rosterId, mode) {
     avail = players.filter(function(p) {
       if (p.drafted || p.isKeeper) return false;
       if ((is2026Season && currentRound < 14) && (p.pos === 'DST' || p.pos === 'K')) return false;
-      if ((isCFLSeason  && currentRound < 7)  && (p.pos === 'DST' || p.pos === 'K')) return false;
       return true;
     });
   }
