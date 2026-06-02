@@ -580,17 +580,6 @@ header {
         </div>
       </div>
 
-      <!-- Number of Teams -->
-      <div id="cfg-numteams-row" style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Number of Teams</div>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="6"><span class="radio-dot"></span><span>6</span></label>
-          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="8"><span class="radio-dot"></span><span>8</span></label>
-          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="10" checked><span class="radio-dot"></span><span>10</span></label>
-          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="12"><span class="radio-dot"></span><span>12</span></label>
-        </div>
-      </div>
-
       <!-- Draft Type (only for 2026 Season) -->
       <div id="cfg-drafttype-row" style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Draft Type</div>
@@ -4037,17 +4026,12 @@ function getLobbyPosition() {
   var sel = document.getElementById('cfg-position');
   return sel ? parseInt(sel.value, 10) : 1;
 }
-function getLobbyNumTeams() {
-  var el = document.querySelector('input[name="cfg-numteams"]:checked');
-  return el ? parseInt(el.value, 10) : 10;
-}
+
 
 function onLeagueTypeChange() {
   var type = getLobbyLeagueType();
   var dt = document.getElementById('cfg-drafttype-row');
   if (dt) dt.style.display = (type === '2026' || type === 'cfl') ? '' : 'none';
-  var nt = document.getElementById('cfg-numteams-row');
-  if (nt) nt.style.display = (type === 'cfl') ? 'none' : '';
 }
 
 function onDraftTypeChange() {
@@ -4229,9 +4213,9 @@ function apply2026SeasonMode(config) {
 // Mirrors apply2026SeasonMode() but with CFL config (13 rounds, no keepers).
 function applyCFLMode(config) {
   console.log('Applying CFL mode:', config);
-  LEAGUE_CONFIG = Object.assign({}, LEAGUE_CONFIG, config, { type: 'cfl' });
+  LEAGUE_CONFIG = Object.assign({}, LEAGUE_CONFIG, config, { type: 'cfl', numTeams: 6 });
   if (document.body) document.body.classList.add('mode-cfl');
-  var nT = LEAGUE_CONFIG.numTeams || 6;
+  var nT = 6;
   teams = build2026Teams(nT);
   buildPlayers();
   buildDraftOrder();
