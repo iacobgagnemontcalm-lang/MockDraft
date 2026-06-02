@@ -1571,31 +1571,21 @@ function computeVOR() {
     replECR[pos] = repl ? repl.ecr : 999;
   });
 
-  // CFL K/DST: projPts-based VOR so their value scales with actual scoring, not ECR spread
-  const replPts = {};
+  // CFL K/DST: override replacement ECR to end-of-board so VOR reflects their actual ECR rank.
+  // Without this, all 9 kickers cluster between ECR 43-66, giving a tiny log ratio (~40 VOR).
+  // Using the full pool size as replacement makes top K (ECR 44) score ~104 and top DST ~140.
   if (isCFL) {
-    ['K', 'DST'].forEach(pos => {
-      var sortedByPts = (byPos[pos] || []).slice().sort((a,b) => (b.projPts||0)-(a.projPts||0));
-      var draftedCt = players.filter(p => p.drafted && !p.isKeeper && p.pos === pos).length;
-      var rem = Math.max(0, TOTAL_DRAFTED_CFL[pos] - draftedCt);
-      var replPl = sortedByPts[rem] || sortedByPts[sortedByPts.length-1];
-      replPts[pos] = replPl ? (replPl.projPts || 0) : 0;
-    });
+    var _poolSize = players.length || 125;
+    replECR['K']   = _poolSize;
+    replECR['DST'] = _poolSize;
   }
 
   // (b) Log-curve rawVOR: log(replECR/playerECR) × 100
-  // CFL K/DST use projPts difference instead to compete fairly with skill players
   available.forEach(p => {
-    if (isCFL && (p.pos === 'K' || p.pos === 'DST')) {
-      // Scale by 0.4 so top K/DST (~200 projPts) land in the ~80 VOR range,
-      // competing with round 8-10 skill players rather than round 3-5.
-      p.vor = ((p.projPts || 0) - (replPts[p.pos] || 0)) * 0.4;
-    } else {
-      const repl = replECR[p.pos] || 150;
-      const playerECR = Math.max(1, p.ecr);
-      const replEcrClamped = Math.max(1, repl);
-      p.vor = Math.log(replEcrClamped / playerECR) * 100;
-    }
+    const repl = replECR[p.pos] || 150;
+    const playerECR = Math.max(1, p.ecr);
+    const replEcrClamped = Math.max(1, repl);
+    p.vor = Math.log(replEcrClamped / playerECR) * 100;
   });
 
   return {available, byPos, replECR};
