@@ -2267,17 +2267,18 @@ function assignRosterSlots(allPlayers) {
   var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
 
   if (isCFL) {
-    // Reserve the best national RB/WR for the NAT slot first,
-    // then fill positional slots from what remains.
-    var natPlayer = sorted.find(p => p.isNational && (p.pos === 'RB' || p.pos === 'WR'));
-    if (natPlayer) used.add(natPlayer.name);
+    // QB is a superflex — fill with best QB, else best available skill player.
+    // NAT slot gets the best national RB/WR not already used by a positional slot.
+    var sfPlayer = sorted.find(p => p.pos === 'QB')
+                || sorted.find(p => p.pos === 'RB' || p.pos === 'WR');
+    if (sfPlayer) used.add(sfPlayer.name);
+    slots.push({ slotLabel: 'QB', player: sfPlayer || null, isBench: false });
 
     var cflDefs = [
-      { base: 'QB',  eligible: ['QB'],      count: 1 },
-      { base: 'RB',  eligible: ['RB'],      count: 1 },
-      { base: 'WR',  eligible: ['WR'],      count: 3 },
-      { base: 'K',   eligible: ['K'],       count: 1 },
-      { base: 'DST', eligible: ['DST'],     count: 1 },
+      { base: 'RB',  eligible: ['RB'],  count: 1 },
+      { base: 'WR',  eligible: ['WR'],  count: 3 },
+      { base: 'K',   eligible: ['K'],   count: 1 },
+      { base: 'DST', eligible: ['DST'], count: 1 },
     ];
     cflDefs.forEach(def => {
       for (var i = 0; i < def.count; i++) {
@@ -2287,7 +2288,10 @@ function assignRosterSlots(allPlayers) {
         slots.push({ slotLabel: label, player: player || null, isBench: false });
       }
     });
-    // Insert NAT slot after WR3 (index 4) — before K
+    // NAT: best national RB/WR not already filling a starter slot
+    var natPlayer = sorted.find(p => p.isNational && (p.pos === 'RB' || p.pos === 'WR') && !used.has(p.name));
+    if (natPlayer) used.add(natPlayer.name);
+    // Insert NAT after WR3 (index 4) — before K
     slots.splice(4, 0, { slotLabel: 'NAT', player: natPlayer || null, isBench: false });
   } else {
     var nflDefs = [
@@ -3675,6 +3679,33 @@ function loadCSVText(text) {
   }
 
   if (parsed.length < 10) { toast('❌ Too few players found — check CSV format'); return 0; }
+
+  // Auto-assign CFL tiers from PPG breakpoints when no tier column in CSV
+  var _isCFLLoad = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
+  if (_isCFLLoad) {
+    var _cflTierBreaks = {
+      QB:  [20, 14, 9, 4],
+      RB:  [16, 12, 8, 4],
+      WR:  [14, 11, 8, 5],
+      K:   [11, 9, 7, 4],
+      DST: [9,  7, 5, 3],
+    };
+    parsed.forEach(function(p) {
+      if (p.tier !== 99) return; // already has explicit tier
+      var ppg = p.projPts && p.projPts > 0 ? p.projPts / Math.max(1, p.projPts / 17) : 0;
+      // Use projPts directly as proxy for PPG (season total / ~17 games)
+      var seasonPts = p.projPts || 0;
+      var breaks = _cflTierBreaks[p.pos];
+      if (!breaks) { p.tier = 5; return; }
+      var ppgEst = seasonPts / 17;
+      if      (ppgEst >= breaks[0]) p.tier = 1;
+      else if (ppgEst >= breaks[1]) p.tier = 2;
+      else if (ppgEst >= breaks[2]) p.tier = 3;
+      else if (ppgEst >= breaks[3]) p.tier = 4;
+      else                          p.tier = 5;
+    });
+  }
+
   var keeperByName = {};
   teams.forEach(t => t.keepers.forEach(k => { keeperByName[k] = t.shortName; }));
   var draftedMap = {};
