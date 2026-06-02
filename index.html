@@ -2581,24 +2581,33 @@ function scoreTeam(teamId, fcValuesMap) {
     return Math.min(maxPts, Math.max(0, maxPts * 0.7 + (myVal/avg - 1) * sensitivity * maxPts));
   }
 
-  // Pillar 1 (60pts): slot-weighted projected points vs league
-  var projSums = leagueWeightedSums(function(p){ return p.projPts || 0; });
-  var myProjIdx = teams.findIndex(function(t){ return t.rosterId === teamId; });
-  var projScore = normalize(projSums[myProjIdx] || 0, projSums, 60, 1.5);
+  var isCFLScore = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
 
-  // Pillar 2 (30pts): slot-weighted FC value vs league
-  var fc = fcValuesMap || window._lastFCValues;
-  var fcScore = 15; // neutral if no FC data
-  if (fc && Object.keys(fc).length > 0) {
-    var fcSums = leagueWeightedSums(function(p){ return getFCV(p) || 0; });
-    fcScore = normalize(fcSums[myProjIdx] || 0, fcSums, 30, 1.5);
+  // Pillar 1: slot-weighted projected points vs league
+  // CFL: 70pts (no FC pillar). NFL: 60pts.
+  var projSums  = leagueWeightedSums(function(p){ return p.projPts || 0; });
+  var myProjIdx = teams.findIndex(function(t){ return t.rosterId === teamId; });
+  var projMax   = isCFLScore ? 70 : 60;
+  var projScore = normalize(projSums[myProjIdx] || 0, projSums, projMax, 1.5);
+
+  // Pillar 2 (30pts): slot-weighted FC value vs league — NFL only
+  var fcScore = 0;
+  if (!isCFLScore) {
+    var fc = fcValuesMap || window._lastFCValues;
+    fcScore = 15; // neutral if no FC data
+    if (fc && Object.keys(fc).length > 0) {
+      var fcSums = leagueWeightedSums(function(p){ return getFCV(p) || 0; });
+      fcScore = normalize(fcSums[myProjIdx] || 0, fcSums, 30, 1.5);
+    }
   }
 
-  // Pillar 3 (10pts): value over ADP — avg(ADP - ECR) across drafted players
+  // Pillar 3: value over ADP/ECR
+  // CFL: 30pts (primary differentiator). NFL: 10pts.
   var deltas   = drafted.filter(function(p){ return p.adp && p.ecr && p.adp < 500; })
                         .map(function(p){ return p.adp - p.ecr; });
   var avgDelta = deltas.length ? deltas.reduce(function(a,b){return a+b;},0) / deltas.length : 0;
-  var vadScore = Math.min(10, Math.max(0, 5 + avgDelta * 0.4));
+  var vadMax   = isCFLScore ? 30 : 10;
+  var vadScore = Math.min(vadMax, Math.max(0, (vadMax/2) + avgDelta * (vadMax * 0.04)));
 
   return Math.min(100, Math.max(0, Math.round(projScore + fcScore + vadScore)));
 }
@@ -2706,6 +2715,8 @@ async function generateReport() {
   var myTeam = getTeam(myTeamId);
   if (!myTeam) return;
 
+  var isCFLReport = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
+
   var myPicks   = draftOrder.filter(s => s.teamId === myTeamId && s.playerName);
   var myDrafted = myPicks.map(s => {
     var p = players.find(x => x.name === s.playerName);
@@ -2714,23 +2725,25 @@ async function generateReport() {
   var myKeepers = myTeam.keepers.map(k => players.find(p => p.name === k)).filter(Boolean);
   var fullRoster = [...myKeepers, ...myDrafted];
 
-  // ── Fetch FantasyCalc trade values ──────────────────────────────────────
+  // ── Fetch FantasyCalc trade values (NFL only — skipped for CFL) ──────────
   var fcValues = {}; // name -> value (0-9999 scale)
-  try {
-    var fcRes = await fetch('https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=10&ppr=1');
-    if (fcRes.ok) {
-      var fcData = await fcRes.json();
-      fcData.forEach(function(item) {
-        if (item.player && item.player.name) {
-          fcValues[item.player.name] = item.value || 0;
-        }
-      });
-      window._lastFCValues = fcValues; // cache for roster cards
+  if (!isCFLReport) {
+    try {
+      var fcRes = await fetch('https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=10&ppr=1');
+      if (fcRes.ok) {
+        var fcData = await fcRes.json();
+        fcData.forEach(function(item) {
+          if (item.player && item.player.name) {
+            fcValues[item.player.name] = item.value || 0;
+          }
+        });
+        window._lastFCValues = fcValues; // cache for roster cards
+      }
+    } catch(e) {
+      console.warn('FantasyCalc fetch failed, using ECR fallback:', e.message);
     }
-  } catch(e) {
-    console.warn('FantasyCalc fetch failed, using ECR fallback:', e.message);
   }
-  var hasFCData = Object.keys(fcValues).length > 0;
+  var hasFCData = !isCFLReport && Object.keys(fcValues).length > 0;
 
   // Helper: get FC value for a player (with robust name matching)
   function getFCValue(p) {
@@ -2783,34 +2796,41 @@ async function generateReport() {
   }
   var myIdx = teams.findIndex(function(t){return t.rosterId===myTeamId;});
 
-  // ── Pillar 1: Slot-weighted projected points (60pts) ─────────────────
+  // ── Pillar 1: Slot-weighted projected points ──────────────────────────
+  // CFL: 70pts (no FC pillar). NFL: 60pts.
   var projSums  = leagueSlotSums(function(p){return p.projPts||0;});
-  var projScore = normScore(projSums[myIdx]||0, projSums, 60, 1.5);
+  var projMax   = isCFLReport ? 70 : 60;
+  var projScore = normScore(projSums[myIdx]||0, projSums, projMax, 1.5);
 
-  // ── Pillar 2: Slot-weighted FC value (30pts) ──────────────────────────
-  var fcScore = 15; // neutral default
-  if (hasFCData) {
-    fullRoster.forEach(function(p){ p.fcValue = getFCValue(p); });
-    var fcSums = leagueSlotSums(function(p){return getFCValue(p)||0;});
-    fcScore = normScore(fcSums[myIdx]||0, fcSums, 30, 1.5);
+  // ── Pillar 2: Slot-weighted FC value (30pts) — NFL only ───────────────
+  var fcScore = 0;
+  if (!isCFLReport) {
+    fcScore = 15; // neutral default
+    if (hasFCData) {
+      fullRoster.forEach(function(p){ p.fcValue = getFCValue(p); });
+      var fcSums = leagueSlotSums(function(p){return getFCValue(p)||0;});
+      fcScore = normScore(fcSums[myIdx]||0, fcSums, 30, 1.5);
+    }
   }
 
-  // ── Pillar 3: Value over ADP (10pts) ─────────────────────────────────
+  // ── Pillar 3: Value over ADP/ECR ─────────────────────────────────────
+  // CFL: 30pts (primary value signal). NFL: 10pts.
   var deltas      = myDrafted.filter(function(p){return p.adp&&p.ecr&&p.adp<500;}).map(function(p){return p.adp-p.ecr;});
   var avgDelta    = deltas.length ? deltas.reduce(function(a,b){return a+b;},0)/deltas.length : 0;
-  var valueScore  = Math.min(10, Math.max(0, 5 + avgDelta * 0.4));
+  var vadMax      = isCFLReport ? 30 : 10;
+  var valueScore  = Math.min(vadMax, Math.max(0, (vadMax/2) + avgDelta * (vadMax * 0.04)));
   var sortedByDelta = [...myDrafted].sort((a,b)=>(b.adp-b.ecr)-(a.adp-a.ecr));
   var bestValue   = sortedByDelta[0];
   var worstValue  = sortedByDelta[sortedByDelta.length-1];
 
   // Keep have for narrative narr block below
-  var have = {QB:0,RB:0,WR:0,TE:0,K:0,DST:0};
+  var have = isCFLReport ? {QB:0,RB:0,WR:0,K:0,DST:0} : {QB:0,RB:0,WR:0,TE:0,K:0,DST:0};
   fullRoster.forEach(function(p){ if(have[p.pos]!==undefined) have[p.pos]++; });
   var missing = [];
   if((have.QB||0)<1) missing.push('QB');
-  if((have.RB||0)<2) missing.push('RB');
-  if((have.WR||0)<2) missing.push('WR');
-  if((have.TE||0)<1) missing.push('TE');
+  if((have.RB||0)<1) missing.push('RB');
+  if((have.WR||0)<3) missing.push('3 WR starters');
+  if(!isCFLReport && (have.TE||0)<1) missing.push('TE');
 
   var total  = scoreTeam(myTeamId, fcValues);
   var grade  = letterGrade(total);
@@ -2829,23 +2849,41 @@ async function generateReport() {
   var dWR = myDrafted.filter(p=>p.pos==='WR').length;
   var qbDbl = myDrafted.filter(p=>p.pos==='QB'&&p.round<=8).length;
   var teEarly = myDrafted.filter(p=>p.pos==='TE'&&p.round<=6).length;
-  if (hasFCData) {
-    if (fcScore>=22) narr.push('📈 Top-tier trade value — your roster is worth significantly more than league average.');
-    else if (fcScore>=17) narr.push('Solid trade value — above-average roster strength heading into the season.');
-    else if (fcScore<=10) narr.push('📉 Below-average trade value — your roster may need upgrade via trades.');
+
+  if (isCFLReport) {
+    // CFL-specific narratives
+    var natPlayers = fullRoster.filter(p=>p.isNational && (p.pos==='RB'||p.pos==='WR'));
+    var bestNat = natPlayers.sort((a,b)=>(b.projPts||0)-(a.projPts||0))[0];
+    if (missing.length) narr.push('⚠️ Missing starters at '+missing.join(', ')+' — big hole going into the season.');
+    if (bestNat && (bestNat.projPts||0)>150) narr.push('Strong NAT slot — '+bestNat.name+' gives you a weekly positional edge.');
+    else if (!bestNat) narr.push('⚠️ No national player drafted — NAT slot will be a liability every week.');
+    if (avgDelta>8) narr.push('Elite value drafter — beating ADP by '+avgDelta.toFixed(1)+' spots per pick on average.');
+    else if (avgDelta<-8) narr.push('Costly reaches — overpaying by '+Math.abs(avgDelta).toFixed(1)+' spots above ADP per pick.');
+    if (fullWR>=6) narr.push('WR-heavy build — fits the CFL\'s pass-first game. Depth will weather the bye weeks.');
+    if (fullRB<2) narr.push('Very thin at RB with only '+fullRB+' — one injury away from trouble.');
+    if (total>=85) narr.push('🏆 Exceptional draft — one of the strongest CFL rosters in the league.');
+    else if (total>=76) narr.push('Strong overall draft with real upside.');
+    else if (total>=65) narr.push('Solid draft with a competitive CFL roster.');
+    else narr.push('Tough draft — will need strong waiver wire work to compete.');
+  } else {
+    if (hasFCData) {
+      if (fcScore>=22) narr.push('📈 Top-tier trade value — your roster is worth significantly more than league average.');
+      else if (fcScore>=17) narr.push('Solid trade value — above-average roster strength heading into the season.');
+      else if (fcScore<=10) narr.push('📉 Below-average trade value — your roster may need upgrade via trades.');
+    }
+    if (missing.length) narr.push('⚠️ Missing starters at '+missing.join(', ')+' — big hole going into the season.');
+    if (qbDbl>1) narr.push('Drafted '+qbDbl+' QBs in the first 8 rounds — wasted picks at the shallowest position.');
+    if (avgDelta>8) narr.push('Elite value drafter — beating ADP by '+avgDelta.toFixed(1)+' spots per pick on average.');
+    else if (avgDelta<-8) narr.push('Costly reaches — overpaying by '+Math.abs(avgDelta).toFixed(1)+' spots above ADP per pick.');
+    if (fullRB>=5) narr.push('RB-heavy roster with '+fullRB+' total — elite depth at the most scarce position.');
+    else if (fullRB<2) narr.push('Very thin at RB with only '+fullRB+' — one injury away from trouble.');
+    if (kTE>=1&&teEarly>=1) narr.push('Kept a quality TE and drafted another early — double advantage at a scarcity position.');
+    else if (kTE>=1) narr.push('Elite TE keeper gives you a positional edge every week.');
+    if (total>=85) narr.push('🏆 Exceptional draft — one of the strongest rosters in the league.');
+    else if (total>=76) narr.push('Strong overall draft with real upside.');
+    else if (total>=65) narr.push('Solid draft with a competitive roster.');
+    else narr.push('Tough draft — will need strong waiver wire work to compete.');
   }
-  if (missing.length) narr.push('⚠️ Missing starters at '+missing.join(', ')+' — big hole going into the season.');
-  if (qbDbl>1) narr.push('Drafted '+qbDbl+' QBs in the first 8 rounds — wasted picks at the shallowest position.');
-  if (avgDelta>8) narr.push('Elite value drafter — beating ADP by '+avgDelta.toFixed(1)+' spots per pick on average.');
-  else if (avgDelta<-8) narr.push('Costly reaches — overpaying by '+Math.abs(avgDelta).toFixed(1)+' spots above ADP per pick.');
-  if (fullRB>=5) narr.push('RB-heavy roster with '+fullRB+' total — elite depth at the most scarce position.');
-  else if (fullRB<2) narr.push('Very thin at RB with only '+fullRB+' — one injury away from trouble.');
-  if (kTE>=1&&teEarly>=1) narr.push('Kept a quality TE and drafted another early — double advantage at a scarcity position.');
-  else if (kTE>=1) narr.push('Elite TE keeper gives you a positional edge every week.');
-  if (total>=85) narr.push('🏆 Exceptional draft — one of the strongest rosters in the league.');
-  else if (total>=76) narr.push('Strong overall draft with real upside.');
-  else if (total>=65) narr.push('Solid draft with a competitive roster.');
-  else narr.push('Tough draft — will need strong waiver wire work to compete.');
 
   function posColor(pos) {
     return {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DS:'var(--muted)'}[pos]||'var(--muted)';
@@ -2857,9 +2895,118 @@ async function generateReport() {
       '<span class="score-bar-val">'+Math.round(score)+'/'+max+'</span></div>';
   }
 
-  // ── FantasyCalc positional slot breakdown ─────────────────────────────
+  // ── Slot breakdown ────────────────────────────────────────────────────
   var fcSlotHtml = '';
-  if (hasFCData) {
+  if (isCFLReport) {
+    // CFL: projection-based slot breakdown (no FC data available for CFL players)
+    function cflSlotPlayers(pos) {
+      return fullRoster.filter(function(p){ return p.pos === pos; })
+        .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
+    }
+    var cQBs  = cflSlotPlayers('QB');
+    var cRBs  = cflSlotPlayers('RB');
+    var cWRs  = cflSlotPlayers('WR');
+    var cKs   = cflSlotPlayers('K');
+    var cDSTs = fullRoster.filter(function(p){ return p.pos==='DST'; })
+                  .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
+    var cNatPlayer = fullRoster.filter(function(p){ return p.isNational && (p.pos==='RB'||p.pos==='WR'); })
+                      .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); })[0] || null;
+
+    var cStarters = new Set();
+    [cQBs[0], cRBs[0], cWRs[0], cWRs[1], cWRs[2], cNatPlayer, cKs[0], cDSTs[0]]
+      .filter(Boolean).forEach(function(p){ cStarters.add(p.name); });
+    var cBench = fullRoster.filter(function(p){ return !cStarters.has(p.name); })
+                   .sort(function(a,b){ return (b.projPts||0)-(a.projPts||0); });
+
+    var maxProjVal = Math.max.apply(null, fullRoster.map(function(p){ return p.projPts||0; }).concat([1]));
+
+    function cflProjRow(label, player, col) {
+      if (!player) {
+        return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;opacity:0.4">'+
+          '<span style="font-size:9px;font-weight:700;min-width:40px;color:var(--dim)">'+label+'</span>'+
+          '<span style="font-size:11px;color:var(--dim);flex:1">— empty —</span>'+
+          '<span style="min-width:52px"></span>'+
+        '</div>';
+      }
+      var pct = Math.round(((player.projPts||0)/maxProjVal)*100);
+      var isKp = myKeepers.some(function(k){ return k.name===player.name; });
+      var keeperTag = isKp ? ' <span style="font-size:8px;color:var(--gold);font-weight:700">K</span>' : '';
+      var natTag = player.isNational ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700">NAT</span>' : '';
+      var valTxt = (player.projPts||0) > 0
+        ? '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--dim);min-width:52px;text-align:right">'+Math.round(player.projPts)+' pts</span>'
+        : '<span style="font-size:10px;color:var(--dim);min-width:52px;text-align:right">ECR #'+Math.round(player.ecr)+'</span>';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'+
+        '<span style="font-size:9px;font-weight:700;min-width:40px;color:'+col+'">'+label+'</span>'+
+        '<span style="font-size:12px;flex:1;color:var(--text)">'+player.name+keeperTag+natTag+'</span>'+
+        '<div style="flex:1.5;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px;transition:width 0.4s"></div>'+
+        '</div>'+
+        valTxt+
+      '</div>';
+    }
+
+    var cflSlotRows =
+      cflProjRow('QB1',  cQBs[0],    'var(--orange)') +
+      cflProjRow('RB1',  cRBs[0],    'var(--green)')  +
+      cflProjRow('WR1',  cWRs[0],    'var(--blue)')   +
+      cflProjRow('WR2',  cWRs[1],    'var(--blue)')   +
+      cflProjRow('WR3',  cWRs[2],    'var(--blue)')   +
+      cflProjRow('NAT',  cNatPlayer, '#00bcd4')        +
+      cflProjRow('K',    cKs[0],     'var(--gold)')   +
+      cflProjRow('DST',  cDSTs[0],   'var(--muted)');
+
+    var cflBenchRows = cBench.length
+      ? cBench.map(function(p) {
+          var pct = Math.round(((p.projPts||0)/maxProjVal)*100);
+          var col = posColor(p.pos);
+          var natTag = p.isNational ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700">NAT</span>' : '';
+          var valTxt = (p.projPts||0) > 0
+            ? '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--dim);min-width:52px;text-align:right">'+Math.round(p.projPts)+' pts</span>'
+            : '<span style="font-size:10px;color:var(--dim);min-width:52px;text-align:right">ECR #'+Math.round(p.ecr)+'</span>';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'+
+            '<span style="font-size:9px;font-weight:700;min-width:40px;color:'+col+'">'+p.pos+'</span>'+
+            '<span style="font-size:12px;flex:1;color:var(--muted)">'+p.name+natTag+'</span>'+
+            '<div style="flex:1.5;height:4px;background:var(--surface3);border-radius:3px;overflow:hidden">'+
+              '<div style="height:100%;width:'+pct+'%;background:'+col+';opacity:0.5;border-radius:3px"></div>'+
+            '</div>'+
+            valTxt+
+          '</div>';
+        }).join('')
+      : '<div style="font-size:11px;color:var(--dim);padding:4px 0">No bench players</div>';
+
+    var allProjTeamVals = teams.map(function(t) {
+      var tAll = [
+        ...t.keepers.map(function(k){ return players.find(function(p){ return p.name===k; }); }).filter(Boolean),
+        ...draftOrder.filter(function(s){ return s.teamId===t.rosterId&&s.playerName; })
+          .map(function(s){ return players.find(function(x){ return x.name===s.playerName; }); }).filter(Boolean)
+      ];
+      var total = tAll.reduce(function(sum,p){ return sum+(p.projPts||0); }, 0);
+      return { short: t.shortName, rosterId: t.rosterId, total: total };
+    }).sort(function(a,b){ return b.total-a.total; });
+    var maxProjTeam = allProjTeamVals[0].total || 1;
+
+    var cflLeagueRows = allProjTeamVals.map(function(t) {
+      var isMe = t.rosterId === myTeamId;
+      var pct = Math.round((t.total / maxProjTeam) * 100);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'+
+        '<span style="font-size:11px;min-width:52px;color:'+(isMe?'var(--text)':'var(--muted)')+';font-weight:'+(isMe?700:400)+'">'+(isMe?'★ ':'')+t.short+'</span>'+
+        '<div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+(isMe?'var(--accent)':'var(--surface3)')+';border:1px solid '+(isMe?'var(--accent)':'var(--border2)')+';border-radius:3px"></div>'+
+        '</div>'+
+        '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:'+(isMe?'var(--accent)':'var(--dim)')+';min-width:52px;text-align:right">'+Math.round(t.total)+' pts</span>'+
+      '</div>';
+    }).join('');
+
+    fcSlotHtml =
+      '<div class="report-section">'+
+        '<div class="report-section-title">Projected points — by slot</div>'+
+        '<div style="margin-bottom:12px">'+cflSlotRows+'</div>'+
+        '<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin:10px 0 6px">Bench</div>'+
+        '<div style="margin-bottom:12px">'+cflBenchRows+'</div>'+
+        '<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin:10px 0 6px">League projected points ranking</div>'+
+        cflLeagueRows+
+      '</div>';
+  } else if (hasFCData) {
     // Sort each position group by FC value descending — include ALL players even without FC value
     function slotPlayers(pos) {
       return fullRoster.filter(p => p.pos === pos)
@@ -3106,9 +3253,13 @@ async function generateReport() {
     '</div>'+
 
     '<div class="report-section"><div class="report-section-title">Score breakdown</div>'+
-      bar('Projected points (lineup)', projScore, 60, 'var(--green)', 'first 13 players vs league avg')+
-      bar('FC trade value (lineup)', fcScore, 30, 'var(--accent)', hasFCData?'first 13 players vs league avg':'offline — no FC data')+
-      bar('Value over ADP', valueScore, 10, 'var(--gold)', 'avg ECR steal across your picks')+
+      (isCFLReport
+        ? bar('Projected points (lineup)', projScore, 70, 'var(--green)', 'vs league avg')+
+          bar('Value over ADP/ECR', valueScore, 30, 'var(--gold)', 'avg ECR steal across your picks')
+        : bar('Projected points (lineup)', projScore, 60, 'var(--green)', 'first 13 players vs league avg')+
+          bar('FC trade value (lineup)', fcScore, 30, 'var(--accent)', hasFCData?'first 13 players vs league avg':'offline — no FC data')+
+          bar('Value over ADP', valueScore, 10, 'var(--gold)', 'avg ECR steal across your picks')
+      )+
     '</div>'+
 
     fcSlotHtml +
@@ -3241,14 +3392,14 @@ function autoPickForTeam(rosterId, mode) {
   // DEF/K gate
   // Dynasty keeps the old behavior: unlock after 10 actual draft picks (not counting keepers).
   // 2026 Season uses round-based redraft behavior: no DST/K before Round 14.
-  // CFL Season: no DST/K before Round 10 (13 total rounds).
+  // CFL Season: no DST/K before Round 7 (13 total rounds, 74 skill players available).
   var draftedPickCount = draftOrder.filter(function(s){ return s.teamId === rosterId && s.playerName && !s.isKeeper; }).length;
   var currentIdx = currentPickIndex();
   var currentSlot = currentIdx !== -1 ? draftOrder[currentIdx] : null;
   var currentRound = currentSlot && currentSlot.teamId === rosterId ? currentSlot.round : null;
   var is2026Season = LEAGUE_CONFIG && LEAGUE_CONFIG.type === '2026';
   var isCFLSeason  = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  var defkUnlocked = isCFLSeason ? (currentRound >= 10) : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
+  var defkUnlocked = isCFLSeason ? (currentRound >= 7) : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
 
   // Force DEF/K immediately once the relevant gate opens.
   // In 2026 Season this means Round 14+, while Dynasty is unchanged.
@@ -3291,7 +3442,7 @@ function autoPickForTeam(rosterId, mode) {
         if (p.pos === 'TE' && teCount >= teLimit) return false;
       }
       if ((is2026Season && currentRound < 14) && (p.pos === 'DST' || p.pos === 'K')) return false;
-      if ((isCFLSeason  && currentRound < 10) && (p.pos === 'DST' || p.pos === 'K')) return false;
+      if ((isCFLSeason  && currentRound < 7)  && (p.pos === 'DST' || p.pos === 'K')) return false;
       return true;
     });
   }
@@ -3300,9 +3451,13 @@ function autoPickForTeam(rosterId, mode) {
     avail = players.filter(function(p) {
       if (p.drafted || p.isKeeper) return false;
       if ((is2026Season && currentRound < 14) && (p.pos === 'DST' || p.pos === 'K')) return false;
-      if ((isCFLSeason  && currentRound < 10) && (p.pos === 'DST' || p.pos === 'K')) return false;
+      if ((isCFLSeason  && currentRound < 7)  && (p.pos === 'DST' || p.pos === 'K')) return false;
       return true;
     });
+  }
+  // Absolute last resort: ignore all gates — pick any undrafted player by ECR
+  if (avail.length === 0) {
+    avail = players.filter(function(p) { return !p.drafted && !p.isKeeper; });
   }
 
   var best;
@@ -3345,7 +3500,11 @@ async function runAutopilot() {
 
     // Auto pick for this team using gut score
     var best = autoPickForTeam(slot.teamId, 'gut');
-    if (!best) break;
+    if (!best) {
+      autoPilotRunning = false;
+      document.getElementById('ap-run-btn').textContent = '▶ Run';
+      break;
+    }
 
     slot.playerName = best.name;
     best.drafted    = true;
