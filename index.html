@@ -1584,9 +1584,8 @@ function computeVOR() {
   // Without this, all 9 kickers cluster between ECR 43-66, giving a tiny log ratio (~40 VOR).
   // Using the full pool size as replacement makes top K (ECR 44) score ~104 and top DST ~140.
   if (isCFL) {
-    var _poolSize = players.length || 125;
-    replECR['K']   = _poolSize;
-    replECR['DST'] = _poolSize;
+    replECR['K']   = 80;
+    replECR['DST'] = 80;
   }
 
   // (b) Log-curve rawVOR: log(replECR/playerECR) × 100
@@ -2266,30 +2265,50 @@ function assignRosterSlots(allPlayers) {
   var used = new Set();
   var slots = [];
   var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  var slotDefs = isCFL ? [
-    { base: 'QB',  eligible: ['QB'],       count: 1 },
-    { base: 'RB',  eligible: ['RB'],       count: 1 },
-    { base: 'WR',  eligible: ['WR'],       count: 3 },
-    { base: 'NAT', eligible: ['RB','WR'],  count: 1, natOnly: true },
-    { base: 'K',   eligible: ['K'],        count: 1 },
-    { base: 'DST', eligible: ['DST'],      count: 1 },
-  ] : [
-    { base: 'QB',   eligible: ['QB'],           count: 1 },
-    { base: 'RB',   eligible: ['RB'],           count: 2 },
-    { base: 'WR',   eligible: ['WR'],           count: 2 },
-    { base: 'TE',   eligible: ['TE'],           count: 1 },
-    { base: 'FLEX', eligible: ['RB','WR','TE'], count: 1 },
-    { base: 'K',    eligible: ['K'],            count: 1 },
-    { base: 'DST',  eligible: ['DST'],          count: 1 },
-  ];
-  slotDefs.forEach(def => {
-    for (var i = 0; i < def.count; i++) {
-      var label = def.count > 1 ? def.base + (i + 1) : def.base;
-      var player = sorted.find(p => !used.has(p.name) && def.eligible.includes(p.pos) && (!def.natOnly || p.isNational));
-      if (player) used.add(player.name);
-      slots.push({ slotLabel: label, player: player || null, isBench: false });
-    }
-  });
+
+  if (isCFL) {
+    // Reserve the best national RB/WR for the NAT slot first,
+    // then fill positional slots from what remains.
+    var natPlayer = sorted.find(p => p.isNational && (p.pos === 'RB' || p.pos === 'WR'));
+    if (natPlayer) used.add(natPlayer.name);
+
+    var cflDefs = [
+      { base: 'QB',  eligible: ['QB'],      count: 1 },
+      { base: 'RB',  eligible: ['RB'],      count: 1 },
+      { base: 'WR',  eligible: ['WR'],      count: 3 },
+      { base: 'K',   eligible: ['K'],       count: 1 },
+      { base: 'DST', eligible: ['DST'],     count: 1 },
+    ];
+    cflDefs.forEach(def => {
+      for (var i = 0; i < def.count; i++) {
+        var label = def.count > 1 ? def.base + (i + 1) : def.base;
+        var player = sorted.find(p => !used.has(p.name) && def.eligible.includes(p.pos));
+        if (player) used.add(player.name);
+        slots.push({ slotLabel: label, player: player || null, isBench: false });
+      }
+    });
+    // Insert NAT slot after WR3 (index 4) — before K
+    slots.splice(4, 0, { slotLabel: 'NAT', player: natPlayer || null, isBench: false });
+  } else {
+    var nflDefs = [
+      { base: 'QB',   eligible: ['QB'],           count: 1 },
+      { base: 'RB',   eligible: ['RB'],           count: 2 },
+      { base: 'WR',   eligible: ['WR'],           count: 2 },
+      { base: 'TE',   eligible: ['TE'],           count: 1 },
+      { base: 'FLEX', eligible: ['RB','WR','TE'], count: 1 },
+      { base: 'K',    eligible: ['K'],            count: 1 },
+      { base: 'DST',  eligible: ['DST'],          count: 1 },
+    ];
+    nflDefs.forEach(def => {
+      for (var i = 0; i < def.count; i++) {
+        var label = def.count > 1 ? def.base + (i + 1) : def.base;
+        var player = sorted.find(p => !used.has(p.name) && def.eligible.includes(p.pos));
+        if (player) used.add(player.name);
+        slots.push({ slotLabel: label, player: player || null, isBench: false });
+      }
+    });
+  }
+
   sorted.filter(p => !used.has(p.name)).forEach(p => {
     slots.push({ slotLabel: 'BN', player: p, isBench: true });
   });
@@ -2344,7 +2363,9 @@ function renderRoster() {
     var badge = p._isKeeper
       ? '<span style="font-size:9px;color:var(--gold);margin-left:4px">K</span>'
       : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
-    html += `<div class="roster-row"><span class="pos-tag pos-${pc}" style="min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name">${p.name}</span>${badge}</div>`;
+    var natTag = (p.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
+      ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px">NAT</span>' : '';
+    html += `<div class="roster-row"><span class="pos-tag pos-${pc}" style="min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name">${p.name}${natTag}</span>${badge}</div>`;
   });
 
   if (bench.length > 0) {
@@ -2355,7 +2376,9 @@ function renderRoster() {
       var badge = p._isKeeper
         ? '<span style="font-size:9px;color:var(--gold);margin-left:4px">K</span>'
         : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
-      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p.pos}</span><span class="r-name">${p.name}</span>${badge}</div>`;
+      var natTag = (p.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
+        ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px">NAT</span>' : '';
+      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p.pos}</span><span class="r-name">${p.name}${natTag}</span>${badge}</div>`;
     });
   }
 
