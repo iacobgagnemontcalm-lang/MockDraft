@@ -1584,9 +1584,8 @@ function computeVOR() {
   // Without this, all 9 kickers cluster between ECR 43-66, giving a tiny log ratio (~40 VOR).
   // Using the full pool size as replacement makes top K (ECR 44) score ~104 and top DST ~140.
   if (isCFL) {
-    var _poolSize = players.length || 125;
-    replECR['K']   = _poolSize;
-    replECR['DST'] = _poolSize;
+    replECR['K']   = 80;
+    replECR['DST'] = 80;
   }
 
   // (b) Log-curve rawVOR: log(replECR/playerECR) × 100
