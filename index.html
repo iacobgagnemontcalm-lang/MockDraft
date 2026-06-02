@@ -4045,9 +4045,9 @@ function getLobbyNumTeams() {
 function onLeagueTypeChange() {
   var type = getLobbyLeagueType();
   var dt = document.getElementById('cfg-drafttype-row');
-  var show = (type === '2026' || type === 'cfl');
-  if (dt) dt.style.display = show ? '' : 'none';
-  // cfg-position-row is always hidden; team is chosen via modal at draft start
+  if (dt) dt.style.display = (type === '2026' || type === 'cfl') ? '' : 'none';
+  var nt = document.getElementById('cfg-numteams-row');
+  if (nt) nt.style.display = (type === 'cfl') ? 'none' : '';
 }
 
 function onDraftTypeChange() {
@@ -4357,7 +4357,7 @@ function lobbyCreate() {
       type: 'cfl',
       scoring: 'ppr',
       draftType: getLobbyDraftType(),
-      numTeams: getLobbyNumTeams(),
+      numTeams: 6,
       numRounds: 13,
     };
   } else {
