@@ -2080,8 +2080,12 @@ function renderOrder() {
               : isUpcoming ? 'draft-row my-upcoming'
               : s.playerName ? 'draft-row completed'
               : 'draft-row';
+    const _pickPlayer = s.playerName ? players.find(x => x.name === s.playerName) : null;
+    const _natBadge = (_pickPlayer && _pickPlayer.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
+      ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px;vertical-align:middle">NAT</span>'
+      : '';
     const playerHtml = s.playerName
-      ? `<span class="pick-player-name">${s.playerName}</span>`
+      ? `<span class="pick-player-name">${s.playerName}${_natBadge}</span>`
       : `<span class="pick-player-name empty">${isCur ? '← now' : '…'}</span>`;
     out += `<div class="${cls}" id="slot-${i}"><span class="pick-no">${s.pickNo}</span><span class="pick-team-name">${s.teamShort}</span>${playerHtml}</div>`;
     return out;
