@@ -3422,10 +3422,11 @@ function autoPickForTeam(rosterId, mode) {
   var is2026Season = LEAGUE_CONFIG && LEAGUE_CONFIG.type === '2026';
   var isCFLSeason  = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
   var defkUnlocked = isCFLSeason ? true : is2026Season ? (currentRound >= 14) : (draftedPickCount >= 10);
+  // CFL: no forced K/DST window — they compete on gut score like any other player.
+  var defkForced = isCFLSeason ? false : defkUnlocked;
 
-  // Force DEF/K immediately once the relevant gate opens.
-  // In 2026 Season this means Round 14+, while Dynasty is unchanged.
-  if (defkUnlocked) {
+  // Force DEF/K once the relevant gate opens (NFL 2026: round 14+; Dynasty: 10 picks).
+  if (defkForced) {
     var needed = [];
     if (teamDSCount === 0) needed.push('DST');
     if (teamKCount  === 0) needed.push('K');
