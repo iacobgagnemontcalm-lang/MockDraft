@@ -2344,7 +2344,9 @@ function renderRoster() {
     var badge = p._isKeeper
       ? '<span style="font-size:9px;color:var(--gold);margin-left:4px">K</span>'
       : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
-    html += `<div class="roster-row"><span class="pos-tag pos-${pc}" style="min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name">${p.name}</span>${badge}</div>`;
+    var natTag = (p.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
+      ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px">NAT</span>' : '';
+    html += `<div class="roster-row"><span class="pos-tag pos-${pc}" style="min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name">${p.name}${natTag}</span>${badge}</div>`;
   });
 
   if (bench.length > 0) {
@@ -2355,7 +2357,9 @@ function renderRoster() {
       var badge = p._isKeeper
         ? '<span style="font-size:9px;color:var(--gold);margin-left:4px">K</span>'
         : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
-      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p.pos}</span><span class="r-name">${p.name}</span>${badge}</div>`;
+      var natTag = (p.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
+        ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px">NAT</span>' : '';
+      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p.pos}</span><span class="r-name">${p.name}${natTag}</span>${badge}</div>`;
     });
   }
 
