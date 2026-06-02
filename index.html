@@ -710,7 +710,7 @@ header {
         <div style="display:flex;align-items:center;gap:6px">
           <span style="color:var(--dim);font-weight:400;font-size:10px">click to select</span>
           <button id="vor-collapse-btn" onclick="toggleVorPanel()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Syne',sans-serif">▼</button>
-          <button onclick="document.getElementById('vor-modal').style.display='flex'" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Syne',sans-serif;letter-spacing:0.5px">How it works</button>
+          <button onclick="openHowItWorks()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Syne',sans-serif;letter-spacing:0.5px">How it works</button>
         </div>
       </div>
       <div id="vor-roster-nudge" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);padding:0 2px"></div>
@@ -4022,6 +4022,17 @@ const FIREBASE_CONFIG = {
 // ══════════════════════════════════════════════
 // LOBBY
 // ══════════════════════════════════════════════
+function openHowItWorks() {
+  var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
+  var cflSec = document.getElementById('how-cfl-section');
+  var defkNFL = document.getElementById('how-defk-nfl');
+  var defkCFL = document.getElementById('how-defk-cfl');
+  if (cflSec)  cflSec.style.display  = isCFL ? '' : 'none';
+  if (defkNFL) defkNFL.style.display = isCFL ? 'none' : '';
+  if (defkCFL) defkCFL.style.display = isCFL ? '' : 'none';
+  document.getElementById('vor-modal').style.display = 'flex';
+}
+
 function showLobby() {
   document.getElementById('lobby').style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:20px;padding:20px;overflow-y:auto';
   document.getElementById('loading').style.display = 'none';
@@ -4870,6 +4881,60 @@ init();
 
     <div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.7;color:var(--text)">
 
+      <!-- CFL rules section — only shown in CFL mode -->
+      <div id="how-cfl-section" style="display:none">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#00bcd4;margin-bottom:8px">🍁 CFL 2026 Fantasy — Rules</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
+            <div style="font-weight:700;color:var(--text);margin-bottom:6px">Roster (13 picks · 6 teams · 13 rounds)</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">
+              <div style="background:rgba(249,115,22,0.1);border-radius:4px;padding:4px 6px;text-align:center;color:var(--orange)">QB ×1</div>
+              <div style="background:rgba(34,197,94,0.1);border-radius:4px;padding:4px 6px;text-align:center;color:var(--green)">RB ×1</div>
+              <div style="background:rgba(59,130,246,0.1);border-radius:4px;padding:4px 6px;text-align:center;color:var(--blue)">WR ×3</div>
+              <div style="background:rgba(0,188,212,0.1);border-radius:4px;padding:4px 6px;text-align:center;color:#00bcd4">NAT ×1</div>
+              <div style="background:rgba(245,197,66,0.1);border-radius:4px;padding:4px 6px;text-align:center;color:var(--gold)">K ×1</div>
+              <div style="background:rgba(148,163,184,0.1);border-radius:4px;padding:4px 6px;text-align:center;color:var(--muted)">DST ×1</div>
+              <div style="grid-column:span 2;background:rgba(148,163,184,0.06);border-radius:4px;padding:4px 6px;text-align:center;color:var(--dim)">Bench ×5</div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
+            <div style="font-weight:700;color:#00bcd4;margin-bottom:6px">🍁 NAT (National) Slot</div>
+            <div style="color:var(--muted)">Must be a <strong style="color:var(--text)">Canadian player</strong> (NAT badge) at RB or WR. Every team must fill this slot. The best national player is automatically placed here — he plays both his position slot <em>and</em> the NAT flex.</div>
+          </div>
+
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
+            <div style="font-weight:700;color:var(--text);margin-bottom:6px">PPR Scoring</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:var(--muted)">
+              <div>
+                <div style="color:var(--orange);font-weight:700;margin-bottom:3px">QB</div>
+                25 pass yds = 1 pt<br>TD pass = 4 pts<br>INT = −2 pts<br>Rush TD = 6 pts
+              </div>
+              <div>
+                <div style="color:var(--green);font-weight:700;margin-bottom:3px">RB / WR</div>
+                10 rush/rec yds = 1 pt<br>Reception = 1 pt (PPR)<br>Rush/Rec TD = 6 pts
+              </div>
+              <div>
+                <div style="color:var(--gold);font-weight:700;margin-bottom:3px">K</div>
+                FG 0–39 = 3 pts<br>FG 40–49 = 4 pts<br>FG 50+ = 5 pts<br>PAT = 1 pt · Rouge = 1 pt
+              </div>
+              <div>
+                <div style="color:var(--muted);font-weight:700;margin-bottom:3px">DST</div>
+                Sack = 1 pt<br>INT/Fum = 2 pts<br>TD = 6 pts<br>Shutout bonus = 10 pts
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
+            <div style="font-weight:700;color:var(--text);margin-bottom:4px">K &amp; DST draft rules</div>
+            <div style="color:var(--muted)">K and DST are treated like any other player — they compete on VOR at any round. Each team can draft <strong style="color:var(--text)">at most 1 K and 1 DST</strong>.</div>
+          </div>
+
+        </div>
+        <div style="height:1px;background:var(--border);margin-top:16px"></div>
+      </div>
+
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">⚡ Top picks — the iackScore</div>
         The three cards rank available players using a composite score built from backtested signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+8.3</span>) on each card and board row is the raw marginal value — positive = above replacement. The final card ranking is driven by a <strong>3-pick look-ahead</strong> that simulates your next three turns.
@@ -4879,7 +4944,7 @@ init();
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + ECR steal bonus<br>
           3-pick value = iack(pick1) + 0.65×iack(pick2) + 0.42×iack(pick3)
         </div>
-        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Every signal was validated against 500+ simulated drafts using real 2026 ADP data. Run detection and demand signals were removed — they hurt more than they helped.</div>
+        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Every signal was validated against 500+ simulated drafts using real ADP data.</div>
       </div>
 
       <div>
@@ -4991,7 +5056,8 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">DEF / K rule</div>
-        Autopilot never drafts DEF or K until <strong>Round 14+</strong> in redraft (or 10+ picks made in Dynasty). Human players can draft them any time.
+        <span id="how-defk-nfl">Autopilot never drafts DEF or K until <strong>Round 14+</strong> in redraft (or 10+ picks made in Dynasty). Human players can draft them any time.</span>
+        <span id="how-defk-cfl" style="display:none">K and DST compete on VOR like any other position — autopilot can pick them any round. Each team is capped at <strong>1 K and 1 DST</strong>. Once a team has one, they disappear from that team's recommendations.</span>
       </div>
 
       <div style="background:var(--surface2);border-left:2px solid var(--accent);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12px;color:var(--muted)">
