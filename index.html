@@ -580,6 +580,17 @@ header {
         </div>
       </div>
 
+      <!-- Number of Teams -->
+      <div id="cfg-numteams-row" style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Number of Teams</div>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="6"><span class="radio-dot"></span><span>6</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="8"><span class="radio-dot"></span><span>8</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="10" checked><span class="radio-dot"></span><span>10</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="12"><span class="radio-dot"></span><span>12</span></label>
+        </div>
+      </div>
+
       <!-- Draft Type (only for 2026 Season) -->
       <div id="cfg-drafttype-row" style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Draft Type</div>
@@ -1442,7 +1453,16 @@ function teamPosCounts(teamId) {
 // (10 teams × starter slots + bench ≈ total drafted per pos)
 const TOTAL_DRAFTED = {QB:15, RB:40, WR:39, TE:16, K:10, DST:10};
 // CFL: 10 teams × 13 rounds = 130 picks (1 QB + 1 RB + 3 WR + 1 NAT + 1 K + 1 DST + 5 bench)
-const TOTAL_DRAFTED_CFL = {QB:12, RB:20, WR:78, K:10, DST:10};
+function getTotalDraftedCFL() {
+  var nT = (LEAGUE_CONFIG && LEAGUE_CONFIG.numTeams) || 10;
+  return {
+    QB:  Math.round(1.2 * nT),
+    RB:  Math.round(2.0 * nT),
+    WR:  Math.round(7.8 * nT),
+    K:   nT,
+    DST: nT,
+  };
+}
 
 // ══════════════════════════════════════════════
 // STD DEV QUINTILE — risk badge per position
@@ -1563,7 +1583,7 @@ function computeVOR() {
   // Only count actual draft picks (not keepers) as "used up" slots.
   var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
   const replECR = {};
-  Object.entries(isCFL ? TOTAL_DRAFTED_CFL : TOTAL_DRAFTED).forEach(([pos, globalN]) => {
+  Object.entries(isCFL ? getTotalDraftedCFL() : TOTAL_DRAFTED).forEach(([pos, globalN]) => {
     const list = byPos[pos] || [];
     const draftedCount = players.filter(p => p.drafted && !p.isKeeper && p.pos === pos).length;
     const remaining = Math.max(0, globalN - draftedCount);
@@ -4017,6 +4037,10 @@ function getLobbyPosition() {
   var sel = document.getElementById('cfg-position');
   return sel ? parseInt(sel.value, 10) : 1;
 }
+function getLobbyNumTeams() {
+  var el = document.querySelector('input[name="cfg-numteams"]:checked');
+  return el ? parseInt(el.value, 10) : 10;
+}
 
 function onLeagueTypeChange() {
   var type = getLobbyLeagueType();
@@ -4325,7 +4349,7 @@ function lobbyCreate() {
       type: '2026',
       scoring: 'ppr',
       draftType: getLobbyDraftType(),
-      numTeams: 10,
+      numTeams: getLobbyNumTeams(),
       numRounds: 15,
     };
   } else if (leagueType === 'cfl') {
@@ -4333,7 +4357,7 @@ function lobbyCreate() {
       type: 'cfl',
       scoring: 'ppr',
       draftType: getLobbyDraftType(),
-      numTeams: 10,
+      numTeams: getLobbyNumTeams(),
       numRounds: 13,
     };
   } else {
