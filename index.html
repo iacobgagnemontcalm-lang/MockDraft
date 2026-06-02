@@ -1587,7 +1587,9 @@ function computeVOR() {
   // CFL K/DST use projPts difference instead to compete fairly with skill players
   available.forEach(p => {
     if (isCFL && (p.pos === 'K' || p.pos === 'DST')) {
-      p.vor = (p.projPts || 0) - (replPts[p.pos] || 0);
+      // Scale by 0.4 so top K/DST (~200 projPts) land in the ~80 VOR range,
+      // competing with round 8-10 skill players rather than round 3-5.
+      p.vor = ((p.projPts || 0) - (replPts[p.pos] || 0)) * 0.4;
     } else {
       const repl = replECR[p.pos] || 150;
       const playerECR = Math.max(1, p.ecr);
