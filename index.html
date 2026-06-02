@@ -1571,12 +1571,29 @@ function computeVOR() {
     replECR[pos] = repl ? repl.ecr : 999;
   });
 
+  // CFL K/DST: projPts-based VOR so their value scales with actual scoring, not ECR spread
+  const replPts = {};
+  if (isCFL) {
+    ['K', 'DST'].forEach(pos => {
+      var sortedByPts = (byPos[pos] || []).slice().sort((a,b) => (b.projPts||0)-(a.projPts||0));
+      var draftedCt = players.filter(p => p.drafted && !p.isKeeper && p.pos === pos).length;
+      var rem = Math.max(0, TOTAL_DRAFTED_CFL[pos] - draftedCt);
+      var replPl = sortedByPts[rem] || sortedByPts[sortedByPts.length-1];
+      replPts[pos] = replPl ? (replPl.projPts || 0) : 0;
+    });
+  }
+
   // (b) Log-curve rawVOR: log(replECR/playerECR) × 100
+  // CFL K/DST use projPts difference instead to compete fairly with skill players
   available.forEach(p => {
-    const repl = replECR[p.pos] || 150;
-    const playerECR = Math.max(1, p.ecr);
-    const replEcrClamped = Math.max(1, repl);
-    p.vor = Math.log(replEcrClamped / playerECR) * 100;
+    if (isCFL && (p.pos === 'K' || p.pos === 'DST')) {
+      p.vor = (p.projPts || 0) - (replPts[p.pos] || 0);
+    } else {
+      const repl = replECR[p.pos] || 150;
+      const playerECR = Math.max(1, p.ecr);
+      const replEcrClamped = Math.max(1, repl);
+      p.vor = Math.log(replEcrClamped / playerECR) * 100;
+    }
   });
 
   return {available, byPos, replECR};
@@ -2080,8 +2097,12 @@ function renderOrder() {
               : isUpcoming ? 'draft-row my-upcoming'
               : s.playerName ? 'draft-row completed'
               : 'draft-row';
+    const _pickPlayer = s.playerName ? players.find(x => x.name === s.playerName) : null;
+    const _natBadge = (_pickPlayer && _pickPlayer.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
+      ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px;vertical-align:middle">NAT</span>'
+      : '';
     const playerHtml = s.playerName
-      ? `<span class="pick-player-name">${s.playerName}</span>`
+      ? `<span class="pick-player-name">${s.playerName}${_natBadge}</span>`
       : `<span class="pick-player-name empty">${isCur ? '← now' : '…'}</span>`;
     out += `<div class="${cls}" id="slot-${i}"><span class="pick-no">${s.pickNo}</span><span class="pick-team-name">${s.teamShort}</span>${playerHtml}</div>`;
     return out;
@@ -3456,10 +3477,12 @@ function autoPickForTeam(rosterId, mode) {
     return true;
   });
 
-  // Fallback: relax positional caps but keep DEF/K gate active
+  // Fallback: relax positional caps but keep DEF/K gate and 1-K/1-DST hard cap active
   if (avail.length === 0) {
     avail = players.filter(function(p) {
       if (p.drafted || p.isKeeper) return false;
+      if (p.pos === 'DST' && teamDSCount >= 1) return false;
+      if (p.pos === 'K'   && teamKCount  >= 1) return false;
       if (!isCFLSeason) {
         if (p.pos === 'QB' && qbCount >= qbLimit) return false;
         if (p.pos === 'TE' && teCount >= teLimit) return false;
@@ -3468,15 +3491,28 @@ function autoPickForTeam(rosterId, mode) {
       return true;
     });
   }
-  // Last resort: keep only the DEF/K gate
+  // Last resort: keep only the DEF/K gate + hard cap
   if (avail.length === 0) {
     avail = players.filter(function(p) {
       if (p.drafted || p.isKeeper) return false;
+      if (p.pos === 'DST' && teamDSCount >= 1) return false;
+      if (p.pos === 'K'   && teamKCount  >= 1) return false;
       if ((is2026Season && currentRound < 14) && (p.pos === 'DST' || p.pos === 'K')) return false;
       return true;
     });
   }
-  // Absolute last resort: ignore all gates — pick any undrafted player by ECR
+  // Absolute last resort: only the hard cap remains
+  if (avail.length === 0) {
+    avail = players.filter(function(p) {
+      if (!p.drafted && !p.isKeeper) return true;
+      return false;
+    }).filter(function(p) {
+      if (p.pos === 'DST' && teamDSCount >= 1) return false;
+      if (p.pos === 'K'   && teamKCount  >= 1) return false;
+      return true;
+    });
+  }
+  // True last resort: ignore everything
   if (avail.length === 0) {
     avail = players.filter(function(p) { return !p.drafted && !p.isKeeper; });
   }
