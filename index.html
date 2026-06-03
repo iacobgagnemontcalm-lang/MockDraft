@@ -1948,25 +1948,7 @@ function renderVOR() {
   // Step 2: compute 3-pick score for each candidate (also sets p._nextPick)
   _pool.forEach(function(p){ p._threePickScore = threePickScore(p, _pool); });
 
-  // Debug: log breakdown for top WRs so we can diagnose recommendation order
-  if (_isCFLVor && typeof console !== 'undefined') {
-    var _dbgWRs = _pool.filter(function(p){ return p.pos === 'WR'; })
-      .sort(function(a,b){ return b._threePickScore - a._threePickScore; })
-      .slice(0, 5);
-    _dbgWRs.forEach(function(p){
-      var mvor = p.mvor || 0;
-      var prob = computePickProb(p);
-      var goneProb = prob !== null ? (1 - prob) : 0.1;
-      var needMult = 1 + _wrNeed * 0.35;
-      var baseValue = Math.max(mvor, 0) * needMult + Math.min(mvor, 0);
-      console.log('[iack] ' + p.name + ' | tier=' + p.tier + ' ppg=' + (p.ppg||0).toFixed(1) +
-        ' mvor=' + mvor.toFixed(1) + ' gone=' + (goneProb*100).toFixed(0) + '% | base=' + baseValue.toFixed(1) +
-        ' iack=' + iackScore(p).toFixed(1) + ' 3ps=' + p._threePickScore.toFixed(1) +
-        ' next=' + (p._nextPick ? p._nextPick.name : 'none'));
-    });
-  }
-
-  // Step 3: re-sort by 3-pick score, then enforce position diversity (max 1 per position).
+// Step 3: re-sort by 3-pick score, then enforce position diversity (max 1 per position).
   // This prevents all 3 cards showing the same position (e.g. 3 TEs) when only 1 is needed.
   var _sorted = _pool.slice().sort(function(a,b){ return b._threePickScore - a._threePickScore; });
   var _diverse = [], _seenPos = {};
