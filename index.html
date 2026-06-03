@@ -3687,6 +3687,7 @@ function loadCSVText(text) {
   var iStd  = ci('std.dev');
   var iNat  = ci('nat');
   var iPts  = ci('pts');
+  var iPPG  = ci('ppg');
 
   if (iRank === -1 || iName === -1) {
     toast('❌ Cannot find RK or PLAYER NAME columns'); return 0;
@@ -3707,7 +3708,8 @@ function loadCSVText(text) {
     var nfl  = get(iTeam) || 'FA';
     var isNational = iNat >= 0 ? (get(iNat) === 'Y') : false;
     var projPts    = iPts >= 0 ? (parseFloat(get(iPts)) || 0) : 0;
-    parsed.push({ name, pos, nfl, ecr, adp, tier, std, isNational, projPts });
+    var ppg        = iPPG >= 0 ? (parseFloat(get(iPPG)) || 0) : 0;
+    parsed.push({ name, pos, nfl, ecr, adp, tier, std, isNational, projPts, ppg });
   }
 
   if (parsed.length < 10) { toast('❌ Too few players found — check CSV format'); return 0; }
@@ -3729,7 +3731,7 @@ function loadCSVText(text) {
       var seasonPts = p.projPts || 0;
       var breaks = _cflTierBreaks[p.pos];
       if (!breaks) { p.tier = 5; return; }
-      var ppgEst = seasonPts / 17;
+      var ppgEst = p.ppg > 0 ? p.ppg : seasonPts / 17;
       if      (ppgEst >= breaks[0]) p.tier = 1;
       else if (ppgEst >= breaks[1]) p.tier = 2;
       else if (ppgEst >= breaks[2]) p.tier = 3;
@@ -3756,6 +3758,7 @@ function loadCSVText(text) {
     isRookie:   ROOKIES_2026.has(p.name),
     isNational: p.isNational || false,
     projPts:    p.projPts || 0,
+    ppg:        p.ppg || 0,
   }));
 
   computeStdQuintiles();
