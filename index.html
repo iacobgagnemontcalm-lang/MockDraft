@@ -1822,7 +1822,8 @@ function renderVOR() {
     var depthUrgency = (p.tier != null && p.tier <= 3)
       ? (eliteLeft <= 2 ? 1.0 : eliteLeft <= 4 ? 0.6 : eliteLeft <= 6 ? 0.3 : 0.0) : 0.0;
     var posList      = byPos[p.pos] || [];
-    var nextBestPos  = posList.find(function(x){ return x.name !== p.name; });
+    var _myIdx       = posList.findIndex(function(x){ return x.name === p.name; });
+    var nextBestPos  = _myIdx >= 0 ? posList[_myIdx + 1] : null;
     var cliffUrgency = (nextBestPos && p.tier != null && nextBestPos.tier != null && nextBestPos.tier > p.tier) ? 0.5 : 0.0;
 
     var urgencyBoost = (depthUrgency * 0.22 + cliffUrgency * 0.30) * Math.abs(mvor) * 0.3;
@@ -1996,7 +1997,8 @@ function renderVOR() {
 
     // Next best at position (for urgency context and tier-cliff detection)
     var posList  = byPos[p.pos] || [];
-    var nextBest = posList.find(function(x){ return x.name !== p.name; });
+    var _cardIdx = posList.findIndex(function(x){ return x.name === p.name; });
+    var nextBest = _cardIdx >= 0 ? posList[_cardIdx + 1] : null;
     var nextName = nextBest ? nextBest.name.split(' ').pop() : '—';
 
     // Tier cliff: is the next-best player in a worse tier? (must be computed before tag logic)
