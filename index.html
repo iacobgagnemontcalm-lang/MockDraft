@@ -1874,13 +1874,12 @@ function renderVOR() {
     var qb1  = _qbHave + (p.pos === 'QB' ? 1 : 0);
     var te1  = _teHave + (p.pos === 'TE' ? 1 : 0);
 
-    // Best 2nd pick: available at my NEXT turn (not current turn)
+    // Best 2nd pick: best player still in pool (urgency already baked into iackScore)
     var cands2 = pool.filter(function(x) {
       if (x.name === p.name) return false;
       if (x.pos === 'QB' && qb1 >= _qbCap) return false;
       if (x.pos === 'TE' && te1 >= _teCap) return false;
-      var pr = pickProbAtOffset(x, _picksToNext);
-      return pr !== null ? pr < 0.65 : true; // <65% gone = likely still available
+      return true;
     });
     if (!cands2.length) { p._nextPick = null; return base; }
     cands2.sort(function(a,b){ return iackScoreWith(b,n1[0],n1[1]) - iackScoreWith(a,n1[0],n1[1]); });
@@ -1888,7 +1887,7 @@ function renderVOR() {
     p._nextPick = bestB;
     var scoreB = iackScoreWith(bestB, n1[0], n1[1]);
 
-    // Best 3rd pick: available at my turn AFTER next
+    // Best 3rd pick: best player still in pool after picks 1 and 2
     var n2  = needAfter2(p.pos, bestB.pos);
     var qb2 = qb1 + (bestB.pos === 'QB' ? 1 : 0);
     var te2 = te1 + (bestB.pos === 'TE' ? 1 : 0);
@@ -1896,8 +1895,7 @@ function renderVOR() {
       if (x.name === p.name || x.name === bestB.name) return false;
       if (x.pos === 'QB' && qb2 >= _qbCap) return false;
       if (x.pos === 'TE' && te2 >= _teCap) return false;
-      var pr = pickProbAtOffset(x, _picksToAfter);
-      return pr !== null ? pr < 0.80 : true; // looser threshold — 2 turns away
+      return true;
     });
     var bestC  = cands3.length ? cands3.sort(function(a,b){ return iackScoreWith(b,n2[0],n2[1]) - iackScoreWith(a,n2[0],n2[1]); })[0] : null;
     var scoreC = bestC ? iackScoreWith(bestC, n2[0], n2[1]) : 0;
