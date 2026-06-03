@@ -2450,6 +2450,12 @@ function draftSelected() {
   if (idx === -1) return;
   const slot = draftOrder[idx];
 
+  // Only the team that owns the current pick may draft
+  if (!myTeamId || slot.teamId !== myTeamId) {
+    toast('⛔ Not your pick — it\'s ' + (slot.teamShort || 'another team') + '\'s turn');
+    return;
+  }
+
   // Save for undo
   history.push({ slotIdx: idx, playerName: selectedPlayer.name, rosterId: slot.teamId });
   // Assign
