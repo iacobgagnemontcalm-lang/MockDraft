@@ -647,7 +647,13 @@ header {
   <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;max-width:380px;width:100%;padding:28px 24px">
     <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">Choose your team</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:18px;font-family:'DM Mono',monospace">You will draft manually. All other teams autopick.</div>
-    <div id="team-picker-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
+    <div onclick="pickCommissioner()" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--gold);background:rgba(255,200,0,0.07);cursor:pointer;margin-bottom:8px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--gold)">👑 Commissioner</div>
+        <div style="font-size:10px;color:var(--dim)">Pick for every team — full draft control</div>
+      </div>
+    </div>
+    <div id="team-picker-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -798,6 +804,7 @@ let teams = [];           // [{id, name, displayName, rosterId, keepers:[]}]
 let draftOrder = [];      // [{pick, round, teamId, playerName|null, isKeeper}]
 let players = [];         // FP_PLAYERS enriched with {drafted, draftedBy, keeperOf}
 let myTeamId = null;
+let isCommissioner = false;
 let selectedPlayer = null;
 let history = [];         // for undo
 let posFilter = 'ALL';
@@ -2060,13 +2067,13 @@ function renderHeader() {
   }
   const slot = draftOrder[idx];
   const team = getTeam(slot.teamId);
-  const isMyTurn = slot.teamId === myTeamId;
+  const isMyTurn = isCommissioner || slot.teamId === myTeamId;
   document.getElementById('hdr-info').innerHTML =
     `Round <b>${slot.round}</b> · Pick <b>${slot.pickNo}</b> · <span style="color:var(--gold);font-weight:700">${team ? team.shortName : '?'}</span> is on the clock`;
   const pill = document.getElementById('clock-pill');
   if (isMyTurn) {
     pill.className = 'pill my-turn';
-    pill.textContent = '⚡ Your pick!';
+    pill.textContent = isCommissioner ? ('👑 ' + (team ? team.shortName : '?')) : '⚡ Your pick!';
   } else {
     pill.className = 'pill on-clock';
     pill.textContent = team ? team.displayName : '';
@@ -2093,7 +2100,7 @@ function renderOrder() {
       out += `<div class="round-sep">Round ${s.round}</div>`;
     }
     const isCur = i === curIdx;
-    const isMy = s.teamId === myTeamId;
+    const isMy = isCommissioner || s.teamId === myTeamId;
     const isUpcoming = !s.playerName && !isCur && isMy;
     const cls = isCur ? 'draft-row current'
               : isUpcoming ? 'draft-row my-upcoming'
@@ -2450,8 +2457,8 @@ function draftSelected() {
   if (idx === -1) return;
   const slot = draftOrder[idx];
 
-  // Only the team that owns the current pick may draft
-  if (!myTeamId || slot.teamId !== myTeamId) {
+  // Only the team that owns the current pick may draft (commissioner bypasses this)
+  if (!isCommissioner && (!myTeamId || slot.teamId !== myTeamId)) {
     toast('⛔ Not your pick — it\'s ' + (slot.teamShort || 'another team') + '\'s turn');
     return;
   }
@@ -2494,10 +2501,11 @@ function autoPick() {
   if (idx === -1) return;
   // Use autoPickForTeam — it enforces the 2026 Round-14 DEF/K gate while preserving Dynasty behavior
   const mode = autoMode === 'vor' ? 'gut' : autoMode;
-  const best = autoPickForTeam(myTeamId, mode);
+  const pickTeamId = isCommissioner ? draftOrder[idx].teamId : myTeamId;
+  const best = autoPickForTeam(pickTeamId, mode);
   if (!best) { toast('No players available!'); return; }
   const {byPos: _abp} = computeVOR();
-  const mvor = marginalValue(best, myTeamId, _abp);
+  const mvor = marginalValue(best, pickTeamId, _abp);
   const label = autoMode === 'vor'
     ? 'VOR ' + (mvor >= 0 ? '+' : '') + mvor.toFixed(1)
     : autoMode === 'ecr' ? 'ECR #' + best.ecr.toFixed(0)
@@ -2579,15 +2587,22 @@ function setFilter(btn, pos) {
 
 function buildTeamSelect() {
   const sel = document.getElementById('team-sel');
-  sel.innerHTML = teams.map(t =>
-    `<option value="${t.rosterId}">${t.shortName} (${t.displayName})</option>`
-  ).join('');
+  sel.innerHTML =
+    `<option value="commissioner">👑 Commissioner</option>` +
+    teams.map(t =>
+      `<option value="${t.rosterId}">${t.shortName} (${t.displayName})</option>`
+    ).join('');
   // Default to first team — user should pick their own via the dropdown or team picker
   myTeamId = teams[0].rosterId;
   sel.value = myTeamId;
   sel.onchange = () => {
-    myTeamId = parseInt(sel.value);
-    renderAll(); // just update the view
+    if (sel.value === 'commissioner') {
+      pickCommissioner();
+    } else {
+      isCommissioner = false;
+      myTeamId = parseInt(sel.value);
+      renderAll();
+    }
   };
   // Don't auto-claim here — let initTeamModes + team picker handle it
 }
@@ -3409,7 +3424,7 @@ function initTeamModes() {
   // Don't overwrite modes already synced from Firebase
   teams.forEach(t => {
     if (!teamModes[t.rosterId]) {
-      teamModes[t.rosterId] = (t.rosterId === myTeamId) ? 'manual' : 'gut';
+      teamModes[t.rosterId] = (isCommissioner || t.rosterId === myTeamId) ? 'manual' : 'gut';
     }
     if (!teamGutMap[t.rosterId]) teamGutMap[t.rosterId] = 50;
   });
@@ -4539,6 +4554,17 @@ function showTeamPicker() {
 }
 
 function pickMyTeam(rosterId) {
+  // Clear commissioner mode when a specific team is chosen
+  if (isCommissioner) {
+    isCommissioner = false;
+    // Release all teams back to AUTO except the one being claimed
+    teams.forEach(function(t) {
+      if (t.rosterId !== rosterId) {
+        teamModes[t.rosterId] = 'gut';
+        if (fbRef) fbRef.child('teamModes/' + t.rosterId).set('gut');
+      }
+    });
+  }
   // Release previous team back to AUTO
   if (myTeamId && myTeamId !== rosterId) {
     teamModes[myTeamId] = 'gut';
@@ -4565,6 +4591,32 @@ function pickMyTeam(rosterId) {
   renderAutopilot();
   renderAll();
   toast('✓ Locked in as ' + (teams.find(function(t){ return t.rosterId === rosterId; }) || {}).shortName);
+}
+
+function pickCommissioner() {
+  // Release any previously claimed team back to AUTO
+  if (myTeamId && !isCommissioner) {
+    teamModes[myTeamId] = 'gut';
+    if (fbRef) fbRef.child('teamModes/' + myTeamId).set('gut');
+  }
+  isCommissioner = true;
+  myTeamId = null;
+  // Set ALL teams to manual so autopilot never fires
+  teams.forEach(function(t) {
+    teamModes[t.rosterId] = 'manual';
+    if (fbRef) fbRef.child('teamModes/' + t.rosterId).set('manual');
+  });
+  // Update header
+  var sel = document.getElementById('team-sel');
+  if (sel) { sel.value = 'commissioner'; }
+  var lbl = document.getElementById('my-team-label-2026');
+  if (lbl) { lbl.textContent = '👑 Commissioner'; }
+  // Close picker
+  var picker = document.getElementById('team-picker');
+  if (picker) picker.style.display = 'none';
+  renderAutopilot();
+  renderAll();
+  toast('👑 Commissioner mode — you pick for every team');
 }
 
 let fbApp = null;
