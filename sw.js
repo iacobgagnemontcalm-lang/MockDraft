@@ -1,10 +1,20 @@
-const CACHE = 'dinomock-v1';
+const CACHE = 'dinomock-v2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+];
+
+// Cross-origin hosts whose responses we cache for offline use (fonts, CDN libs).
+// API hosts (Sleeper, FantasyCalc, Firebase) are deliberately NOT cached —
+// their responses are dynamic and long-poll URLs would bloat the cache.
+const CDN_HOSTS = [
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'www.gstatic.com',
+  'cdnjs.cloudflare.com',
 ];
 
 self.addEventListener('install', e => {
@@ -22,18 +32,22 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Let API calls (Sleeper, Firebase, FFC, etc.) always go to the network
+  if (e.request.method !== 'GET') return;
+
   const url = new URL(e.request.url);
-  if (url.origin !== location.origin) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-    return;
-  }
-  // For same-origin assets: network first, fall back to cache
+  const cacheable = url.origin === location.origin || CDN_HOSTS.includes(url.hostname);
+
+  // API calls always go straight to the network, uncached
+  if (!cacheable) return;
+
+  // Network first, fall back to cache; only cache good responses
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
+        if (res && (res.ok || res.type === 'opaque')) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
         return res;
       })
       .catch(() => caches.match(e.request))
