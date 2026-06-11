@@ -1351,10 +1351,7 @@ async function fetchSleeperProjections() {
       var v = fuzzyGet(projPtsMap, p.name);
       if (v != null) p.projPts = v;
     });
-    rebuildProjModel();
-    // 'live' only when real data actually arrived — an empty pre-season feed
-    // is a warning state, not a live one
-    dataStatus.proj = (Object.keys(projPtsMap).length > 0 && _projLiveWeeks > 0) ? 'live' : 'warn';
+    dataStatus.proj = 'live';
     console.log('Sleeper projections: ' + Object.keys(projPtsMap).length + ' players, ' + _projLiveWeeks + '/17 weeks with data');
   } catch(e) {
     dataStatus.proj = 'error';
@@ -1434,81 +1431,9 @@ function teamPosCounts(teamId) {
   return counts;
 }
 
-// Global replacement: the last player drafted league-wide at that pos
+// Global replacement ECR: the ECR of the last player drafted league-wide at that pos
 // (10 teams × starter slots + bench ≈ total drafted per pos)
 const TOTAL_DRAFTED = {QB:15, RB:40, WR:39, TE:16, K:10, DST:10};
-
-// ── ECR-decay projection fallback ──────────────────────────────────────────
-// Estimated season points by position rank, used when a player has no real
-// projection (Sleeper projections offline / early loads). Same curve the
-// backtest harness uses (backtest/simulate7+).
-const PROJ_CURVE = {
-  QB:  {b:450, d:0.970, f:120},
-  RB:  {b:380, d:0.935, f:40},
-  WR:  {b:370, d:0.940, f:40},
-  TE:  {b:250, d:0.910, f:30},
-  DST: {b:135, d:0.985, f:80},
-  K:   {b:145, d:0.985, f:90},
-};
-function curveProj(pos, posRank) {
-  const c = PROJ_CURVE[pos] || PROJ_CURVE.WR;
-  return Math.max(c.f, Math.round(c.b * Math.pow(c.d, (posRank || 99) - 1)));
-}
-
-// ── Per-position projection model used by VOR ──────────────────────────────
-// Mixing real projections for some players with curve estimates for others
-// puts them on different scales and inverts rankings (a curve-estimated
-// player leapfrogs a better player whose real projection is slightly lower —
-// exactly what happens pre-season when Sleeper's feed is partial). Policy:
-//   - solid coverage among draft-relevant players at a position → use real
-//     values; estimate the gaps by interpolating between real anchors
-//   - sparse coverage → use the decay curve for EVERYONE at that position
-//     (the scraps still display in the board's proj column, they just don't
-//     drive VOR)
-let _projModel = {};
-function rebuildProjModel() {
-  _projModel = {};
-  const byPos = {};
-  players.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
-  const isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  const demand = isCFL ? getTotalDraftedCFL() : TOTAL_DRAFTED;
-  Object.entries(byPos).forEach(([pos, arr]) => {
-    const relevant = demand[pos] || 10;
-    arr.sort((a, b) => (a.posRank || 999) - (b.posRank || 999));
-    const withData = arr.slice(0, relevant).filter(p => p.projPts > 0).length;
-    if (withData < Math.max(5, Math.ceil(relevant * 0.6))) {
-      _projModel[pos] = { useReal: false };
-      return;
-    }
-    _projModel[pos] = {
-      useReal: true,
-      anchors: arr.filter(p => p.projPts > 0).map(p => [p.posRank || 999, p.projPts]),
-    };
-  });
-}
-
-function projOf(p) {
-  const m = _projModel[p.pos];
-  if (!m) {
-    // model not built yet — old behavior
-    return (p.projPts && p.projPts > 0) ? p.projPts : curveProj(p.pos, p.posRank);
-  }
-  if (!m.useReal) return curveProj(p.pos, p.posRank);
-  if (p.projPts && p.projPts > 0) return p.projPts;
-  // Interpolate between real anchors by position rank
-  const r = p.posRank || 999, A = m.anchors;
-  if (r <= A[0][0]) return A[0][1];
-  const last = A[A.length - 1];
-  if (r >= last[0]) {
-    // extend past the last anchor along the curve's decay, scaled to the anchor
-    const scale = last[1] / Math.max(1, curveProj(p.pos, last[0]));
-    return Math.round(curveProj(p.pos, r) * scale);
-  }
-  let lo = 0, hi = A.length - 1;
-  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (A[mid][0] <= r) lo = mid; else hi = mid; }
-  const t = (r - A[lo][0]) / (A[hi][0] - A[lo][0]);
-  return Math.round(A[lo][1] + t * (A[hi][1] - A[lo][1]));
-}
 // CFL: 10 teams × 13 rounds = 130 picks (1 QB + 1 RB + 3 WR + 1 NAT + 1 K + 1 DST + 5 bench)
 function getTotalDraftedCFL() {
   var nT = (LEAGUE_CONFIG && LEAGUE_CONFIG.numTeams) || 10;
@@ -1640,36 +1565,32 @@ function computeVOR() {
   // where N = how many more will be drafted league-wide.
   // Only count actual draft picks (not keepers) as "used up" slots.
   var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  const replPlayer = {};
+  const replECR = {};
   Object.entries(isCFL ? getTotalDraftedCFL() : TOTAL_DRAFTED).forEach(([pos, globalN]) => {
     const list = byPos[pos] || [];
     const draftedCount = players.filter(p => p.drafted && !p.isKeeper && p.pos === pos).length;
     const remaining = Math.max(0, globalN - draftedCount);
-    replPlayer[pos] = list[remaining] || list[list.length - 1] || null;
+    const repl = list[remaining] || list[list.length - 1];
+    replECR[pos] = repl ? repl.ecr : 999;
   });
 
-  // CFL K/DST: use end-of-board replacement so the small real points gaps
-  // between the few available K/DST still register (points version of the
-  // old replECR=80 override).
+  // CFL K/DST: override replacement ECR to end-of-board so VOR reflects their actual ECR rank.
+  // Without this, all 9 kickers cluster between ECR 43-66, giving a tiny log ratio (~40 VOR).
+  // Using the full pool size as replacement makes top K (ECR 44) score ~104 and top DST ~140.
   if (isCFL) {
-    ['K', 'DST'].forEach(pos => {
-      const list = byPos[pos] || [];
-      if (list.length) replPlayer[pos] = list[list.length - 1];
-    });
+    replECR['K']   = 80;
+    replECR['DST'] = 80;
   }
 
-  // (b) Points-above-replacement rawVOR: projOf(player) − projOf(replacement).
-  // Replaces the old log(replECR/playerECR)×100 rank curve, which structurally
-  // underpriced steep-dropoff positions (QB/TE): as the replacement converges
-  // on the best available, rank RATIOS go to zero even when the projected-
-  // points gap stays huge — in backtest/simulate9 the rank curve deferred QB
-  // to R14-15 and cost ≈96 pts/season vs this formula (paired, N=2000).
+  // (b) Log-curve rawVOR: log(replECR/playerECR) × 100
   available.forEach(p => {
-    const repl = replPlayer[p.pos];
-    p.vor = projOf(p) - (repl ? projOf(repl) : 0);
+    const repl = replECR[p.pos] || 150;
+    const playerECR = Math.max(1, p.ecr);
+    const replEcrClamped = Math.max(1, repl);
+    p.vor = Math.log(replEcrClamped / playerECR) * 100;
   });
 
-  return {available, byPos, replPlayer};
+  return {available, byPos, replECR};
 }
 
 // Picks until a given team's next turn
@@ -1707,13 +1628,13 @@ function marginalValue(player, teamId, byPos) {
   const nthSlot = have[pos] || 0;       // 0-indexed: 0 = first player at pos
   const slotW   = getSlotValue(pos, nthSlot);
 
-  // Raw VOR: points above replacement (computed in computeVOR)
+  // Raw VOR from log curve (computed in computeVOR)
   const rawVOR = player.vor || 0;
 
-  // Dropoff bonus: projected-points lead over the next-best at same position
+  // Dropoff bonus: how far ahead of the next-best at same position
   const posAvail = (byPos[pos] || []).filter(p => !p.drafted);
   const sameSlotFallback = posAvail[1] || posAvail[0];
-  const dropoff  = sameSlotFallback ? (projOf(player) - projOf(sameSlotFallback)) : 0;
+  const dropoff  = sameSlotFallback ? (sameSlotFallback.ecr - player.ecr) : 0;
 
   const baseVOR = rawVOR + dropoff * 0.5;
 
@@ -2274,7 +2195,7 @@ function renderBoard() {
     const grade = p.drafted ? null : vorGrade(p.mvor);
     const vorCell = p.drafted
       ? `<span style="min-width:42px"></span>`
-      : `<span title="Marginal VOR — projected points over replacement" style="font-size:10px;font-weight:700;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${grade.color}">${p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—'}</span>`;
+      : `<span title="Marginal VOR — value over replacement" style="font-size:10px;font-weight:700;font-family:DM Mono,monospace;min-width:42px;text-align:right;color:${grade.color}">${p.mvor != null ? (p.mvor >= 0 ? '+' : '') + p.mvor.toFixed(1) : '—'}</span>`;
     const projCell = p.projPts
       ? `<span title="Projected season PPR points" style="font-size:9px;font-family:DM Mono,monospace;color:var(--dim);min-width:38px;text-align:right">${Math.round(p.projPts)}</span>`
       : `<span style="min-width:38px"></span>`;
@@ -3778,17 +3699,9 @@ function loadCSVText(text) {
     ppg:        p.ppg || 0,
   }));
 
-  // Position rank by ECR — basis for the projection fallback curve (projOf)
-  var _byPosAll = {};
-  players.forEach(p => { (_byPosAll[p.pos] = _byPosAll[p.pos] || []).push(p); });
-  Object.values(_byPosAll).forEach(arr => {
-    arr.sort((a, b) => a.ecr - b.ecr).forEach((p, i) => { p.posRank = i + 1; });
-  });
-
   computeStdQuintiles();
   // Merge Sleeper ADP + FC values into imported players
   players.forEach(enrichPlayerADP);
-  rebuildProjModel();
   return parsed.length;
 }
 
@@ -4985,7 +4898,7 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">⚡ Top picks — the iackScore</div>
-        The three cards rank available players using a composite score built from backtested signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+42.5</span>) on each card and board row is the marginal value in <strong>projected season points over the replacement player</strong> — positive = above replacement. The final card ranking is driven by a <strong>3-pick look-ahead</strong> that simulates your next three turns.
+        The three cards rank available players using a composite score built from backtested signals. The <strong>VOR number</strong> (e.g. <span style="font-family:'DM Mono',monospace;color:var(--green)">+8.3</span>) on each card and board row is the raw marginal value — positive = above replacement. The final card ranking is driven by a <strong>3-pick look-ahead</strong> that simulates your next three turns.
         <div style="margin-top:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)">
           iackScore = max(VOR,0)×needMult + min(VOR,0)<br>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + (cliff×0.30 + depth×0.22) × |VOR| × 0.3<br>
@@ -4997,7 +4910,7 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Signal 1 — VOR (value over replacement)</div>
-        VOR answers: <em>how many projected season points is this player worth over the best freely available alternative at the same position?</em> The replacement baseline updates live as players are drafted (projections from Sleeper, with an ECR-curve estimate as fallback). Roster slot weights mean your 1st RB is worth more than your 4th:
+        VOR answers: <em>how much better is this player than the best freely available alternative at the same position?</em> The replacement baseline updates live as players are drafted. Roster slot weights mean your 1st RB is worth more than your 4th:
         <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
           <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px">
             <div style="color:var(--green);font-weight:700;margin-bottom:4px">RB / WR</div>
