@@ -1351,7 +1351,10 @@ async function fetchSleeperProjections() {
       var v = fuzzyGet(projPtsMap, p.name);
       if (v != null) p.projPts = v;
     });
-    dataStatus.proj = 'live';
+    rebuildProjModel();
+    // 'live' only when real data actually arrived — an empty pre-season feed
+    // is a warning state, not a live one
+    dataStatus.proj = (Object.keys(projPtsMap).length > 0 && _projLiveWeeks > 0) ? 'live' : 'warn';
     console.log('Sleeper projections: ' + Object.keys(projPtsMap).length + ' players, ' + _projLiveWeeks + '/17 weeks with data');
   } catch(e) {
     dataStatus.proj = 'error';
@@ -1447,10 +1450,64 @@ const PROJ_CURVE = {
   DST: {b:135, d:0.985, f:80},
   K:   {b:145, d:0.985, f:90},
 };
+function curveProj(pos, posRank) {
+  const c = PROJ_CURVE[pos] || PROJ_CURVE.WR;
+  return Math.max(c.f, Math.round(c.b * Math.pow(c.d, (posRank || 99) - 1)));
+}
+
+// ── Per-position projection model used by VOR ──────────────────────────────
+// Mixing real projections for some players with curve estimates for others
+// puts them on different scales and inverts rankings (a curve-estimated
+// player leapfrogs a better player whose real projection is slightly lower —
+// exactly what happens pre-season when Sleeper's feed is partial). Policy:
+//   - solid coverage among draft-relevant players at a position → use real
+//     values; estimate the gaps by interpolating between real anchors
+//   - sparse coverage → use the decay curve for EVERYONE at that position
+//     (the scraps still display in the board's proj column, they just don't
+//     drive VOR)
+let _projModel = {};
+function rebuildProjModel() {
+  _projModel = {};
+  const byPos = {};
+  players.forEach(p => { (byPos[p.pos] = byPos[p.pos] || []).push(p); });
+  const isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
+  const demand = isCFL ? getTotalDraftedCFL() : TOTAL_DRAFTED;
+  Object.entries(byPos).forEach(([pos, arr]) => {
+    const relevant = demand[pos] || 10;
+    arr.sort((a, b) => (a.posRank || 999) - (b.posRank || 999));
+    const withData = arr.slice(0, relevant).filter(p => p.projPts > 0).length;
+    if (withData < Math.max(5, Math.ceil(relevant * 0.6))) {
+      _projModel[pos] = { useReal: false };
+      return;
+    }
+    _projModel[pos] = {
+      useReal: true,
+      anchors: arr.filter(p => p.projPts > 0).map(p => [p.posRank || 999, p.projPts]),
+    };
+  });
+}
+
 function projOf(p) {
+  const m = _projModel[p.pos];
+  if (!m) {
+    // model not built yet — old behavior
+    return (p.projPts && p.projPts > 0) ? p.projPts : curveProj(p.pos, p.posRank);
+  }
+  if (!m.useReal) return curveProj(p.pos, p.posRank);
   if (p.projPts && p.projPts > 0) return p.projPts;
-  const c = PROJ_CURVE[p.pos] || PROJ_CURVE.WR;
-  return Math.max(c.f, Math.round(c.b * Math.pow(c.d, (p.posRank || 99) - 1)));
+  // Interpolate between real anchors by position rank
+  const r = p.posRank || 999, A = m.anchors;
+  if (r <= A[0][0]) return A[0][1];
+  const last = A[A.length - 1];
+  if (r >= last[0]) {
+    // extend past the last anchor along the curve's decay, scaled to the anchor
+    const scale = last[1] / Math.max(1, curveProj(p.pos, last[0]));
+    return Math.round(curveProj(p.pos, r) * scale);
+  }
+  let lo = 0, hi = A.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (A[mid][0] <= r) lo = mid; else hi = mid; }
+  const t = (r - A[lo][0]) / (A[hi][0] - A[lo][0]);
+  return Math.round(A[lo][1] + t * (A[hi][1] - A[lo][1]));
 }
 // CFL: 10 teams × 13 rounds = 130 picks (1 QB + 1 RB + 3 WR + 1 NAT + 1 K + 1 DST + 5 bench)
 function getTotalDraftedCFL() {
@@ -3731,6 +3788,7 @@ function loadCSVText(text) {
   computeStdQuintiles();
   // Merge Sleeper ADP + FC values into imported players
   players.forEach(enrichPlayerADP);
+  rebuildProjModel();
   return parsed.length;
 }
 
