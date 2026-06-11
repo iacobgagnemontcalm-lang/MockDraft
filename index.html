@@ -17,8 +17,9 @@
   --bg: #0a0810;
   --surface: #110e1a;
   --surface2: #1a1628;
-  --surface3: #241e36;
   --surface3: #22223a;
+  --border-radius-md: 8px;
+  --border-radius-lg: 16px;
   --border: rgba(255,255,255,0.07);
   --border2: rgba(255,255,255,0.13);
   --text: #f0f0fa;
@@ -148,6 +149,9 @@ body.mode-cfl .my-team-2026-only {
 }
 .mob-tab.active { color: var(--accent); }
 .mob-tab-icon { font-size: 18px; line-height: 1; }
+
+/* Mobile-only draft bar — hidden on desktop, shown inside the mobile media query */
+#mob-draft-bar { display: none; }
 
 /* ── MOBILE ── */
 @media (max-width: 768px) {
@@ -334,10 +338,10 @@ header {
 }
 .flt:hover { color: var(--text); border-color: var(--border2); background: var(--surface2); }
 .flt.active-ALL { background: var(--surface3); border-color: var(--border2); color: var(--text); }
-.flt.active-QB { background: var(--pos-qb-bg); border-color: rgba(249,115,22,0.35); color: var(--pos-qb); }
+.flt.active-QB { background: var(--pos-qb-bg); border-color: rgba(201,109,216,0.35); color: var(--pos-qb); }
 .flt.active-RB { background: var(--pos-rb-bg); border-color: rgba(34,197,94,0.35); color: var(--pos-rb); }
-.flt.active-WR { background: var(--pos-wr-bg); border-color: rgba(59,130,246,0.35); color: var(--pos-wr); }
-.flt.active-TE { background: var(--pos-te-bg); border-color: rgba(168,85,247,0.35); color: var(--pos-te); }
+.flt.active-WR { background: var(--pos-wr-bg); border-color: rgba(123,94,167,0.35); color: var(--pos-wr); }
+.flt.active-TE { background: var(--pos-te-bg); border-color: rgba(180,77,224,0.35); color: var(--pos-te); }
 .flt.active-K { background: var(--pos-k-bg); border-color: rgba(245,197,66,0.35); color: var(--pos-k); }
 
 .board-meta {
@@ -391,13 +395,6 @@ header {
 .risk-3 { color: #e5c97e; background: rgba(229,201,126,0.10); }
 .risk-4 { color: #f97316; background: rgba(249,115,22,0.12); }
 .risk-5 { color: #ef4444; background: rgba(239,68,68,0.15); }
-/* GutFeeling slider */
-.gf-slider-wrap { padding: 10px 14px 8px; border-bottom: 1px solid var(--border); }
-.gf-labels { display:flex; justify-content:space-between; font-size:9px; font-weight:700; letter-spacing:0.5px; margin-bottom:4px; }
-.gf-label-mb { color: var(--blue); }
-.gf-label-gf { color: var(--gold); }
-.gf-slider { width:100%; accent-color: var(--accent); cursor:pointer; }
-.gf-value { text-align:center; font-size:10px; font-family:'DM Mono',monospace; color:var(--muted); margin-top:3px; }
 
 .p-tier { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--dim); min-width: 20px; text-align: right; }
 .keeper-tag {
@@ -806,14 +803,13 @@ let players = [];         // FP_PLAYERS enriched with {drafted, draftedBy, keepe
 let myTeamId = null;
 let isCommissioner = false;
 let selectedPlayer = null;
-let history = [];         // for undo
+let pickHistory = [];     // for undo
 let posFilter = 'ALL';
 let sleeperOk = false;
 let sleeperDraftPicks = []; // [{round, pick_no, roster_id}] from /draft/<id>/picks
 let rankMode = 'ecr'; // 'ecr' | 'adp' | 'vor'
 let autoMode = 'vor'; // 'vor' | 'ecr' | 'adp'
 let teamModes = {};   // rosterId -> 'manual' | 'vor' | 'ecr' | 'adp'
-let gutFeeling = 50;  // 0 = 100% MoneyBall, 100 = 100% GutFeeling (board default, unused now)
 let teamGutMap = {};  // rosterId -> 0–100 (0=MoneyBall, 100=GutFeeling) for autopilot
 let cachedADPText = null; // raw text of adp_rankings.csv, re-applied after any buildPlayers()
 let cachedECRText = null; // raw text of rankings.csv, re-applied after any buildPlayers()
@@ -842,6 +838,13 @@ function toast(msg, ms=2000) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+// Escape untrusted strings (session names, synced pick names) before innerHTML
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ══════════════════════════════════════════════
@@ -1029,7 +1032,7 @@ async function loadKeepersXLSX() {
     // Pick ORDER comes from Sleeper API or the hardcoded KNOWN_ORDER fallback.
     // The Picks sheet shows who OWNS each pick (after trades) but not slot order.
   } catch(e) {
-    console.warn('Could not load keepers.xlsx — using hardcoded values:', e.name === 'AbortError' ? 'timed out' : e.message);
+    console.warn('Could not load keepers.xlsx — using hardcoded values:', e.message);
   }
 }
 
@@ -1190,7 +1193,7 @@ let fcValueMap = {};   // name → FantasyCalc trade value (for report card)
 let projPtsMap  = {};  // name → season projected PPR pts (Sleeper wk1 × 16)
 
 // Data source status for badge display
-const dataStatus = { sleeper: 'pending', fc: 'pending', proj: 'pending' };
+const dataStatus = { fp: 'pending', fc: 'pending', proj: 'pending' };
 
 // ── Name normalisation (robust fuzzy lookup) ──────────────────────────────
 function _norm(s)   { return s.toLowerCase().replace(/[.'`]/g,'').replace(/\s+/g,' ').trim(); }
@@ -1216,6 +1219,37 @@ function fuzzyGet(map, name) {
   return undefined;
 }
 
+// ── Team whose perspective drives the board (probabilities, marginal VOR) ──
+// Commissioner has no team of their own, so use the team currently on the clock.
+function effectiveTeamId() {
+  if (myTeamId) return myTeamId;
+  if (isCommissioner) {
+    const i = currentPickIndex();
+    if (i !== -1) return draftOrder[i].teamId;
+  }
+  return null;
+}
+
+// Cached sorted ADP list of available players — rebuilt lazily after any
+// draft-state change (computeVOR invalidates it). Turns the per-player
+// "how many available players have a better ADP" scan into a binary search.
+let _availAdpSorted = null;
+function invalidateBoardCaches() { _availAdpSorted = null; }
+function remainingRankFor(adp) {
+  if (!_availAdpSorted) {
+    _availAdpSorted = players
+      .filter(p => !p.drafted && !p.isKeeper && p.adp && p.adp < 500)
+      .map(p => p.adp)
+      .sort((a, b) => a - b);
+  }
+  let lo = 0, hi = _availAdpSorted.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (_availAdpSorted[mid] < adp) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
 // ── Pick probability (still available when YOUR next pick comes) ──────────
 // "What are the odds this player is still on the board at my next pick?"
 // Uses a sigmoid centred on the player's ADP vs your next pick number.
@@ -1223,13 +1257,13 @@ function computePickProb(player) {
   const adp = player.adp;
   if (!adp || adp >= 500) return null;
 
-  const picksAway = picksUntilTurn(myTeamId);
+  const teamId = effectiveTeamId();
+  if (teamId == null) return null; // no team claimed yet — no meaningful horizon
 
-  // How many undrafted players have a lower (better) ADP than this player?
-  // This is their effective remaining rank — how many picks must happen before this player's "slot"
-  const remainingRank = players.filter(p =>
-    !p.drafted && !p.isKeeper && p.adp < adp
-  ).length;
+  const picksAway = picksUntilTurn(teamId);
+
+  // Effective remaining rank — how many picks must happen before this player's "slot"
+  const remainingRank = remainingRankFor(adp);
 
   // overshoot: positive = your turn comes AFTER this player's remaining rank → likely gone
   const overshoot = picksAway - remainingRank;
@@ -1239,37 +1273,7 @@ function computePickProb(player) {
   return Math.max(0.01, Math.min(0.99, prob));
 }
 
-// ── Fetch Sleeper season projections ─────────────────────────────────────
-async function fetchSleeperData() {
-  try {
-    setLoad(10, 'Fetching Sleeper data…');
-    const res = await fetch('https://api.sleeper.app/v1/players/nfl');
-    if (!res.ok) throw new Error('players ' + res.status);
-    const data = await res.json();
-    // Build id→name map used by live sync
-    Object.entries(data).forEach(([id, p]) => {
-      const full = ((p.first_name || '') + ' ' + (p.last_name || '')).trim();
-      if (full) window._sleeperIdToName = window._sleeperIdToName || {};
-      if (full) window._sleeperIdToName[id] = full;
-    });
-    dataStatus.sleeper = 'live';
-    console.log('Sleeper: player map loaded');
-  } catch(e) {
-    dataStatus.sleeper = 'error';
-    console.warn('Sleeper fetch failed:', e.message);
-  }
-}
-
-
-// ── ADP: use FantasyPros as the sole source until other sources have real 2026 data ──
-// FFC/MFL/Sleeper ADP endpoints are unreliable pre-season — too few drafts.
-// They are fetched and shown as badges but NOT blended into the displayed ADP.
-// adpStd is set to 0 (no disagreement signal without multiple real sources).
-function computeWeightedADP(player) {
-  const fpV = player.fpAdp;
-  if (!fpV || fpV <= 0) return null;
-  return { adp: fpV };
-}
+// ── ADP: FantasyPros is the sole ADP source (see loadADPCSVText) ──────────
 
 // ── Fetch FantasyCalc (trade values for report card only) ─────────────────
 async function fetchFantasyCalc() {
@@ -1355,10 +1359,9 @@ async function fetchSleeperProjections() {
   }
 }
 
-// ── Merge multi-source weighted ADP + FC values into a player object ──────
+// ── Merge ADP + FC values into a player object ────────────────────────────
 function enrichPlayerADP(p) {
-  const weighted = computeWeightedADP(p);
-  if (weighted) p.adp = weighted.adp;
+  if (p.fpAdp && p.fpAdp > 0) p.adp = p.fpAdp;
   const fcv = fuzzyGet(fcValueMap, p.name);
   if (fcv !== undefined) p.fcValue = fcv;
   const pts = fuzzyGet(projPtsMap, p.name);
@@ -1378,22 +1381,21 @@ function updateDataSourceBadges() {
   };
 
   el.innerHTML =
-    badge('FP',      'live',             `FantasyPros ADP — sole ADP source`) +
-    badge('Sleeper', dataStatus.sleeper, `Sleeper live sync`) +
-    badge('FC',      dataStatus.fc,      `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`) +
-    badge('Proj',    dataStatus.proj,    `Sleeper 2026 projections — ${Object.keys(projPtsMap).length} players, ${_projLiveWeeks}/17 weeks loaded`);
+    badge('FP',   dataStatus.fp,   `FantasyPros rankings/ADP — ${players.length} players loaded`) +
+    badge('FC',   dataStatus.fc,   `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`) +
+    badge('Proj', dataStatus.proj, `Sleeper 2026 projections — ${Object.keys(projPtsMap).length} players, ${_projLiveWeeks}/17 weeks loaded`);
 }
 
 // Slot value weights: how important is the Nth player at a position?
 // Index 0 = 1st player at pos, 1 = 2nd, etc.
 // Based on starter (QB:1 RB:2 WR:2 TE:1) + FLEX + bench
 const SLOT_VALUE = {
-  QB: [1.0, 0.50, 0.00, 0.00],           // 1 starter, 1 backup, 3rd+ = zero
-  RB: [1.0, 0.90, 0.55, 0.25, 0.10, 0.05], // 2 starters + FLEX valuable
-  WR: [1.0, 0.90, 0.55, 0.25, 0.10, 0.05], // 2 starters + FLEX valuable
-  TE: [1.0, 0.50, 0.00, 0.00],           // 1 starter, 1 backup, 3rd+ = zero
-  K:  [1.0, 0.02],
-  DS: [1.0, 0.02],
+  QB:  [1.0, 0.50, 0.00, 0.00],           // 1 starter, 1 backup, 3rd+ = zero
+  RB:  [1.0, 0.90, 0.55, 0.25, 0.10, 0.05], // 2 starters + FLEX valuable
+  WR:  [1.0, 0.90, 0.55, 0.25, 0.10, 0.05], // 2 starters + FLEX valuable
+  TE:  [1.0, 0.50, 0.00, 0.00],           // 1 starter, 1 backup, 3rd+ = zero
+  K:   [1.0, 0.02],
+  DST: [1.0, 0.02],
 };
 // CFL: QB/Flex (1) + RB (1) + WR×3 + NAT (1 Cdn RB/WR) + K (1) + DST (1) + 5 bench
 const SLOT_VALUE_CFL = {
@@ -1409,22 +1411,6 @@ function getSlotValue(pos, nthPlayer) {
   var table = isCFL ? SLOT_VALUE_CFL : SLOT_VALUE;
   const vals = table[pos] || [0.5];
   return vals[Math.min(nthPlayer, vals.length - 1)] || 0.01;
-}
-
-// Count non-DEF/K players on a team (keepers + drafted)
-function countNonSpecial(teamId) {
-  const team = getTeam(teamId);
-  if (!team) return 0;
-  let count = 0;
-  team.keepers.forEach(k => {
-    const p = players.find(x => x.name === k);
-    if (p && p.pos !== 'DST' && p.pos !== 'K') count++;
-  });
-  draftOrder.filter(s => s.teamId === teamId && s.playerName).forEach(s => {
-    const p = players.find(x => x.name === s.playerName);
-    if (p && p.pos !== 'DST' && p.pos !== 'K') count++;
-  });
-  return count;
 }
 
 // Get team's current position counts (keepers + drafted)
@@ -1563,6 +1549,7 @@ function gutScore(player, rosterId, byPos) {
 }
 
 function computeVOR() {
+  invalidateBoardCaches(); // draft state may have changed — rebuild ADP rank cache lazily
   const available = players.filter(p => !p.drafted && !p.isKeeper);
 
   // Group available by position, sorted by ECR
@@ -1616,17 +1603,17 @@ function picksUntilTurn(teamId) {
   }
   return 999;
 }
-function picksUntilMyTurn() { return picksUntilTurn(myTeamId); }
 
-// Counts picks between the current turn and the NEXT time myTeamId picks.
-// When it's currently my turn, this returns the round-trip (picks until my next turn).
-function picksToMyNextTurn() {
+// Counts picks between the current turn and the NEXT time the team picks.
+// When it's currently that team's turn, this returns the round-trip (picks until its next turn).
+function picksToMyNextTurn(teamId) {
+  var tid = teamId !== undefined ? teamId : myTeamId;
   var curIdx = currentPickIndex();
   if (curIdx === -1) return teams.length || 10;
-  var startSearch = (draftOrder[curIdx] && draftOrder[curIdx].teamId === myTeamId) ? curIdx + 1 : curIdx;
+  var startSearch = (draftOrder[curIdx] && draftOrder[curIdx].teamId === tid) ? curIdx + 1 : curIdx;
   var count = 0;
   for (var i = startSearch; i < draftOrder.length; i++) {
-    if (draftOrder[i].teamId === myTeamId) return count;
+    if (draftOrder[i].teamId === tid) return count;
     count++;
   }
   return count || (teams.length || 10);
@@ -1658,52 +1645,6 @@ function marginalValue(player, teamId, byPos) {
   return slotW * baseVOR * scarcityMult;
 }
 
-// Best recommendation per position using marginal value + next-pick horizon
-function vorRecommendations(forTeamId) {
-  const teamId  = forTeamId !== undefined ? forTeamId : myTeamId;
-  const {available, byPos} = computeVOR();
-  const N       = picksUntilTurn(teamId);
-  const have    = teamPosCounts(teamId);
-
-  // Players likely gone by this team's next pick
-  const likelyGone = new Set(
-    [...available].sort((a,b) => a.ecr - b.ecr).slice(0, N).map(p => p.name)
-  );
-
-  const recs = [];
-  var _isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  const positions = _isCFL ? ['QB','RB','WR','K','DST'] : ['QB','RB','WR','TE','K','DST'];
-
-  positions.forEach(pos => {
-    const list = (byPos[pos] || []).filter(p => !p.drafted).sort((a,b) => a.ecr - b.ecr);
-    if (list.length === 0) return;
-
-    const bestNow  = list[0];
-    const nextBest = list[1] || list[0];
-
-    // How many of this pos does the team already have?
-    const alreadyHave = have[pos] || 0;
-    const slotW       = getSlotValue(pos, alreadyHave);
-
-    // Urgency: ECR gap to next best × slot weight
-    // If you already have 3 WRs, the urgency of getting a 4th WR is tiny
-    const rawUrgency  = nextBest.ecr - bestNow.ecr;
-    const urgency     = rawUrgency * slotW;
-
-    // Marginal VOR for bestNow given team's current roster
-    const mVOR = marginalValue(bestNow, teamId, byPos);
-
-    recs.push({pos, bestNow, bestLater: nextBest, urgency, vorNow: mVOR, slotW, alreadyHave});
-  });
-
-  // Sort by combined urgency + marginal VOR
-  recs.sort((a,b) =>
-    (b.urgency * 0.5 + b.vorNow * 0.5) -
-    (a.urgency * 0.5 + a.vorNow * 0.5)
-  );
-  return {recs, N};
-}
-
 function vorCardClick(idx) {
   var p = window._vorTop5 && window._vorTop5[idx];
   if (p) selectPlayer(p.name);
@@ -1730,32 +1671,35 @@ function renderVOR() {
   if (curIdx === -1) { panel.style.display = 'none'; return; }
   panel.style.display = 'flex';
 
-  var N = picksUntilMyTurn();
+  // Commissioner / unclaimed: drive the panel from the team on the clock
+  var _vorTeamId = effectiveTeamId();
+
+  var N = picksUntilTurn(_vorTeamId);
   var horizText = N === 0 ? '— your pick!' : '— ' + N + ' pick' + (N===1?'':'s') + ' away';
   document.getElementById('vor-horizon').textContent = horizText;
 
-  // Build position caps for the panel based on my roster
-  var _qbCap = teamHasTop5(myTeamId, 'QB') ? 1 : 2;
-  var _teCap = teamHasTop5(myTeamId, 'TE') ? 1 : 2;
-  var _qbHave = teamPosCount(myTeamId, 'QB');
-  var _teHave = teamPosCount(myTeamId, 'TE');
+  // Build position caps for the panel based on the team's roster
+  var _qbCap = teamHasTop5(_vorTeamId, 'QB') ? 1 : 2;
+  var _teCap = teamHasTop5(_vorTeamId, 'TE') ? 1 : 2;
+  var _qbHave = teamPosCount(_vorTeamId, 'QB');
+  var _teHave = teamPosCount(_vorTeamId, 'TE');
 
   // Determine current round (used for late-round force logic)
   var _curIdx = currentPickIndex();
   var _curRound = _curIdx !== -1 ? (draftOrder[_curIdx].round || 1) : 16;
   var _myRosterSize = (function() {
-    var c = teamPosCounts(myTeamId);
+    var c = teamPosCounts(_vorTeamId);
     return Object.values(c).reduce(function(s,v){ return s+v; }, 0);
   })();
   var _lateRounds = _myRosterSize >= 13;
-  var _myDSCount  = teamPosCount(myTeamId, 'DST');
-  var _myKCount   = teamPosCount(myTeamId, 'K');
+  var _myDSCount  = teamPosCount(_vorTeamId, 'DST');
+  var _myKCount   = teamPosCount(_vorTeamId, 'K');
 
   // ── Roster-structure nudge ──────────────────────────────────────────────
   // Recent data shows roster STRUCTURE (not isolated value) drives outcomes.
   // Flag thin/unbalanced builds at RB/WR — the positions that decide leagues.
-  var _rbHave = teamPosCount(myTeamId, 'RB');
-  var _wrHave = teamPosCount(myTeamId, 'WR');
+  var _rbHave = teamPosCount(_vorTeamId, 'RB');
+  var _wrHave = teamPosCount(_vorTeamId, 'WR');
   var nudges = [];
   if (!_lateRounds) {
     if (_curRound >= 5 && _rbHave === 0) nudges.push('⚠️ 0 RB through R' + _curRound + ' — pool thinning fast');
@@ -1863,14 +1807,13 @@ function renderVOR() {
   // Each step uses updated roster state (need multipliers adjust after each hypothetical pick).
   // Stores projected 2nd pick on p._nextPick for card display.
   // picksToNext / picksToAfter: actual round-trip lengths so availability is realistic.
-  var _picksToNext  = picksToMyNextTurn();
+  var _picksToNext  = picksToMyNextTurn(_vorTeamId);
   var _picksToAfter = _picksToNext + (teams.length || 10);
 
   function pickProbAtOffset(player, extraPicks) {
     var adp = player.adp;
     if (!adp || adp >= 500) return null;
-    var remainingRank = players.filter(function(q){ return !q.drafted && !q.isKeeper && q.adp < adp; }).length;
-    var overshoot = extraPicks - remainingRank;
+    var overshoot = extraPicks - remainingRankFor(adp);
     var prob = 1 / (1 + Math.exp(overshoot / 4));
     return Math.max(0.01, Math.min(0.99, prob));
   }
@@ -1924,8 +1867,8 @@ function renderVOR() {
     }
     if (p.pos === 'QB' && _qbHave >= _qbCap) return false;
     if (!_isCFLVor && p.pos === 'TE' && _teHave >= _teCap) return false;
-    if (!_isCFLVor && p.pos === 'QB' && teamHasTop5(myTeamId, 'QB')) return false;
-    if (!_isCFLVor && p.pos === 'TE' && teamHasTop5(myTeamId, 'TE')) return false;
+    if (!_isCFLVor && p.pos === 'QB' && teamHasTop5(_vorTeamId, 'QB')) return false;
+    if (!_isCFLVor && p.pos === 'TE' && teamHasTop5(_vorTeamId, 'TE')) return false;
     // CFL: recommend K/DST any time until team already has one
     if (_isCFLVor) {
       if (p.pos === 'DST' && _myDSCount >= 1) return false;
@@ -1981,7 +1924,7 @@ function renderVOR() {
       .slice(0,3);
   }
 
-  var posColors = {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DS:'var(--muted)'};
+  var posColors = {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DST:'var(--muted)'};
   var rankLbl   = rankMode === 'adp' ? 'ADP' : rankMode === 'vor' ? 'VOR' : 'ECR';
 
   var html = '';
@@ -2051,6 +1994,7 @@ function renderVOR() {
 function renderAll() {
   renderHeader();
   renderOrder();
+  recomputeBoardMetrics();
   renderBoard();
   renderRoster();
   renderVOR();
@@ -2111,9 +2055,9 @@ function renderOrder() {
       ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px;vertical-align:middle">NAT</span>'
       : '';
     const playerHtml = s.playerName
-      ? `<span class="pick-player-name">${s.playerName}${_natBadge}</span>`
+      ? `<span class="pick-player-name">${escHtml(s.playerName)}${_natBadge}</span>`
       : `<span class="pick-player-name empty">${isCur ? '← now' : '…'}</span>`;
-    out += `<div class="${cls}" id="slot-${i}"><span class="pick-no">${s.pickNo}</span><span class="pick-team-name">${s.teamShort}</span>${playerHtml}</div>`;
+    out += `<div class="${cls}" id="slot-${i}"><span class="pick-no">${s.pickNo}</span><span class="pick-team-name">${escHtml(s.teamShort)}</span>${playerHtml}</div>`;
     return out;
   }).join('');
   const cur = document.getElementById('slot-'+curIdx);
@@ -2122,6 +2066,7 @@ function renderOrder() {
 
 function posClass(pos) {
   if (!pos) return 'DS';
+  if (pos === 'DST') return 'DS'; // CSS class is .pos-DS
   if (pos.startsWith('K')) return 'K';
   return pos;
 }
@@ -2135,13 +2080,24 @@ function rankVal(p) {
 // VOR grade band — avoids false precision. Projections explain only ~60% of
 // variance, so a "+335 vs +277" gap is within noise. We bucket by percentile
 // among currently-available players into letter grades instead.
+// The descending mvor array is cached by recomputeBoardMetrics() so grading a
+// full board is O(n log n) total instead of O(n²).
+var _vorGradeSorted = null;
 function vorGrade(mvor) {
-  var avail = players.filter(function(p){ return !p.drafted && !p.isKeeper && p.mvor != null; })
-                     .map(function(p){ return p.mvor; })
-                     .sort(function(a,b){ return b - a; });
+  var avail = _vorGradeSorted;
+  if (!avail) {
+    avail = players.filter(function(p){ return !p.drafted && !p.isKeeper && p.mvor != null; })
+                   .map(function(p){ return p.mvor; })
+                   .sort(function(a,b){ return b - a; });
+  }
   if (avail.length === 0 || mvor == null) return { label: '—', color: 'var(--dim)' };
-  var rank = avail.filter(function(v){ return v > mvor; }).length;
-  var pct  = rank / avail.length; // 0 = best
+  // Binary search: count of values > mvor in the descending array
+  var lo = 0, hi = avail.length;
+  while (lo < hi) {
+    var mid = (lo + hi) >> 1;
+    if (avail[mid] > mvor) lo = mid + 1; else hi = mid;
+  }
+  var pct = lo / avail.length; // 0 = best
   if (pct <= 0.05) return { label: 'A+', color: 'var(--green)' };
   if (pct <= 0.15) return { label: 'A',  color: 'var(--green)' };
   if (pct <= 0.35) return { label: 'B',  color: 'var(--gold)' };
@@ -2149,20 +2105,36 @@ function vorGrade(mvor) {
   return { label: 'D', color: 'var(--dim)' };
 }
 
+// Recompute marginal VOR for every available player + the grade cache.
+// Runs once per draft-state change (renderAll), NOT on every search keystroke.
+function recomputeBoardMetrics() {
+  const {byPos: _byPos} = computeVOR();
+  const teamId = effectiveTeamId();
+  players.forEach(p => {
+    p.mvor = (!p.drafted && !p.isKeeper) ? marginalValue(p, teamId, _byPos) : null;
+  });
+  _vorGradeSorted = players
+    .filter(p => !p.drafted && !p.isKeeper && p.mvor != null)
+    .map(p => p.mvor)
+    .sort((a, b) => b - a);
+}
+
 function renderBoard() {
   const q = document.getElementById('search').value.toLowerCase();
   const table = document.getElementById('player-table');
   let avail = 0;
 
-  const {byPos: _byPos} = computeVOR(); // refresh global VOR
-  // Compute marginal VOR for my team for each available player
-  players.forEach(p => {
-    if (!p.drafted && !p.isKeeper) {
-      p.mvor = marginalValue(p, myTeamId, _byPos);
-    } else {
-      p.mvor = null;
-    }
-  });
+  if (players.length === 0) {
+    table.innerHTML = '<div style="padding:24px 16px;font-size:12px;color:var(--muted);text-align:center;line-height:1.7">' +
+      '⚠️ No player rankings loaded.<br>' +
+      '<span style="color:var(--dim)">The rankings CSV failed to load — check your connection, or import one manually via the 📂 Rankings button.</span></div>';
+    document.getElementById('avail-count').textContent = '0';
+    updateDataSourceBadges();
+    return;
+  }
+
+  // p.mvor is maintained by recomputeBoardMetrics() (called from renderAll on
+  // every draft-state change) — search/filter/sort here is render-only.
   const allFiltered = players.filter(p => {
     if (p.isKeeper) return false;
     const matchQ = !q || p.name.toLowerCase().includes(q) || p.nfl.toLowerCase().includes(q) || p.pos.toLowerCase().includes(q);
@@ -2209,7 +2181,7 @@ function renderBoard() {
     const riskBadge = `<span class="risk-badge risk-${riskQ}" title="Risk Q${riskQ} · STD ${(p.std||0).toFixed(1)}">${riskIcons[riskQ]}${riskQ}</span>`;
     const rookieBadge = p.isRookie ? ` <span style="font-size:8px;color:var(--gold);font-weight:700" title="Rookie">R</span>` : '';
     const natBadge = p.isNational ? ` <span style="font-size:8px;color:#00bcd4;font-weight:700" title="National Player (NAT-eligible)">NAT</span>` : '';
-    const dataName = p.drafted ? '' : `data-name="${p.name.replace(/"/g,'&quot;')}"`;
+    const dataName = p.drafted ? '' : `data-name="${escHtml(p.name)}"`;
 
     // ── Pick probability bar ──
     const prob = p.drafted ? null : computePickProb(p);
@@ -2219,7 +2191,6 @@ function renderBoard() {
            <div class="pick-prob-bar" style="width:40px"><div class="pick-prob-fill" style="width:${(prob*100).toFixed(0)}%;opacity:${prob < 0.2 ? 0.4 : 1}"></div></div>
          </span>`
       : `<span style="min-width:40px"></span>`;
-    const adpStdBadge = `<span style="min-width:32px"></span>`;
 
     const grade = p.drafted ? null : vorGrade(p.mvor);
     const vorCell = p.drafted
@@ -2230,14 +2201,13 @@ function renderBoard() {
       : `<span style="min-width:38px"></span>`;
     return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
-      <span class="p-name">${p.name}${rookieBadge}${natBadge}</span>
-      <span class="p-nfl">${p.nfl}</span>
+      <span class="p-name">${escHtml(p.name)}${rookieBadge}${natBadge}</span>
+      <span class="p-nfl">${escHtml(p.nfl)}</span>
       <span class="p-tier" style="color:var(--dim)">T${p.tier}</span>
       ${riskBadge}
       <span style="font-size:9px;color:var(--dim);min-width:48px;text-align:right">${otherLabel} ${otherRank.toFixed(0)}</span>
       ${vorCell}
       ${projCell}
-      ${adpStdBadge}
       ${probHtml}
       <span class="p-rank">#${activeRank.toFixed(0)}</span>
       ${extra}
@@ -2361,8 +2331,9 @@ function assignRosterSlots(allPlayers) {
 }
 
 function renderRoster() {
-  if (!myTeamId) return;
-  var vid = viewingRosterId || myTeamId;
+  // Commissioner / unclaimed: fall back to the first team so the panel still works
+  var vid = viewingRosterId || myTeamId || (teams[0] && teams[0].rosterId);
+  if (!vid) return;
   var team = getTeam(vid);
   if (!team) return;
   var area = document.getElementById('roster-area');
@@ -2410,7 +2381,7 @@ function renderRoster() {
       : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
     var natTag = (p.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
       ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px">NAT</span>' : '';
-    html += `<div class="roster-row"><span class="pos-tag pos-${pc}" style="min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name">${p.name}${natTag}</span>${badge}</div>`;
+    html += `<div class="roster-row"><span class="pos-tag pos-${pc}" style="min-width:36px;text-align:center">${s.slotLabel}</span><span class="r-name">${escHtml(p.name)}${natTag}</span>${badge}</div>`;
   });
 
   if (bench.length > 0) {
@@ -2423,7 +2394,7 @@ function renderRoster() {
         : (p._round ? `<span class="r-rd">Rd ${p._round}</span>` : '');
       var natTag = (p.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
         ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px">NAT</span>' : '';
-      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p.pos}</span><span class="r-name">${p.name}${natTag}</span>${badge}</div>`;
+      html += `<div class="roster-row"><span class="pos-tag pos-${pc}">${p.pos}</span><span class="r-name">${escHtml(p.name)}${natTag}</span>${badge}</div>`;
     });
   }
 
@@ -2441,7 +2412,7 @@ function selectPlayer(name) {
   if (!selectedPlayer) return;
   const pc = posClass(selectedPlayer.pos);
   document.getElementById('sel-info').innerHTML =
-    `<span class="sel-name">${selectedPlayer.name}</span> &nbsp;<span class="pos-tag pos-${pc}" style="display:inline">${selectedPlayer.pos}</span>&nbsp; <span class="sel-pos">${selectedPlayer.nfl} · ECR #${selectedPlayer.ecr.toFixed(0)} · ADP #${selectedPlayer.adp.toFixed(0)} · Tier ${selectedPlayer.tier}</span>`;
+    `<span class="sel-name">${escHtml(selectedPlayer.name)}</span> &nbsp;<span class="pos-tag pos-${pc}" style="display:inline">${selectedPlayer.pos}</span>&nbsp; <span class="sel-pos">${escHtml(selectedPlayer.nfl)} · ECR #${selectedPlayer.ecr.toFixed(0)} · ADP #${selectedPlayer.adp.toFixed(0)} · Tier ${selectedPlayer.tier}</span>`;
   document.getElementById('draft-btn').disabled = false;
   // Sync mobile draft bar
   const mobName = document.getElementById('mob-sel-name');
@@ -2453,6 +2424,13 @@ function selectPlayer(name) {
 
 function draftSelected() {
   if (!selectedPlayer) return;
+  // Selection may have gone stale if another client drafted this player meanwhile
+  if (selectedPlayer.drafted) {
+    toast('⛔ ' + selectedPlayer.name + ' was just drafted — pick someone else');
+    selectedPlayer = null;
+    renderAll();
+    return;
+  }
   const idx = currentPickIndex();
   if (idx === -1) return;
   const slot = draftOrder[idx];
@@ -2464,7 +2442,7 @@ function draftSelected() {
   }
 
   // Save for undo
-  history.push({ slotIdx: idx, playerName: selectedPlayer.name, rosterId: slot.teamId });
+  pickHistory.push({ slotIdx: idx, playerName: selectedPlayer.name, rosterId: slot.teamId });
   // Assign
   var pickedName = selectedPlayer.name;
   var pickedIdx  = idx;
@@ -2516,8 +2494,8 @@ function autoPick() {
 }
 
 function undoPick() {
-  if (history.length === 0) { toast('Nothing to undo'); return; }
-  const h = history.pop();
+  if (pickHistory.length === 0) { toast('Nothing to undo'); return; }
+  const h = pickHistory.pop();
   const slot = draftOrder[h.slotIdx];
   slot.playerName = null;
   slot.isKeeper = false;
@@ -2534,9 +2512,8 @@ function undoPick() {
 
 function confirmReset() {
   if (!confirm('Reset entire mock draft?')) return;
-  history = [];
+  pickHistory = [];
   selectedPlayer = null;
-  sleeperDraftPicks = sleeperDraftPicks; // keep live data, just rebuild order
   buildPlayers();
   buildDraftOrder();
   document.getElementById('sel-info').innerHTML = '<span style="color:var(--dim);font-size:12px">No player selected</span>';
@@ -2557,13 +2534,6 @@ function setRankMode(mode) {
   document.getElementById('btn-vor').classList.toggle('active', mode === 'vor');
   renderBoard();
   renderVOR();
-}
-
-function setAutoMode(mode) {
-  autoMode = mode;
-  ['vor','ecr','adp'].forEach(m => {
-    document.getElementById('auto-'+m).classList.toggle('active', m === mode);
-  });
 }
 
 // ══════════════════════════════════════════════
@@ -2592,9 +2562,12 @@ function buildTeamSelect() {
     teams.map(t =>
       `<option value="${t.rosterId}">${t.shortName} (${t.displayName})</option>`
     ).join('');
-  // Default to first team — user should pick their own via the dropdown or team picker
-  myTeamId = teams[0].rosterId;
-  sel.value = myTeamId;
+  // Dynasty: default to the first team so the dropdown has a sane selection.
+  // 2026/CFL: keep myTeamId null — the team picker modal assigns it, and a
+  // premature default here would silently make the user "Team 1".
+  var isRedraft = LEAGUE_CONFIG && (LEAGUE_CONFIG.type === '2026' || LEAGUE_CONFIG.type === 'cfl');
+  if (!isRedraft && myTeamId == null) myTeamId = teams[0].rosterId;
+  if (myTeamId != null) sel.value = myTeamId;
   sel.onchange = () => {
     if (sel.value === 'commissioner') {
       pickCommissioner();
@@ -2613,8 +2586,60 @@ function buildTeamSelect() {
 // ══════════════════════════════════════════════
 // DRAFT REPORT CARD
 // ══════════════════════════════════════════════
-const STARTERS = {QB:1, RB:2, WR:2, TE:1, FLEX:1, K:1, DS:1};
-const BENCH_SLOTS = 6;
+
+// Full roster (keepers + drafted picks) for a team, resolved to player objects
+function teamFullRosterPlayers(t) {
+  return [
+    ...t.keepers.map(k => players.find(p => p.name === k)).filter(Boolean),
+    ...draftOrder.filter(s => s.teamId === t.rosterId && s.playerName)
+      .map(s => players.find(x => x.name === s.playerName)).filter(Boolean)
+  ];
+}
+
+// FC value lookup with robust fuzzy name matching (shared by report + scoring)
+function fcValueFor(p, fcMap) {
+  var fc = fcMap || window._lastFCValues || {};
+  if (fc[p.name] !== undefined) return fc[p.name];
+  var v = fuzzyGet(fc, p.name);
+  if (v !== undefined) return v;
+  // Last resort: unique last-name match (avoid short surnames matching wrong players)
+  var parts = _nosfx(p.name).split(' ').filter(Boolean);
+  if (parts.length >= 2) {
+    var ln = parts[parts.length - 1];
+    if (ln.length > 4) {
+      var cands = Object.keys(fc).filter(n => _nosfx(n).endsWith(' ' + ln));
+      if (cands.length === 1) return fc[cands[0]];
+    }
+  }
+  return null;
+}
+
+// Equal weight for the first 13 non-K/DST players; CFL: best national RB/WR gets 1.5× (fills 2 slots)
+function buildWeightedRoster(roster) {
+  var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
+  var result = eligible.slice(0, 13).map(function(p){ return {p: p, w: 1.0}; });
+  if (LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl') {
+    var natSlot = result.filter(function(s){ return s.p.isNational && (s.p.pos==='RB'||s.p.pos==='WR'); })
+                       .sort(function(a,b){ return (b.p.projPts||0)-(a.p.projPts||0); })[0];
+    if (natSlot) natSlot.w = 1.5;
+  }
+  return result;
+}
+
+// Slot-weighted sum of a metric for every team (for league normalization)
+function leagueWeightedSums(metricFn) {
+  return teams.map(function(t) {
+    return buildWeightedRoster(teamFullRosterPlayers(t))
+      .reduce(function(sum, slot){ return sum + (metricFn(slot.p)||0)*slot.w; }, 0);
+  });
+}
+
+// Normalize: league avg = 70% of max (decent draft = B), spread by sensitivity
+function normalizeVsLeague(myVal, allVals, maxPts, sensitivity) {
+  var avg = allVals.reduce(function(a,b){return a+b;},0) / allVals.length;
+  if (avg <= 0) return maxPts * 0.7;
+  return Math.min(maxPts, Math.max(0, maxPts * 0.7 + (myVal/avg - 1) * sensitivity * maxPts));
+}
 
 function gradeColor(score) {
   if (score >= 82) return {color:'var(--gold)',   border:'var(--gold)'};
@@ -2644,59 +2669,6 @@ function scoreTeam(teamId, fcValuesMap) {
   computeVOR();
   const teamPicks = draftOrder.filter(s => s.teamId === teamId && s.playerName);
   const drafted   = teamPicks.map(s => players.find(x => x.name === s.playerName)).filter(Boolean);
-  const keepers   = team.keepers.map(k => players.find(p => p.name === k)).filter(Boolean);
-  const full      = [...keepers, ...drafted];
-
-  // Helper: get FC value with robust name matching
-  function getFCV(p) {
-    var fc = fcValuesMap || window._lastFCValues || {};
-    if (fc[p.name] !== undefined) return fc[p.name];
-    function norm(s) { return s.toLowerCase().replace(/[.']/g, '').replace(/\s+/g, ' ').trim(); }
-    function noSfx(s) { return norm(s).replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g,' ').trim(); }
-    var normName = norm(p.name), noSufName = noSfx(p.name);
-    var match = Object.keys(fc).find(n => norm(n) === normName); if (match) return fc[match];
-    match = Object.keys(fc).find(n => noSfx(n) === noSufName);  if (match) return fc[match];
-    var parts = noSufName.split(' ').filter(Boolean);
-    if (parts.length >= 2) {
-      var fl = parts[0]+' '+parts[parts.length-1];
-      match = Object.keys(fc).find(n => { var np=noSfx(n).split(' ').filter(Boolean); return np.length>=2&&np[0]+' '+np[np.length-1]===fl; });
-      if (match) return fc[match];
-      var ln = parts[parts.length-1];
-      if (ln.length > 4) { var cands=Object.keys(fc).filter(n=>noSfx(n).endsWith(' '+ln)); if(cands.length===1) return fc[cands[0]]; }
-    }
-    return null;
-  }
-
-  // Equal weight for the first 13 non-K/DST players; CFL: best national RB/WR gets 1.5× (fills 2 slots)
-  function buildWeightedRoster(roster) {
-    var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
-    var result = eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
-    if (LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl') {
-      var natSlot = result.filter(function(s){ return s.p.isNational && (s.p.pos==='RB'||s.p.pos==='WR'); })
-                         .sort(function(a,b){ return (b.p.projPts||0)-(a.p.projPts||0); })[0];
-      if (natSlot) natSlot.w = 1.5;
-    }
-    return result;
-  }
-
-  // Compute slot-weighted sum for a metric fn across all teams (for normalization)
-  function leagueWeightedSums(metricFn) {
-    return teams.map(function(t) {
-      var tRoster = [
-        ...t.keepers.map(k=>players.find(p=>p.name===k)).filter(Boolean),
-        ...draftOrder.filter(s=>s.teamId===t.rosterId&&s.playerName)
-          .map(s=>players.find(x=>x.name===s.playerName)).filter(Boolean)
-      ];
-      return buildWeightedRoster(tRoster).reduce(function(sum,slot){ return sum + (metricFn(slot.p)||0)*slot.w; }, 0);
-    });
-  }
-
-  // Normalize: league avg = 70% of max (decent draft = B), spread by sensitivity
-  function normalize(myVal, allVals, maxPts, sensitivity) {
-    var avg = allVals.reduce(function(a,b){return a+b;},0) / allVals.length;
-    if (avg <= 0) return maxPts * 0.7;
-    return Math.min(maxPts, Math.max(0, maxPts * 0.7 + (myVal/avg - 1) * sensitivity * maxPts));
-  }
 
   var isCFLScore = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
 
@@ -2705,7 +2677,7 @@ function scoreTeam(teamId, fcValuesMap) {
   var projSums  = leagueWeightedSums(function(p){ return p.projPts || 0; });
   var myProjIdx = teams.findIndex(function(t){ return t.rosterId === teamId; });
   var projMax   = isCFLScore ? 90 : 60;
-  var projScore = normalize(projSums[myProjIdx] || 0, projSums, projMax, isCFLScore ? 1.0 : 1.5);
+  var projScore = normalizeVsLeague(projSums[myProjIdx] || 0, projSums, projMax, isCFLScore ? 1.0 : 1.5);
 
   // Pillar 2 (30pts): slot-weighted FC value vs league — NFL only
   var fcScore = 0;
@@ -2713,8 +2685,8 @@ function scoreTeam(teamId, fcValuesMap) {
     var fc = fcValuesMap || window._lastFCValues;
     fcScore = 15; // neutral if no FC data
     if (fc && Object.keys(fc).length > 0) {
-      var fcSums = leagueWeightedSums(function(p){ return getFCV(p) || 0; });
-      fcScore = normalize(fcSums[myProjIdx] || 0, fcSums, 30, 1.5);
+      var fcSums = leagueWeightedSums(function(p){ return fcValueFor(p, fc) || 0; });
+      fcScore = normalizeVsLeague(fcSums[myProjIdx] || 0, fcSums, 30, 1.5);
     }
   }
 
@@ -2736,12 +2708,9 @@ function scoreAllTeams(fcValuesMap) {
   })).sort((a,b) => b.score - a.score);
 }
 
-// View grade for any team (switches myTeamId temporarily for report)
-async function viewTeamGrade(rosterId) {
-  var prev = myTeamId;
-  myTeamId = rosterId;
-  await generateReport();
-  myTeamId = prev;
+// View grade for any team (report renders from the given team's perspective)
+function viewTeamGrade(rosterId) {
+  generateReport(rosterId);
 }
 
 // Debug: show prev rosters in a popup so you can verify they loaded correctly
@@ -2761,13 +2730,6 @@ function showPrevRosters() {
     '<div style="text-align:center;margin-top:12px"><button onclick="this.closest(\'[onclick]\').remove()" style="font-family:Syne,sans-serif;font-size:12px;font-weight:700;padding:6px 20px;border-radius:6px;cursor:pointer;background:var(--accent);border:none;color:#fff">Close</button></div>' +
     '</div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
-}
-
-async function viewTeamGrade(rosterId) {
-  var prev = myTeamId;
-  myTeamId = rosterId;
-  await generateReport();
-  myTeamId = prev;
 }
 
 // ── Simulate regular season W/L using projPts as weekly baseline ──────────
@@ -2827,13 +2789,16 @@ function simulateRegularSeason(numSims) {
   }).sort(function(a, b) { return b.avgWins - a.avgWins; });
 }
 
-async function generateReport() {
-  var myTeam = getTeam(myTeamId);
+async function generateReport(forTeamId) {
+  // Render from a specific team's perspective without mutating the global
+  // myTeamId (mutating it raced with re-renders triggered by remote picks).
+  var repTeamId = (typeof forTeamId === 'number') ? forTeamId : myTeamId;
+  var myTeam = getTeam(repTeamId);
   if (!myTeam) return;
 
   var isCFLReport = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
 
-  var myPicks   = draftOrder.filter(s => s.teamId === myTeamId && s.playerName);
+  var myPicks   = draftOrder.filter(s => s.teamId === repTeamId && s.playerName);
   var myDrafted = myPicks.map(s => {
     var p = players.find(x => x.name === s.playerName);
     return p ? Object.assign({}, p, {round: s.round, pickNo: s.pickNo}) : null;
@@ -2841,88 +2806,40 @@ async function generateReport() {
   var myKeepers = myTeam.keepers.map(k => players.find(p => p.name === k)).filter(Boolean);
   var fullRoster = [...myKeepers, ...myDrafted];
 
-  // ── Fetch FantasyCalc trade values (NFL only — skipped for CFL) ──────────
+  // ── FantasyCalc trade values (NFL only — skipped for CFL) ────────────────
+  // Reuse the values fetched at startup; only hit the network if we have none.
   var fcValues = {}; // name -> value (0-9999 scale)
   if (!isCFLReport) {
-    try {
-      var fcRes = await fetch('https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=10&ppr=1');
-      if (fcRes.ok) {
-        var fcData = await fcRes.json();
-        fcData.forEach(function(item) {
-          if (item.player && item.player.name) {
-            fcValues[item.player.name] = item.value || 0;
-          }
-        });
-        window._lastFCValues = fcValues; // cache for roster cards
+    if (Object.keys(fcValueMap).length > 0) {
+      fcValues = fcValueMap;
+    } else {
+      try {
+        var fcRes = await fetch('https://api.fantasycalc.com/values/current?isDynasty=false&numQbs=1&numTeams=10&ppr=1');
+        if (fcRes.ok) {
+          var fcData = await fcRes.json();
+          fcData.forEach(function(item) {
+            if (item.player && item.player.name) {
+              fcValues[item.player.name] = item.value || 0;
+            }
+          });
+        }
+      } catch(e) {
+        console.warn('FantasyCalc fetch failed, using ECR fallback:', e.message);
       }
-    } catch(e) {
-      console.warn('FantasyCalc fetch failed, using ECR fallback:', e.message);
     }
+    window._lastFCValues = fcValues; // cache for roster cards
   }
   var hasFCData = !isCFLReport && Object.keys(fcValues).length > 0;
 
-  // Helper: get FC value for a player (with robust name matching)
-  function getFCValue(p) {
-    if (fcValues[p.name] !== undefined) return fcValues[p.name];
-    // Normalize: strip punctuation, lowercase
-    function norm(s) { return s.toLowerCase().replace(/[.']/g, '').replace(/\s+/g, ' ').trim(); }
-    function noSfx(s) { return norm(s).replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g,' ').trim(); }
-    var normName = norm(p.name);
-    var noSufName = noSfx(p.name);
-    // 1. Exact normalized match
-    var match = Object.keys(fcValues).find(n => norm(n) === normName);
-    if (match) return fcValues[match];
-    // 2. Without suffix
-    match = Object.keys(fcValues).find(n => noSfx(n) === noSufName);
-    if (match) return fcValues[match];
-    // 3. First + last only
-    var parts = noSufName.split(' ').filter(Boolean);
-    if (parts.length >= 2) {
-      var firstLast = parts[0] + ' ' + parts[parts.length - 1];
-      match = Object.keys(fcValues).find(n => { var np = noSfx(n).split(' ').filter(Boolean); return np.length >= 2 && np[0]+' '+np[np.length-1] === firstLast; });
-      if (match) return fcValues[match];
-    }
-    // 4. Last name only (risky but better than nothing for unique names)
-    if (parts.length >= 2) {
-      var lastName = parts[parts.length-1];
-      if (lastName.length > 4) { // avoid short surnames matching wrong players
-        var candidates = Object.keys(fcValues).filter(n => noSfx(n).endsWith(' '+lastName));
-        if (candidates.length === 1) return fcValues[candidates[0]];
-      }
-    }
-    return null;
-  }
+  function getFCValue(p) { return fcValueFor(p, fcValues); }
 
-  // Equal weight for the first 13 non-K/DST players; CFL: best national RB/WR gets 1.5× (fills 2 slots)
-  function buildSlotWeights(roster) {
-    var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
-    var result = eligible.slice(0, 13).map(function(p){ return {p:p, w:1.0}; });
-    if (isCFLReport) {
-      var natSlot = result.filter(function(s){ return s.p.isNational && (s.p.pos==='RB'||s.p.pos==='WR'); })
-                         .sort(function(a,b){ return (b.p.projPts||0)-(a.p.projPts||0); })[0];
-      if (natSlot) natSlot.w = 1.5;
-    }
-    return result;
-  }
-  function leagueSlotSums(metricFn) {
-    return teams.map(function(t){
-      var r=[...t.keepers.map(k=>players.find(p=>p.name===k)).filter(Boolean),
-             ...draftOrder.filter(s=>s.teamId===t.rosterId&&s.playerName).map(s=>players.find(x=>x.name===s.playerName)).filter(Boolean)];
-      return buildSlotWeights(r).reduce(function(s,slot){return s+(metricFn(slot.p)||0)*slot.w;},0);
-    });
-  }
-  function normScore(myVal, allVals, maxPts, sensitivity) {
-    var avg=allVals.reduce(function(a,b){return a+b;},0)/allVals.length;
-    if(avg<=0) return maxPts*0.7;
-    return Math.min(maxPts,Math.max(0,maxPts*0.7+(myVal/avg-1)*sensitivity*maxPts));
-  }
-  var myIdx = teams.findIndex(function(t){return t.rosterId===myTeamId;});
+  var myIdx = teams.findIndex(function(t){return t.rosterId===repTeamId;});
 
   // ── Pillar 1: Slot-weighted projected points ──────────────────────────
   // CFL: 90pts (no FC pillar). NFL: 60pts.
-  var projSums  = leagueSlotSums(function(p){return p.projPts||0;});
+  var projSums  = leagueWeightedSums(function(p){return p.projPts||0;});
   var projMax   = isCFLReport ? 90 : 60;
-  var projScore = normScore(projSums[myIdx]||0, projSums, projMax, isCFLReport ? 1.0 : 1.5);
+  var projScore = normalizeVsLeague(projSums[myIdx]||0, projSums, projMax, isCFLReport ? 1.0 : 1.5);
 
   // ── Pillar 2: Slot-weighted FC value (30pts) — NFL only ───────────────
   var fcScore = 0;
@@ -2930,8 +2847,8 @@ async function generateReport() {
     fcScore = 15; // neutral default
     if (hasFCData) {
       fullRoster.forEach(function(p){ p.fcValue = getFCValue(p); });
-      var fcSums = leagueSlotSums(function(p){return getFCValue(p)||0;});
-      fcScore = normScore(fcSums[myIdx]||0, fcSums, 30, 1.5);
+      var fcSums = leagueWeightedSums(function(p){return getFCValue(p)||0;});
+      fcScore = normalizeVsLeague(fcSums[myIdx]||0, fcSums, 30, 1.5);
     }
   }
 
@@ -2953,7 +2870,7 @@ async function generateReport() {
   if((have.WR||0)<3) missing.push('3 WR starters');
   if(!isCFLReport && (have.TE||0)<1) missing.push('TE');
 
-  var total  = scoreTeam(myTeamId, fcValues);
+  var total  = scoreTeam(repTeamId, fcValues);
   var grade  = letterGrade(total);
   var gc     = gradeColor(total);
 
@@ -3007,7 +2924,7 @@ async function generateReport() {
   }
 
   function posColor(pos) {
-    return {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DS:'var(--muted)'}[pos]||'var(--muted)';
+    return {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DST:'var(--muted)'}[pos]||'var(--muted)';
   }
   function bar(label, score, max, col, sub) {
     return '<div class="score-bar-wrap">' +
@@ -3112,7 +3029,7 @@ async function generateReport() {
     var maxProjTeam = allProjTeamVals[0].total || 1;
 
     var cflLeagueRows = allProjTeamVals.map(function(t) {
-      var isMe = t.rosterId === myTeamId;
+      var isMe = t.rosterId === repTeamId;
       var pct = Math.round((t.total / maxProjTeam) * 100);
       return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'+
         '<span style="font-size:11px;min-width:52px;color:'+(isMe?'var(--text)':'var(--muted)')+';font-weight:'+(isMe?700:400)+'">'+(isMe?'★ ':'')+t.short+'</span>'+
@@ -3259,7 +3176,7 @@ async function generateReport() {
     var maxTeamVal = allTeamVals[0].total || 1;
 
     var leagueRows = allTeamVals.map(function(t) {
-      var isMe = t.rosterId === myTeamId;
+      var isMe = t.rosterId === repTeamId;
       var pct  = Math.round((t.total / maxTeamVal) * 100);
       return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'+
         '<span style="font-size:11px;min-width:52px;color:'+(isMe?'var(--text)':'var(--muted)')+';font-weight:'+(isMe?700:400)+'">'+
@@ -3320,14 +3237,14 @@ async function generateReport() {
   var simResults = simulateRegularSeason(500);
   var simHtml = '';
   if (simResults) {
-    var mySimIdx = simResults.findIndex(function(t) { return t.rosterId === myTeamId; });
+    var mySimIdx = simResults.findIndex(function(t) { return t.rosterId === repTeamId; });
     var myRecord = simResults[mySimIdx];
     var maxWeekly = simResults[0].weeklyProj;
     simHtml = '<div class="report-section"><div class="report-section-title">Projected regular season (500 sims · 13 wks)</div>'+
       (myRecord ? '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Your projected record: <span style="color:var(--text);font-weight:700">'
         + myRecord.avgWins.toFixed(1) + '–' + myRecord.avgLosses.toFixed(1) + '</span></div>' : '') +
       simResults.map(function(t, i) {
-        var isMe = t.rosterId === myTeamId;
+        var isMe = t.rosterId === repTeamId;
         var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
         var wPct = Math.round((t.avgWins / 13) * 100);
         var barColor = isMe ? 'var(--accent)' : 'var(--surface3)';
@@ -3353,7 +3270,7 @@ async function generateReport() {
   var allScores = scoreAllTeams(fcValues);
   var lbHtml = allScores.map(function(t,i) {
     var tc = gradeColor(t.score).color;
-    var isMe = t.rosterId === myTeamId;
+    var isMe = t.rosterId === repTeamId;
     var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
     return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border)'+(i===allScores.length-1?';border-bottom:none':'')+'">'+
       '<span style="font-size:13px;min-width:24px">'+medal+'</span>'+
@@ -3426,7 +3343,8 @@ function initTeamModes() {
     if (!teamModes[t.rosterId]) {
       teamModes[t.rosterId] = (isCommissioner || t.rosterId === myTeamId) ? 'manual' : 'gut';
     }
-    if (!teamGutMap[t.rosterId]) teamGutMap[t.rosterId] = 50;
+    // === undefined, not falsy: a seeded gut value of 0 (pure MoneyBall) is valid
+    if (teamGutMap[t.rosterId] === undefined) teamGutMap[t.rosterId] = 50;
   });
 }
 
@@ -3502,7 +3420,6 @@ function teamHasTop5(rosterId, pos) {
 }
 
 function autoPickForTeam(rosterId, mode) {
-  computeVOR();
   var {byPos: _byPos} = computeVOR();
 
   // Build position limits for QB and TE
@@ -3607,8 +3524,7 @@ function autoPickForTeam(rosterId, mode) {
     best = avail.slice().sort(function(a,b){ return a.adp - b.adp; })[0];
   } else {
     // 'gut' or any other mode: use gut score blending MoneyBall/GutFeeling
-    var {byPos: _bp2} = computeVOR();
-    best = avail.slice().sort(function(a,b){ return gutScore(a, rosterId, _bp2) - gutScore(b, rosterId, _bp2); })[0];
+    best = avail.slice().sort(function(a,b){ return gutScore(a, rosterId, _byPos) - gutScore(b, rosterId, _byPos); })[0];
   }
   return best;
 }
@@ -3646,6 +3562,7 @@ async function runAutopilot() {
       break;
     }
 
+    pickHistory.push({ slotIdx: idx, playerName: best.name, rosterId: slot.teamId });
     slot.playerName = best.name;
     best.drafted    = true;
     best.draftedBy  = slot.teamId;
@@ -3749,12 +3666,10 @@ function loadCSVText(text) {
     };
     parsed.forEach(function(p) {
       if (p.tier !== 99) return; // already has explicit tier
-      var ppg = p.projPts && p.projPts > 0 ? p.projPts / Math.max(1, p.projPts / 17) : 0;
-      // Use projPts directly as proxy for PPG (season total / ~17 games)
-      var seasonPts = p.projPts || 0;
       var breaks = _cflTierBreaks[p.pos];
       if (!breaks) { p.tier = 5; return; }
-      var ppgEst = p.ppg > 0 ? p.ppg : seasonPts / 17;
+      // PPG from the CSV when present, else estimate from season total (~17 games)
+      var ppgEst = p.ppg > 0 ? p.ppg : (p.projPts || 0) / 17;
       if      (ppgEst >= breaks[0]) p.tier = 1;
       else if (ppgEst >= breaks[1]) p.tier = 2;
       else if (ppgEst >= breaks[2]) p.tier = 3;
@@ -3853,7 +3768,7 @@ function importCSV(event) {
     try {
       var count = loadCSVText(e.target.result);
       if (count) toast('✓ Loaded ' + count + ' players from ' + file.name);
-      renderBoard();
+      renderAll(); // full re-render — VOR/grade caches must rebuild for the new pool
     } catch(err) {
       toast('❌ ' + err.message);
       console.error(err);
@@ -3887,12 +3802,7 @@ function importPicks(event) {
       // Header row = team display names
       var headers = rows[0].map(h => h ? String(h).trim() : '');
 
-      var shortLookup = {
-        'TouchDownSyndrome75':'Ben','MonsieurExcuses':'Kev','peterbar':'Hugo',
-        'iackkkk':'Iack','ThomasMonette':'Thomas','PhilB10':'Phil',
-        'jflafond':'JF','JeromeJ':'Jerome','parleurmouille':'Web',
-        'Fred':'Fred','FredCourville':'Fred'
-      };
+      var shortLookup = SHORT_NAMES; // single source of truth for display→short names
       var BASE_SLOT = {Web:1,Iack:2,Phil:3,Ben:4,Hugo:5,Fred:6,Jerome:7,Kev:8,JF:9,Thomas:10};
 
       // Parse each cell
@@ -4007,7 +3917,7 @@ function toggleResults() {
 function buildResultsContent() {
   computeVOR();
   var allScores = scoreAllTeams(window._lastFCValues);
-  var posColors = {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DS:'var(--muted)'};
+  var posColors = {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DST:'var(--muted)'};
 
   var html = '';
 
@@ -4067,8 +3977,8 @@ function buildResultsContent() {
         if (!p) return;
         var pc    = posColors[p.pos]||'var(--muted)';
         var rnd   = picks[idx] ? picks[idx].round : '?';
-        // Show FC value if available, otherwise ECR rank
-        var fcVal = window._lastFCValues && window._lastFCValues[p.name];
+        // Show FC value if available (fuzzy name match), otherwise ECR rank
+        var fcVal = window._lastFCValues ? fcValueFor(p, window._lastFCValues) : null;
         var valStr = fcVal ? fcVal : ('ECR #' + Math.round(p.ecr));
         var valClr = fcVal ? 'var(--accent)' : 'var(--dim)';
         html += '<div style="display:flex;align-items:center;gap:6px;padding:2px 0;border-bottom:0.5px solid var(--border)">';
@@ -4159,62 +4069,6 @@ function onLeagueTypeChange() {
 
 function onDraftTypeChange() {
   // Currently no UI dependency on draft type, but kept for future use
-}
-
-function randomizePosition() {
-  var pos = Math.floor(Math.random() * 10) + 1;
-  var sel = document.getElementById('cfg-position');
-  if (sel) sel.value = String(pos);
-  selectTeamCard(pos);
-}
-
-function initTeamGrid() {
-  var grid = document.getElementById('cfg-team-grid');
-  if (!grid) return;
-  var currentVal = parseInt(document.getElementById('cfg-position').value, 10) || 4;
-  grid.innerHTML = '';
-  for (var i = 1; i <= 10; i++) {
-    (function(pos) {
-      var card = document.createElement('div');
-      var isSelected = (pos === currentVal);
-      var suffix = pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th';
-      card.id = 'team-card-' + pos;
-      card.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;border-radius:8px;border:1px solid ' + (isSelected ? 'var(--accent)' : 'var(--border2)') + ';background:' + (isSelected ? 'rgba(153,50,204,0.15)' : 'var(--surface2)') + ';cursor:pointer;transition:all 0.15s ease;user-select:none';
-      card.innerHTML = '<span style="font-size:13px;font-weight:800;color:' + (isSelected ? 'var(--accent)' : 'var(--text)') + '">' + pos + '</span><span style="font-size:8px;color:' + (isSelected ? 'var(--accent)' : 'var(--dim)') + ';font-weight:600">' + pos + suffix + '</span>';
-      card.addEventListener('mouseenter', function() {
-        if (!this.classList.contains('selected-team')) {
-          this.style.borderColor = 'var(--accent)';
-          this.style.background = 'var(--surface3)';
-        }
-      });
-      card.addEventListener('mouseleave', function() {
-        if (!this.classList.contains('selected-team')) {
-          this.style.borderColor = 'var(--border2)';
-          this.style.background = 'var(--surface2)';
-        }
-      });
-      card.addEventListener('click', function() { selectTeamCard(pos); });
-      if (isSelected) card.classList.add('selected-team');
-      grid.appendChild(card);
-    })(i);
-  }
-}
-
-function selectTeamCard(pos) {
-  var sel = document.getElementById('cfg-position');
-  if (sel) sel.value = String(pos);
-  for (var i = 1; i <= 10; i++) {
-    var card = document.getElementById('team-card-' + i);
-    if (!card) continue;
-    var isSelected = (i === pos);
-    card.classList.toggle('selected-team', isSelected);
-    card.style.borderColor = isSelected ? 'var(--accent)' : 'var(--border2)';
-    card.style.background  = isSelected ? 'rgba(153,50,204,0.15)' : 'var(--surface2)';
-    var numEl = card.children[0];
-    var lblEl = card.children[1];
-    if (numEl) numEl.style.color = isSelected ? 'var(--accent)' : 'var(--text)';
-    if (lblEl) lblEl.style.color = isSelected ? 'var(--accent)' : 'var(--dim)';
-  }
 }
 
 // ══════════════════════════════════════════════
@@ -4430,7 +4284,7 @@ function loadLobbySessions() {
       div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;margin-bottom:6px;transition:background 0.1s';
       div.innerHTML =
         '<div style="flex:1">' +
-          '<div style="font-size:13px;font-weight:600;color:var(--text)">' + s.name + '</div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text)">' + escHtml(s.name) + '</div>' +
           '<div style="font-size:10px;color:var(--dim);font-family:DM Mono,monospace">' + s.pickCount + ' picks · ' + dateStr + (typeLabel ? ' · ' + typeLabel : '') + '</div>' +
         '</div>' +
         '<span style="font-size:12px;font-weight:700;color:var(--accent);padding:4px 10px;border:1px solid var(--accent);border-radius:5px">Join →</span>';
@@ -4692,36 +4546,6 @@ function encodeSessionHash(sessionId, config) {
   return sessionId;
 }
 
-// newSession replaced by lobby
-
-function initFirebase() {
-  try {
-    // Avoid double-init if called multiple times
-    if (firebase.apps && firebase.apps.length > 0) {
-      fbApp = firebase.apps[0];
-    } else {
-      fbApp = firebase.initializeApp(FIREBASE_CONFIG);
-    }
-    fbDb  = firebase.database(fbApp);
-    // Use URL hash as session ID so each draft is isolated
-    // Host clicks "New Session" to get a fresh URL to share
-    var sessionId = getSessionId();
-    fbRef = fbDb.ref('sessions/' + sessionId);
-    document.getElementById('session-id-display').textContent = sessionId;
-
-    // Monitor connection state
-    fbDb.ref('.info/connected').on('value', function(snap) {
-      updateSyncBadge(snap.val() === true);
-    });
-
-    attachFirebaseListeners();
-    console.log('Firebase init done, session:', getSessionId());
-  } catch(e) {
-    console.error('Firebase init failed:', e);
-    updateSyncBadge(false);
-  }
-}
-
 function attachFirebaseListeners() {
   if (!fbRef) return;
   fbRef.child('picks').off();
@@ -4821,7 +4645,7 @@ function fbPushReset() {
 
 // Local reset (called both locally and when remote reset received)
 function localReset() {
-  history = [];
+  pickHistory = [];
   selectedPlayer = null;
   autoPilotRunning = false;
   document.getElementById('ap-run-btn').textContent = '▶ Run';
@@ -4853,9 +4677,12 @@ async function init() {
     LEAGUE_CONFIG = Object.assign({}, LEAGUE_CONFIG, earlyConfig, { type: 'cfl' });
   }
 
-  // ── 1. Parallel: Sleeper (ADP + projections) + FantasyCalc (trade values) ──
+  // ── 1. Parallel: FantasyCalc (trade values) + Sleeper projections ──
+  // Both are NFL-only sources — skip them entirely in CFL mode (CSV has projections).
   setLoad(5, 'Loading external data…');
-  await Promise.allSettled([fetchSleeperData(), fetchFantasyCalc(), fetchSleeperProjections()]);
+  if (!isCFL) {
+    await Promise.allSettled([fetchFantasyCalc(), fetchSleeperProjections()]);
+  }
   updateDataSourceBadges();
 
   if (is2026 || isCFL) {
@@ -4904,14 +4731,17 @@ async function init() {
   }
 
   // Auto-load ECR rankings CSV (CFL uses cfl_rankings.csv, NFL uses rankings.csv)
+  // cache:'no-cache' forces revalidation — no ?v= busters (they bloated the SW cache
+  // with a new URL per page load and made the offline fallback unmatchable).
   try {
     setLoad(88, 'Loading rankings…');
     var ecrFile = isCFL ? 'cfl_rankings.csv' : 'rankings.csv';
-    const res = await fetch(ecrFile + '?v=' + Date.now(), { cache: 'no-cache' });
+    const res = await fetch(ecrFile, { cache: 'no-cache' });
     if (res.ok) {
       cachedECRText = await res.text();
       const count = loadCSVText(cachedECRText);
       if (count) {
+        dataStatus.fp = 'live';
         console.log('Auto-loaded ' + ecrFile + ' —', count, 'players');
         const keeperByName = {};
         teams.forEach(t => t.keepers.forEach(k => { keeperByName[k] = t.shortName; }));
@@ -4920,16 +4750,21 @@ async function init() {
           p.isKeeper  = !!keeperByName[p.name];
           p.isRookie  = ROOKIES_2026.has(p.name);
         });
+      } else {
+        dataStatus.fp = 'error';
       }
+    } else {
+      dataStatus.fp = 'error';
     }
   } catch(e) {
+    dataStatus.fp = 'error';
     console.warn('Could not auto-load ECR rankings:', e.message);
   }
 
   // Auto-load ADP rankings CSV (CFL uses cfl_adp_rankings.csv, NFL uses adp_rankings.csv)
   try {
     var adpFile = isCFL ? 'cfl_adp_rankings.csv' : 'adp_rankings.csv';
-    const adpRes = await fetch(adpFile + '?v=' + Date.now(), { cache: 'no-cache' });
+    const adpRes = await fetch(adpFile, { cache: 'no-cache' });
     if (adpRes.ok) {
       cachedADPText = await adpRes.text();
       const matched = loadADPCSVText(cachedADPText);
@@ -5144,13 +4979,8 @@ init();
       </div>
 
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Multi-source ADP & ± risk badge</div>
-        ADP is a <strong>weighted average across up to 4 sources</strong>: FantasyPros (w=1.0) · Fantasy Football Calculator (w=0.9) · MyFantasyLeague (w=0.8) · Sleeper (w=0.6). The <strong>± badge</strong> shows disagreement between sources — higher = more uncertainty about where this player actually goes.
-        <div style="margin-top:8px;display:flex;gap:6px;font-size:11px;flex-wrap:wrap">
-          <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:5px;padding:4px 8px;color:var(--green)">±1–3 — Sources agree</div>
-          <div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:5px;padding:4px 8px;color:var(--gold)">±4–8 — Moderate disagreement</div>
-          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:5px;padding:4px 8px;color:var(--red)">±8+ — High disagreement / boom-or-bust</div>
-        </div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">ADP source</div>
+        ADP comes from a single source: the <strong>FantasyPros ADP export</strong> bundled with the app (or imported via the 📂 Rankings button). Other ADP feeds (FFC, MFL, Sleeper) are unreliable pre-season — too few real drafts — so they are not blended in.
       </div>
 
       <div>
@@ -5191,6 +5021,9 @@ init();
       </div>
 
     </div>
+  </div>
+</div>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
@@ -5200,3 +5033,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+</body>
+</html>
