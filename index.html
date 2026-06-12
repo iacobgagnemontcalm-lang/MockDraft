@@ -2971,21 +2971,76 @@ function showPrevRosters() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-// ── Simulate regular season W/L using projPts as weekly baseline ──────────
+// ── Simulate regular season W/L using optimal weekly starting lineups ─────
+// Each week a team scores the sum of its best legal lineup's per-game
+// projections — players on bye sit out and the bench fills in — plus
+// 20% gaussian noise.
 function simulateRegularSeason(numSims) {
   var WEEKS = 13;
   // Box-Muller normal sample
   function randn() {
     return Math.sqrt(-2 * Math.log(Math.random() || 1e-10)) * Math.cos(2 * Math.PI * Math.random());
   }
+
+  var isCFLSim = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
+
+  // Starting lineup filled greedily slot by slot, mirroring assignRosterSlots.
+  // Each slot lists predicate groups tried in priority order (the CFL
+  // superflex prefers a QB, the NAT slot needs a Canadian RB/WR).
+  function eq(pos)     { return function(p){ return p.pos === pos; }; }
+  function inPos(list) { return function(p){ return list.indexOf(p.pos) !== -1; }; }
+  var slotDefs = isCFLSim
+    ? [ [eq('QB'), inPos(['RB','WR'])],
+        [eq('RB')],
+        [eq('WR')], [eq('WR')], [eq('WR')],
+        [function(p){ return p.isNational && (p.pos === 'RB' || p.pos === 'WR'); }],
+        [eq('K')], [eq('DST')] ]
+    : [ [eq('QB')],
+        [eq('RB')], [eq('RB')],
+        [eq('WR')], [eq('WR')],
+        [eq('TE')],
+        [inPos(['RB','WR','TE'])],
+        [eq('K')], [eq('DST')] ];
+
+  function lineupPoints(active) {
+    var used = new Set();
+    var total = 0;
+    slotDefs.forEach(function(preds) {
+      for (var k = 0; k < preds.length; k++) {
+        var best = null;
+        active.forEach(function(p) {
+          if (used.has(p.name) || !preds[k](p)) return;
+          if (!best || p.ppg > best.ppg) best = p;
+        });
+        if (best) { used.add(best.name); total += best.ppg; return; }
+      }
+    });
+    return total;
+  }
+
+  var gamesPerSeason = isCFLSim ? 18 : 16; // playable games behind projPts (1 NFL bye)
+
   var teamList = teams.map(function(t) {
     var roster = [
       ...t.keepers.map(k => players.find(p => p.name === k)).filter(Boolean),
       ...draftOrder.filter(s => s.teamId === t.rosterId && s.playerName)
         .map(s => players.find(x => x.name === s.playerName)).filter(Boolean)
-    ];
-    var seasonProj = roster.reduce(function(sum, p) { return sum + (p.projPts || 0); }, 0);
-    return { rosterId: t.rosterId, shortName: t.shortName, weeklyProj: seasonProj / 16 };
+    ].map(function(p) {
+      return {
+        name: p.name, pos: p.pos, isNational: p.isNational || false,
+        bye: p.bye || null,
+        ppg: p.ppg > 0 ? p.ppg : (p.projPts || 0) / gamesPerSeason,
+      };
+    });
+
+    // Byes are fixed, so each week's optimal lineup is deterministic —
+    // precompute the weekly baselines and only randomize noise per sim.
+    var weeklyBaseline = [];
+    for (var w = 1; w <= WEEKS; w++) {
+      weeklyBaseline.push(lineupPoints(roster.filter(function(p){ return p.ppg > 0 && p.bye !== w; })));
+    }
+    var avgWeekly = weeklyBaseline.reduce(function(a, b){ return a + b; }, 0) / WEEKS;
+    return { rosterId: t.rosterId, shortName: t.shortName, weeklyBaseline: weeklyBaseline, weeklyProj: avgWeekly };
   });
 
   var hasProjData = teamList.some(function(t) { return t.weeklyProj > 0; });
@@ -2999,12 +3054,17 @@ function simulateRegularSeason(numSims) {
     teamList.forEach(function(t) { simWins[t.rosterId] = 0; });
 
     for (var week = 0; week < WEEKS; week++) {
-      // Score each team: weeklyProj + 20% normal noise
+      // Score each team: that week's lineup baseline + 20% normal noise
       var scores = teamList.map(function(t) {
-        return { rosterId: t.rosterId, score: Math.max(0, t.weeklyProj * (1 + randn() * 0.20)) };
+        return { rosterId: t.rosterId, score: Math.max(0, t.weeklyBaseline[week] * (1 + randn() * 0.20)) };
       });
-      // Pair teams randomly for H2H matchups
-      var shuffled = scores.slice().sort(function() { return Math.random() - 0.5; });
+      // Pair teams randomly for H2H matchups (Fisher-Yates — a random sort
+      // comparator is biased and over-pairs teams adjacent in roster order)
+      var shuffled = scores.slice();
+      for (var j = shuffled.length - 1; j > 0; j--) {
+        var r = Math.floor(Math.random() * (j + 1));
+        var tmp = shuffled[j]; shuffled[j] = shuffled[r]; shuffled[r] = tmp;
+      }
       for (var i = 0; i + 1 < shuffled.length; i += 2) {
         if (shuffled[i].score > shuffled[i+1].score) {
           simWins[shuffled[i].rosterId]++;
@@ -3502,7 +3562,7 @@ async function generateReport(forTeamId) {
           '</span>' +
         '</div>';
       }).join('') +
-      '<div style="font-size:9px;color:var(--dim);margin-top:8px">Sleeper 2026 projections — ' + _projLiveWeeks + '/17 weeks loaded, remainder extrapolated from wk1 · 20% weekly variance · random H2H</div>' +
+      '<div style="font-size:9px;color:var(--dim);margin-top:8px">Sleeper 2026 projections — ' + _projLiveWeeks + '/17 weeks loaded, remainder extrapolated from wk1 · optimal starting lineup each week, byes sat out · 20% weekly variance · random H2H</div>' +
     '</div>';
   }
 
@@ -3867,6 +3927,7 @@ function loadCSVText(text) {
   var iNat  = ci('nat');
   var iPts  = ci('pts');
   var iPPG  = ci('ppg');
+  var iBye  = ci('bye week');
 
   if (iRank === -1 || iName === -1) {
     toast('❌ Cannot find RK or PLAYER NAME columns'); return 0;
@@ -3888,7 +3949,8 @@ function loadCSVText(text) {
     var isNational = iNat >= 0 ? (get(iNat) === 'Y') : false;
     var projPts    = iPts >= 0 ? (parseFloat(get(iPts)) || 0) : 0;
     var ppg        = iPPG >= 0 ? (parseFloat(get(iPPG)) || 0) : 0;
-    parsed.push({ name, pos, nfl, ecr, adp, tier, std, isNational, projPts, ppg });
+    var bye        = iBye >= 0 ? (parseInt(get(iBye)) || null) : null;
+    parsed.push({ name, pos, nfl, ecr, adp, tier, std, isNational, projPts, ppg, bye });
   }
 
   if (parsed.length < 10) { toast('❌ Too few players found — check CSV format'); return 0; }
