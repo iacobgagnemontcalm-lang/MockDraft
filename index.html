@@ -3002,7 +3002,24 @@ function simulateRegularSeason(numSims) {
         [inPos(['RB','WR','TE'])],
         [eq('K')], [eq('DST')] ];
 
-  function lineupPoints(active) {
+  var gamesPerSeason = isCFLSim ? 18 : 16; // playable games behind projPts (1 NFL bye)
+
+  function perGamePts(p) {
+    return p.ppg > 0 ? p.ppg : (p.projPts || 0) / gamesPerSeason;
+  }
+
+  // Waiver streaming pool: when a slot can't be filled from the roster
+  // (starter on bye, or position never drafted) managers pick up the best
+  // free agent rather than take a zero — single-QB teams especially.
+  var replacementPool = players
+    .filter(function(p){ return !p.drafted && !p.isKeeper; })
+    .map(function(p) {
+      return { name: p.name, pos: p.pos, isNational: p.isNational || false,
+               bye: p.bye || null, ppg: perGamePts(p) };
+    });
+
+  function lineupPoints(roster, w) {
+    var active = roster.filter(function(p){ return p.ppg > 0 && p.bye !== w; });
     var used = new Set();
     var total = 0;
     slotDefs.forEach(function(preds) {
@@ -3014,11 +3031,18 @@ function simulateRegularSeason(numSims) {
         });
         if (best) { used.add(best.name); total += best.ppg; return; }
       }
+      // No rostered player fits — stream the best available waiver player
+      var sub = null;
+      for (var k2 = 0; k2 < preds.length && !sub; k2++) {
+        replacementPool.forEach(function(p) {
+          if (used.has(p.name) || p.bye === w || !preds[k2](p)) return;
+          if (!sub || p.ppg > sub.ppg) sub = p;
+        });
+      }
+      if (sub) { used.add(sub.name); total += sub.ppg; }
     });
     return total;
   }
-
-  var gamesPerSeason = isCFLSim ? 18 : 16; // playable games behind projPts (1 NFL bye)
 
   var teamList = teams.map(function(t) {
     var roster = [
@@ -3029,7 +3053,7 @@ function simulateRegularSeason(numSims) {
       return {
         name: p.name, pos: p.pos, isNational: p.isNational || false,
         bye: p.bye || null,
-        ppg: p.ppg > 0 ? p.ppg : (p.projPts || 0) / gamesPerSeason,
+        ppg: perGamePts(p),
       };
     });
 
@@ -3037,7 +3061,7 @@ function simulateRegularSeason(numSims) {
     // precompute the weekly baselines and only randomize noise per sim.
     var weeklyBaseline = [];
     for (var w = 1; w <= WEEKS; w++) {
-      weeklyBaseline.push(lineupPoints(roster.filter(function(p){ return p.ppg > 0 && p.bye !== w; })));
+      weeklyBaseline.push(lineupPoints(roster, w));
     }
     var avgWeekly = weeklyBaseline.reduce(function(a, b){ return a + b; }, 0) / WEEKS;
     return { rosterId: t.rosterId, shortName: t.shortName, weeklyBaseline: weeklyBaseline, weeklyProj: avgWeekly };
@@ -3562,7 +3586,7 @@ async function generateReport(forTeamId) {
           '</span>' +
         '</div>';
       }).join('') +
-      '<div style="font-size:9px;color:var(--dim);margin-top:8px">Sleeper 2026 projections — ' + _projLiveWeeks + '/17 weeks loaded, remainder extrapolated from wk1 · optimal starting lineup each week, byes sat out · 20% weekly variance · random H2H</div>' +
+      '<div style="font-size:9px;color:var(--dim);margin-top:8px">Sleeper 2026 projections — ' + _projLiveWeeks + '/17 weeks loaded, remainder extrapolated from wk1 · optimal starting lineup each week, byes sat out, empty slots stream the best free agent · 20% weekly variance · random H2H</div>' +
     '</div>';
   }
 
