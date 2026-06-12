@@ -4684,11 +4684,6 @@ function pickMyTeam(rosterId) {
   renderAutopilot();
   renderAll();
   toast('✓ Locked in as ' + (teams.find(function(t){ return t.rosterId === rosterId; }) || {}).shortName);
-
-  // Dynasty pre-draft: let the manager confirm/adjust their keepers right away
-  if (canEditKeepers()) {
-    setTimeout(function(){ openKeeperPicker(rosterId); }, 350);
-  }
 }
 
 function pickCommissioner() {
