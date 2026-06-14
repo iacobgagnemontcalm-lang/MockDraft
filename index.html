@@ -277,6 +277,26 @@ header {
 }
 .hdr-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface3); }
 .hdr-btn.danger:hover { color: var(--red); border-color: rgba(239,68,68,0.4); }
+.hdr-btn.trade-btn { color: #7ecfff; border-color: rgba(126,207,255,0.3); }
+.hdr-btn.trade-btn:hover { color: #b0e4ff; border-color: rgba(126,207,255,0.6); background: rgba(126,207,255,0.08); }
+
+/* ── TRADE MODAL ── */
+.trade-modal-cols { display: flex; gap: 12px; flex: 1; min-height: 0; overflow: hidden; }
+.trade-team-col { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.trade-team-hdr { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.trade-section-lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--dim); margin: 8px 0 4px; }
+.trade-asset-list { display: flex; flex-direction: column; gap: 4px; }
+.trade-asset { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 7px; border: 1px solid var(--border2); background: var(--surface2); cursor: pointer; transition: all 0.12s; font-size: 11px; }
+.trade-asset:hover { border-color: rgba(126,207,255,0.4); background: rgba(126,207,255,0.06); }
+.trade-asset.selected { border-color: #7ecfff; background: rgba(126,207,255,0.12); }
+.trade-asset .ta-name { flex: 1; min-width: 0; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trade-asset .ta-detail { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--dim); flex-shrink: 0; }
+.trade-summary { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border2); font-size: 11px; color: var(--muted); min-height: 48px; }
+.trade-summary strong { color: var(--text); }
+.trade-divider { width: 1px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+.trade-history-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface2); font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.trade-history-item .th-text { flex: 1; line-height: 1.5; }
+.trade-picked-badge { display: inline-block; font-size: 8px; font-weight: 700; letter-spacing: 0.5px; padding: 1px 4px; border-radius: 3px; background: rgba(126,207,255,0.15); color: #7ecfff; border: 1px solid rgba(126,207,255,0.3); vertical-align: middle; margin-left: 3px; }
 
 /* ── DRAFT ORDER (left) ── */
 #col-order {
@@ -654,6 +674,68 @@ header {
   </div>
 </div>
 
+<!-- Trade Modal (Dynasty — hypothetical trades affecting picks + keeper eligibility) -->
+<div id="trade-modal" onclick="if(event.target===this)closeTradeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:2100;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;max-width:680px;width:100%;padding:24px 20px;display:flex;flex-direction:column;gap:12px;margin:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:var(--text)">Hypothetical Trade</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">Picks &amp; players update in real-time across the board, order, and keeper picker</div>
+      </div>
+      <button onclick="closeTradeModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px">×</button>
+    </div>
+
+    <!-- Team selectors -->
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="flex:1">
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">Team A</div>
+        <select id="trade-team-a" onchange="renderTradeAssets()" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Syne',sans-serif;font-size:12px;padding:6px 8px;border-radius:7px;cursor:pointer"></select>
+      </div>
+      <div style="font-size:18px;color:var(--dim);padding-top:18px">⇄</div>
+      <div style="flex:1">
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">Team B</div>
+        <select id="trade-team-b" onchange="renderTradeAssets()" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Syne',sans-serif;font-size:12px;padding:6px 8px;border-radius:7px;cursor:pointer"></select>
+      </div>
+    </div>
+
+    <!-- Asset columns -->
+    <div class="trade-modal-cols" style="max-height:360px">
+      <!-- Team A column -->
+      <div class="trade-team-col" style="overflow-y:auto">
+        <div class="trade-team-hdr" id="trade-col-a-hdr">Team A</div>
+        <div class="trade-section-lbl">Players (going to B)</div>
+        <div class="trade-asset-list" id="trade-players-a"></div>
+        <div class="trade-section-lbl">Picks (going to B)</div>
+        <div class="trade-asset-list" id="trade-picks-a"></div>
+      </div>
+      <div class="trade-divider"></div>
+      <!-- Team B column -->
+      <div class="trade-team-col" style="overflow-y:auto">
+        <div class="trade-team-hdr" id="trade-col-b-hdr">Team B</div>
+        <div class="trade-section-lbl">Players (going to A)</div>
+        <div class="trade-asset-list" id="trade-players-b"></div>
+        <div class="trade-section-lbl">Picks (going to A)</div>
+        <div class="trade-asset-list" id="trade-picks-b"></div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="trade-summary" id="trade-summary">Select assets from both teams above to build the trade.</div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px">
+      <button onclick="closeTradeModal()" style="flex:1;padding:9px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Cancel</button>
+      <button id="trade-execute-btn" onclick="executeTradeFromModal()" style="flex:2;padding:9px;border-radius:7px;border:none;background:#1a3a4a;color:#7ecfff;border:1px solid rgba(126,207,255,0.35);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Execute Trade</button>
+    </div>
+
+    <!-- Trade history -->
+    <div id="trade-history-section" style="display:none">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-top:4px;border-top:1px solid var(--border)">Applied Trades</div>
+      <div id="trade-history-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Keeper Picker Modal (Dynasty — choose keepers from your live Sleeper roster) -->
 <div id="keeper-picker" onclick="if(event.target===this)closeKeeperPicker()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2100;align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;max-width:420px;width:100%;padding:28px 24px;max-height:85vh;display:flex;flex-direction:column">
@@ -698,6 +780,7 @@ header {
     <button class="rank-toggle" id="btn-adp" onclick="setRankMode('adp')">ADP</button>
     <button class="rank-toggle" id="btn-vor" onclick="setRankMode('vor')">VOR</button>
   </div>
+  <button class="hdr-btn trade-btn my-team-dynasty-only" id="trade-btn" onclick="openTradeModal()" title="Build a hypothetical trade">⇄ Trade</button>
   <button class="hdr-btn" onclick="document.getElementById('csv-input').click()" title="Import FantasyPros rankings CSV">📂 Rankings</button>
   <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importCSV(event)">
   <button class="hdr-btn" onclick="document.getElementById('picks-input').click()" title="Import Picks xlsx sheet">📂 Picks</button>
@@ -832,6 +915,17 @@ let teamGutMap = {};  // rosterId -> 0–100 (0=MoneyBall, 100=GutFeeling) for a
 let cachedADPText = null; // raw text of adp_rankings.csv, re-applied after any buildPlayers()
 let cachedECRText = null; // raw text of rankings.csv, re-applied after any buildPlayers()
 let autoPilotRunning = false;
+
+// ── Hypothetical trades ──
+let hypotheticalTrades = []; // [{id, teamA, teamB, playersAtoB, playersBtoA, picksAtoB, picksBtoA}]
+let tradePlayerOwnership = {}; // canonicalName -> rosterId override for keeper eligibility
+
+// Trade modal working state
+let _tradeSelAtoB = { players: [], picks: [] }; // assets from A going to B
+let _tradeSelBtoA = { players: [], picks: [] }; // assets from B going to A
+let _tradeRosterCache = {}; // rosterId -> [{canonical, pos, team, ecr}] (lazy)
+let _tradeRosterA = []; // current rendered roster for team A (indexed by onclick)
+let _tradeRosterB = []; // current rendered roster for team B
 
 // ══════════════════════════════════════════════
 // LEAGUE CONFIG (set from lobby or session metadata)
@@ -1168,7 +1262,7 @@ async function openKeeperPicker(rosterId) {
   if (keeperEditRosterId !== rosterId) return; // modal was closed/reopened during fetch
 
   var POS_ORDER = { QB:1, RB:2, WR:3, TE:4, K:5, DST:6 };
-  keeperEditList = ids.map(function(id) {
+  var baseList = ids.map(function(id) {
     var sp = map[id];
     if (!sp || !sp.name) return null;
     var canonical = canonicalPlayerName(sp.name);
@@ -1179,7 +1273,24 @@ async function openKeeperPicker(rosterId) {
       team: sp.team,
       ecr:  pl ? pl.ecr : null,
     };
-  }).filter(Boolean).sort(function(a, b) {
+  }).filter(Boolean);
+
+  // Apply hypothetical trade adjustments to the keeper picker roster:
+  // Remove players traded away from this team
+  baseList = baseList.filter(function(entry) {
+    var overrideRid = tradePlayerOwnership[entry.canonical];
+    return overrideRid === undefined || overrideRid === rosterId;
+  });
+  // Add players traded to this team (not originally on Sleeper roster)
+  Object.entries(tradePlayerOwnership).forEach(function(kv) {
+    var name = kv[0], toRid = kv[1];
+    if (toRid !== rosterId) return;
+    if (baseList.some(function(e) { return e.canonical === name; })) return;
+    var pl = players.find(function(p) { return p.name === name; });
+    if (pl) baseList.push({ canonical: name, pos: pl.pos, team: pl.nfl || 'FA', ecr: pl.ecr, _traded: true });
+  });
+
+  keeperEditList = baseList.sort(function(a, b) {
     var po = (POS_ORDER[a.pos] || 9) - (POS_ORDER[b.pos] || 9);
     if (po !== 0) return po;
     return (a.ecr || 9999) - (b.ecr || 9999);
@@ -1203,8 +1314,8 @@ function renderKeeperPickerList() {
     return '<div onclick="toggleKeeperPick(' + i + ')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid ' + (sel ? 'var(--gold)' : 'var(--border2)') + ';background:' + (sel ? 'rgba(245,197,66,0.08)' : 'var(--surface2)') + ';cursor:pointer;opacity:' + (dim ? '0.45' : '1') + '">' +
       '<span class="pos-tag pos-' + posClass(p.pos) + '" style="min-width:32px;text-align:center">' + escHtml(p.pos) + '</span>' +
       '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(p.canonical) + '</div>' +
-        '<div style="font-size:10px;color:var(--dim);font-family:\'DM Mono\',monospace">' + escHtml(p.team || 'FA') + (p.ecr ? ' · ECR ' + p.ecr : ' · unranked') + '</div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(p.canonical) + (p._traded ? ' <span class="trade-picked-badge">T</span>' : '') + '</div>' +
+        '<div style="font-size:10px;color:var(--dim);font-family:\'DM Mono\',monospace">' + escHtml(p.team || 'FA') + (p.ecr ? ' · ECR ' + p.ecr : ' · unranked') + (p._traded ? ' · via trade' : '') + '</div>' +
       '</div>' +
       '<span style="font-size:11px;font-weight:700;color:' + (sel ? 'var(--gold)' : 'var(--dim)') + '">' + (sel ? '★ K' : '+') + '</span>' +
     '</div>';
@@ -1267,6 +1378,341 @@ function applyRemoteKeepers(key, val) {
   var rid = parseInt(key);
   if (isNaN(rid)) return;
   applyKeeperSelection(rid, Array.isArray(val) ? val.map(String) : []);
+}
+
+// ══════════════════════════════════════════════
+// HYPOTHETICAL TRADES
+// ══════════════════════════════════════════════
+
+// Rebuild tradePlayerOwnership from the hypotheticalTrades list.
+function rebuildTradeOwnership() {
+  tradePlayerOwnership = {};
+  // Build initial ownership from Sleeper rosters
+  rostersData.forEach(function(r) {
+    var rid = r.roster_id;
+    (r.players || []).forEach(function(id) {
+      // We'll store by id first, but convert to canonical below via sleeperPlayersMap
+    });
+  });
+  // Apply trades in order — track canonical name -> current rosterId
+  hypotheticalTrades.forEach(function(tr) {
+    (tr.playersAtoB || []).forEach(function(name) { tradePlayerOwnership[name] = tr.teamB; });
+    (tr.playersBtoA || []).forEach(function(name) { tradePlayerOwnership[name] = tr.teamA; });
+  });
+}
+
+// Apply pick trades from hypotheticalTrades onto the already-built draftOrder.
+function applyTradesToDraftOrder() {
+  hypotheticalTrades.forEach(function(tr) {
+    var teamA = getTeam(tr.teamA);
+    var teamB = getTeam(tr.teamB);
+    if (!teamA || !teamB) return;
+    (tr.picksAtoB || []).forEach(function(pickNo) {
+      var slot = draftOrder.find(function(s) { return s.pickNo === pickNo; });
+      if (slot) { slot.teamId = tr.teamB; slot.teamShort = teamB.shortName; slot.isTradedPick = true; }
+    });
+    (tr.picksBtoA || []).forEach(function(pickNo) {
+      var slot = draftOrder.find(function(s) { return s.pickNo === pickNo; });
+      if (slot) { slot.teamId = tr.teamA; slot.teamShort = teamA.shortName; slot.isTradedPick = true; }
+    });
+  });
+}
+
+// Get the current "hypothetical roster" for a team as an array of {canonical, pos, team, ecr}.
+// Uses Sleeper roster plus trade overrides (added / removed players).
+async function getTradeTeamRoster(rosterId) {
+  var map = await loadSleeperPlayersMap();
+  var rosterRec = rostersData.find(function(r) { return r.roster_id === rosterId; });
+  var ids = (rosterRec && rosterRec.players) ? rosterRec.players : [];
+  var POS_ORDER = { QB:1, RB:2, WR:3, TE:4, K:5, DST:6 };
+
+  // Build base roster from Sleeper IDs
+  var roster = ids.map(function(id) {
+    var sp = map[id];
+    if (!sp || !sp.name) return null;
+    var canonical = canonicalPlayerName(sp.name);
+    var pl = players.find(function(p) { return p.name === canonical; });
+    return { canonical: canonical, pos: (pl && pl.pos) || sp.pos || '?', team: sp.team || 'FA', ecr: pl ? pl.ecr : null };
+  }).filter(Boolean);
+
+  // Remove players traded away from this team
+  roster = roster.filter(function(entry) {
+    var ownRid = tradePlayerOwnership[entry.canonical];
+    return ownRid === undefined || ownRid === rosterId;
+  });
+
+  // Add players traded to this team from other rosters
+  Object.entries(tradePlayerOwnership).forEach(function(kv) {
+    var name = kv[0], toRid = kv[1];
+    if (toRid !== rosterId) return;
+    if (roster.some(function(e) { return e.canonical === name; })) return;
+    var pl = players.find(function(p) { return p.name === name; });
+    if (pl) roster.push({ canonical: name, pos: pl.pos, team: pl.nfl || 'FA', ecr: pl.ecr });
+  });
+
+  roster.sort(function(a, b) {
+    var po = (POS_ORDER[a.pos] || 9) - (POS_ORDER[b.pos] || 9);
+    return po !== 0 ? po : (a.ecr || 9999) - (b.ecr || 9999);
+  });
+  return roster;
+}
+
+// Execute a trade object (already validated) and sync to Firebase.
+function applyTrade(trade) {
+  hypotheticalTrades.push(trade);
+  rebuildTradeOwnership();
+  applyTradesToDraftOrder();
+  _tradeRosterCache = {}; // invalidate cache
+  renderAll();
+  if (fbRef) fbPushTrade(trade);
+}
+
+// Remove the last N trades or a specific one by id.
+function revertTrade(tradeId) {
+  hypotheticalTrades = hypotheticalTrades.filter(function(t) { return t.id !== tradeId; });
+  // Rebuild from scratch
+  rebuildTradeOwnership();
+  // Rebuild draft order picks from base
+  buildDraftOrder(); // this re-calls applyTradesToDraftOrder() too
+  _tradeRosterCache = {};
+  renderAll();
+  if (fbRef) fbRef.child('trades/' + tradeId).remove();
+  toast('Trade reverted');
+}
+
+// ── Trade Modal ────────────────────────────────────
+
+function openTradeModal() {
+  if (LEAGUE_CONFIG && LEAGUE_CONFIG.type !== 'dynasty') { toast('Trades are only available in Dynasty mode'); return; }
+  if (!sleeperOk) { toast('Trades need live Sleeper data'); return; }
+  var modal = document.getElementById('trade-modal');
+  if (!modal) return;
+
+  // Populate team dropdowns
+  var selA = document.getElementById('trade-team-a');
+  var selB = document.getElementById('trade-team-b');
+  selA.innerHTML = teams.map(function(t) { return '<option value="' + t.rosterId + '">' + t.shortName + '</option>'; }).join('');
+  selB.innerHTML = teams.map(function(t) { return '<option value="' + t.rosterId + '">' + t.shortName + '</option>'; }).join('');
+  // Default: pick first two different teams
+  if (teams.length >= 2) {
+    selA.value = teams[0].rosterId;
+    selB.value = teams[1].rosterId;
+  }
+
+  _tradeSelAtoB = { players: [], picks: [] };
+  _tradeSelBtoA = { players: [], picks: [] };
+
+  modal.style.display = 'flex';
+  renderTradeAssets();
+  renderTradeHistory();
+}
+
+function closeTradeModal() {
+  var modal = document.getElementById('trade-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function renderTradeAssets() {
+  var ridA = parseInt(document.getElementById('trade-team-a').value);
+  var ridB = parseInt(document.getElementById('trade-team-b').value);
+  var teamA = getTeam(ridA);
+  var teamB = getTeam(ridB);
+  if (!teamA || !teamB || ridA === ridB) {
+    document.getElementById('trade-summary').textContent = 'Select two different teams.';
+    return;
+  }
+  document.getElementById('trade-col-a-hdr').textContent = teamA.shortName;
+  document.getElementById('trade-col-b-hdr').textContent = teamB.shortName;
+
+  // Reset selections and roster caches when teams change
+  _tradeSelAtoB = { players: [], picks: [] };
+  _tradeSelBtoA = { players: [], picks: [] };
+  _tradeRosterA = [];
+  _tradeRosterB = [];
+
+  // Render players for both teams
+  var rosterA = await getTradeTeamRoster(ridA);
+  var rosterB = await getTradeTeamRoster(ridB);
+  renderTradePlayerList('trade-players-a', rosterA, 'AtoB');
+  renderTradePlayerList('trade-players-b', rosterB, 'BtoA');
+
+  // Render picks for both teams
+  renderTradePickList('trade-picks-a', ridA, 'AtoB');
+  renderTradePickList('trade-picks-b', ridB, 'BtoA');
+  updateTradeSummary();
+}
+
+function renderTradePlayerList(containerId, roster, direction) {
+  // Store roster indexed by direction so toggleTradePlayer can look up by index
+  if (direction === 'AtoB') _tradeRosterA = roster;
+  else _tradeRosterB = roster;
+  var sel = direction === 'AtoB' ? _tradeSelAtoB.players : _tradeSelBtoA.players;
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (roster.length === 0) { el.innerHTML = '<div style="font-size:10px;color:var(--dim);padding:4px">No players on roster</div>'; return; }
+  el.innerHTML = roster.map(function(p, i) {
+    var isSel = sel.indexOf(p.canonical) !== -1;
+    return '<div class="trade-asset' + (isSel ? ' selected' : '') + '" onclick="toggleTradePlayer(' + i + ',\'' + direction + '\')">' +
+      '<span class="pos-tag pos-' + posClass(p.pos) + '" style="font-size:9px;padding:1px 5px;min-width:28px;text-align:center">' + escHtml(p.pos) + '</span>' +
+      '<span class="ta-name">' + escHtml(p.canonical) + '</span>' +
+      '<span class="ta-detail">' + escHtml(p.team || 'FA') + (p.ecr ? ' #' + Math.round(p.ecr) : '') + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function renderTradePickList(containerId, rosterId, direction) {
+  var sel = direction === 'AtoB' ? _tradeSelAtoB.picks : _tradeSelBtoA.picks;
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  var teamPicks = draftOrder.filter(function(s) { return s.teamId === rosterId && !s.playerName; });
+  if (teamPicks.length === 0) { el.innerHTML = '<div style="font-size:10px;color:var(--dim);padding:4px">No future picks</div>'; return; }
+  el.innerHTML = teamPicks.map(function(s) {
+    var isSel = sel.indexOf(s.pickNo) !== -1;
+    var tradedBadge = s.isTradedPick ? '<span class="trade-picked-badge">T</span>' : '';
+    return '<div class="trade-asset' + (isSel ? ' selected' : '') + '" onclick="toggleTradePick(' + s.pickNo + ',\'' + direction + '\')">' +
+      '<span class="ta-name">Round ' + s.round + ' Pick ' + s.slot + tradedBadge + '</span>' +
+      '<span class="ta-detail">Pick #' + s.pickNo + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleTradePlayer(rosterIdx, direction) {
+  var roster = direction === 'AtoB' ? _tradeRosterA : _tradeRosterB;
+  var p = roster[rosterIdx];
+  if (!p) return;
+  var sel = direction === 'AtoB' ? _tradeSelAtoB.players : _tradeSelBtoA.players;
+  var at = sel.indexOf(p.canonical);
+  if (at !== -1) sel.splice(at, 1);
+  else sel.push(p.canonical);
+  // Re-render only the affected list (roster array already cached in _tradeRosterA/B)
+  if (direction === 'AtoB') renderTradePlayerList('trade-players-a', _tradeRosterA, 'AtoB');
+  else                       renderTradePlayerList('trade-players-b', _tradeRosterB, 'BtoA');
+  updateTradeSummary();
+}
+
+function toggleTradePick(pickNo, direction) {
+  var sel = direction === 'AtoB' ? _tradeSelAtoB.picks : _tradeSelBtoA.picks;
+  var idx = sel.indexOf(pickNo);
+  if (idx !== -1) sel.splice(idx, 1);
+  else sel.push(pickNo);
+  var ridA = parseInt(document.getElementById('trade-team-a').value);
+  var ridB = parseInt(document.getElementById('trade-team-b').value);
+  if (direction === 'AtoB') renderTradePickList('trade-picks-a', ridA, 'AtoB');
+  else                       renderTradePickList('trade-picks-b', ridB, 'BtoA');
+  updateTradeSummary();
+}
+
+function updateTradeSummary() {
+  var ridA = parseInt(document.getElementById('trade-team-a').value);
+  var ridB = parseInt(document.getElementById('trade-team-b').value);
+  var teamA = getTeam(ridA);
+  var teamB = getTeam(ridB);
+  var el = document.getElementById('trade-summary');
+  if (!el || !teamA || !teamB) return;
+  var hasAny = _tradeSelAtoB.players.length || _tradeSelAtoB.picks.length ||
+               _tradeSelBtoA.players.length || _tradeSelBtoA.picks.length;
+  if (!hasAny) { el.textContent = 'Select assets from both teams above to build the trade.'; return; }
+
+  var aReceives = [].concat(
+    _tradeSelBtoA.players,
+    _tradeSelBtoA.picks.map(function(pn) { var s = draftOrder.find(function(x){return x.pickNo===pn;}); return s ? 'Rd '+s.round+' Pk'+s.slot : 'Pick #'+pn; })
+  );
+  var bReceives = [].concat(
+    _tradeSelAtoB.players,
+    _tradeSelAtoB.picks.map(function(pn) { var s = draftOrder.find(function(x){return x.pickNo===pn;}); return s ? 'Rd '+s.round+' Pk'+s.slot : 'Pick #'+pn; })
+  );
+
+  el.innerHTML =
+    '<strong>' + escHtml(teamA.shortName) + ' receives:</strong> ' + (aReceives.length ? aReceives.map(escHtml).join(', ') : '—') + '<br>' +
+    '<strong>' + escHtml(teamB.shortName) + ' receives:</strong> ' + (bReceives.length ? bReceives.map(escHtml).join(', ') : '—');
+}
+
+function executeTradeFromModal() {
+  var ridA = parseInt(document.getElementById('trade-team-a').value);
+  var ridB = parseInt(document.getElementById('trade-team-b').value);
+  if (ridA === ridB) { toast('Select two different teams'); return; }
+  var hasAny = _tradeSelAtoB.players.length || _tradeSelAtoB.picks.length ||
+               _tradeSelBtoA.players.length || _tradeSelBtoA.picks.length;
+  if (!hasAny) { toast('Select at least one asset to trade'); return; }
+
+  var trade = {
+    id: 'tr_' + Date.now(),
+    teamA: ridA,
+    teamB: ridB,
+    playersAtoB: _tradeSelAtoB.players.slice(),
+    playersBtoA: _tradeSelBtoA.players.slice(),
+    picksAtoB:   _tradeSelAtoB.picks.slice(),
+    picksBtoA:   _tradeSelBtoA.picks.slice(),
+  };
+  applyTrade(trade);
+
+  // Reset selections and refresh modal
+  _tradeSelAtoB = { players: [], picks: [] };
+  _tradeSelBtoA = { players: [], picks: [] };
+  renderTradeAssets();
+  renderTradeHistory();
+  toast('Trade applied');
+}
+
+function renderTradeHistory() {
+  var list = document.getElementById('trade-history-list');
+  var section = document.getElementById('trade-history-section');
+  if (!list || !section) return;
+  if (hypotheticalTrades.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  list.innerHTML = hypotheticalTrades.map(function(tr) {
+    var teamA = getTeam(tr.teamA);
+    var teamB = getTeam(tr.teamB);
+    var nameA = teamA ? teamA.shortName : 'Team?';
+    var nameB = teamB ? teamB.shortName : 'Team?';
+
+    var bGets = [].concat(
+      tr.playersAtoB || [],
+      (tr.picksAtoB || []).map(function(pn) { var s = draftOrder.find(function(x){return x.pickNo===pn;}); return s ? 'Rd'+s.round+'Pk'+s.slot : '#'+pn; })
+    );
+    var aGets = [].concat(
+      tr.playersBtoA || [],
+      (tr.picksBtoA || []).map(function(pn) { var s = draftOrder.find(function(x){return x.pickNo===pn;}); return s ? 'Rd'+s.round+'Pk'+s.slot : '#'+pn; })
+    );
+
+    return '<div class="trade-history-item">' +
+      '<div class="th-text">' +
+        '<strong style="color:var(--text)">' + escHtml(nameA) + '</strong> → ' + escHtml(nameB) + ': ' + (bGets.length ? bGets.map(escHtml).join(', ') : '—') + '<br>' +
+        '<strong style="color:var(--text)">' + escHtml(nameB) + '</strong> → ' + escHtml(nameA) + ': ' + (aGets.length ? aGets.map(escHtml).join(', ') : '—') +
+      '</div>' +
+      '<button onclick="revertTrade(\'' + escHtml(tr.id) + '\')" style="background:none;border:1px solid var(--border2);border-radius:5px;color:var(--muted);font-size:10px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:\'Syne\',sans-serif;flex-shrink:0">↩ Undo</button>' +
+    '</div>';
+  }).join('');
+}
+
+// Firebase push/pull for trades
+function fbPushTrade(trade) {
+  if (!fbRef) return;
+  fbRef.child('trades/' + trade.id).set(trade, function(err) {
+    if (err) console.error('fbPushTrade error:', err);
+  });
+}
+
+function applyRemoteTrade(key, val) {
+  if (!val || !val.id) return;
+  if (hypotheticalTrades.some(function(t) { return t.id === val.id; })) return; // already applied
+  hypotheticalTrades.push(val);
+  rebuildTradeOwnership();
+  buildDraftOrder();
+  _tradeRosterCache = {};
+  renderAll();
+  toast('Trade synced from remote');
+}
+
+function removeRemoteTrade(key) {
+  var hadIt = hypotheticalTrades.some(function(t) { return t.id === key; });
+  if (!hadIt) return;
+  hypotheticalTrades = hypotheticalTrades.filter(function(t) { return t.id !== key; });
+  rebuildTradeOwnership();
+  buildDraftOrder();
+  _tradeRosterCache = {};
+  renderAll();
 }
 
 // ══════════════════════════════════════════════
@@ -1386,6 +1832,8 @@ function buildDraftOrder() {
       });
     });
   }
+  // Apply any hypothetical pick trades on top of the base order
+  applyTradesToDraftOrder();
 }
 
 // ══════════════════════════════════════════════
@@ -2290,10 +2738,13 @@ function renderOrder() {
     const _natBadge = (_pickPlayer && _pickPlayer.isNational && LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl')
       ? ' <span style="font-size:8px;color:#00bcd4;font-weight:700;background:rgba(0,188,212,0.12);padding:1px 3px;border-radius:3px;vertical-align:middle">NAT</span>'
       : '';
+    const _tradeBadge = (s.isTradedPick && !s.playerName)
+      ? ' <span class="trade-picked-badge">T</span>'
+      : '';
     const playerHtml = s.playerName
       ? `<span class="pick-player-name">${escHtml(s.playerName)}${_natBadge}</span>`
       : `<span class="pick-player-name empty">${isCur ? '← now' : '…'}</span>`;
-    out += `<div class="${cls}" id="slot-${i}"><span class="pick-no">${s.pickNo}</span><span class="pick-team-name">${escHtml(s.teamShort)}</span>${playerHtml}</div>`;
+    out += `<div class="${cls}" id="slot-${i}"><span class="pick-no">${s.pickNo}</span><span class="pick-team-name">${escHtml(s.teamShort)}${_tradeBadge}</span>${playerHtml}</div>`;
     return out;
   }).join('');
   const cur = document.getElementById('slot-'+curIdx);
@@ -2756,6 +3207,10 @@ function confirmReset() {
   if (!confirm('Reset entire mock draft?')) return;
   pickHistory = [];
   selectedPlayer = null;
+  hypotheticalTrades = [];
+  tradePlayerOwnership = {};
+  _tradeRosterCache = {};
+  if (fbRef) fbRef.child('trades').remove();
   buildPlayers();
   buildDraftOrder();
   document.getElementById('sel-info').innerHTML = '<span style="color:var(--dim);font-size:12px">No player selected</span>';
@@ -4880,6 +5335,15 @@ function attachFirebaseListeners() {
   fbRef.child('reset').off();
   fbRef.child('teamModes').off();
   fbRef.child('keepers').off();
+  fbRef.child('trades').off();
+
+  // Sync hypothetical trades
+  fbRef.child('trades').on('child_added', function(snap) {
+    applyRemoteTrade(snap.key, snap.val());
+  });
+  fbRef.child('trades').on('child_removed', function(snap) {
+    removeRemoteTrade(snap.key);
+  });
 
   // Sync keeper selections — each manager's roster keepers chosen in the keeper picker
   fbRef.child('keepers').on('child_added', function(snap) {
@@ -4988,6 +5452,9 @@ function localReset() {
   pickHistory = [];
   selectedPlayer = null;
   autoPilotRunning = false;
+  hypotheticalTrades = [];
+  tradePlayerOwnership = {};
+  _tradeRosterCache = {};
   document.getElementById('ap-run-btn').textContent = '▶ Run';
   buildPlayers();
   buildDraftOrder();
