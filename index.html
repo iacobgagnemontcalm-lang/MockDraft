@@ -780,6 +780,10 @@ header {
     <button class="rank-toggle" id="btn-adp" onclick="setRankMode('adp')">ADP</button>
     <button class="rank-toggle" id="btn-vor" onclick="setRankMode('vor')">VOR</button>
   </div>
+  <span style="display:inline-flex;align-items:center;gap:5px">
+    <label style="font-size:11px;color:var(--muted)">Strategy:</label>
+    <select class="team-select" id="strategy-sel" title="Draft strategy — re-tilts your board & recommendations" onchange="setStrategy(this.value)"></select>
+  </span>
   <button class="hdr-btn trade-btn my-team-dynasty-only" id="trade-btn" onclick="openTradeModal()" title="Build a hypothetical trade">⇄ Trade</button>
   <button class="hdr-btn" onclick="document.getElementById('csv-input').click()" title="Import FantasyPros rankings CSV">📂 Rankings</button>
   <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importCSV(event)">
@@ -2070,6 +2074,27 @@ function updateDataSourceBadges() {
 // Slot value weights: how important is the Nth player at a position?
 // Index 0 = 1st player at pos, 1 = 2nd, etc.
 // Based on starter (QB:1 RB:2 WR:2 TE:1) + FLEX + bench
+// ══════════════════════════════════════════════
+// DRAFT STRATEGY — re-tilts the user's board + recommendations
+// A per-player multiplier applied to the POSITIVE part of mVOR:
+//   >1 boosts a position (rises on the board), <1 suppresses it (sinks).
+// Heuristic tilts — tweak freely. Opponent autopilot is unaffected (it reads
+// ecr/adp/gutScore, not mvor), so strategy only changes the user's view + own picks.
+// ══════════════════════════════════════════════
+let draftStrategy = 'balanced';
+const DRAFT_STRATEGIES = {
+  balanced: { label: 'Balanced',       mult: () => 1 },
+  heroRB:   { label: 'Hero RB',        mult: p => p.pos==='RB' ? (p.tier<=2 ? 1.5 : 0.7) : 1 },
+  zeroRB:   { label: 'Zero RB',        mult: p => p.pos==='RB' ? 0.55 : p.pos==='WR' ? 1.2 : (p.pos==='TE'||p.pos==='QB') ? 1.1 : 1 },
+  lateQB:   { label: 'Late Round QB',  mult: p => p.pos==='QB' ? 0.5 : 1 },
+  heavyRB:  { label: 'Heavy RB',       mult: p => p.pos==='RB' ? 1.4 : p.pos==='WR' ? 0.9 : 1 },
+  puntTE:   { label: 'Punt TE',        mult: p => p.pos==='TE' ? 0.4 : 1 },
+};
+function strategyMult(p) {
+  const s = DRAFT_STRATEGIES[draftStrategy] || DRAFT_STRATEGIES.balanced;
+  return s.mult(p);
+}
+
 const SLOT_VALUE = {
   QB:  [1.0, 0.50, 0.00, 0.00],           // 1 starter, 1 backup, 3rd+ = zero
   RB:  [1.0, 0.90, 0.55, 0.25, 0.10, 0.05], // 2 starters + FLEX valuable
@@ -2798,7 +2823,15 @@ function recomputeBoardMetrics() {
   const {byPos: _byPos} = computeVOR();
   const teamId = effectiveTeamId();
   players.forEach(p => {
-    p.mvor = (!p.drafted && !p.isKeeper) ? marginalValue(p, teamId, _byPos) : null;
+    if (!p.drafted && !p.isKeeper) {
+      const raw = marginalValue(p, teamId, _byPos);
+      const m = strategyMult(p);
+      // Scale only the positive portion so suppressing a position can't invert
+      // an already-negative score (same clamp idiom as iackScore's needMult).
+      p.mvor = raw >= 0 ? raw * m : raw;
+    } else {
+      p.mvor = null;
+    }
   });
   _vorGradeSorted = players
     .filter(p => !p.drafted && !p.isKeeper && p.mvor != null)
@@ -3173,7 +3206,9 @@ function autoPick() {
   // Use autoPickForTeam — it enforces the 2026 Round-14 DEF/K gate while preserving Dynasty behavior
   const mode = autoMode === 'vor' ? 'gut' : autoMode;
   const pickTeamId = isCommissioner ? draftOrder[idx].teamId : myTeamId;
-  const best = autoPickForTeam(pickTeamId, mode);
+  // Steer the user's own auto-pick by the active strategy (opponents/autopilot unaffected).
+  const strategyTilt = !isCommissioner && draftStrategy !== 'balanced';
+  const best = autoPickForTeam(pickTeamId, mode, strategyTilt);
   if (!best) { toast('No players available!'); return; }
   const {byPos: _abp} = computeVOR();
   const mvor = marginalValue(best, pickTeamId, _abp);
@@ -3231,6 +3266,24 @@ function setRankMode(mode) {
   document.getElementById('btn-vor').classList.toggle('active', mode === 'vor');
   renderBoard();
   renderVOR();
+}
+
+// Populate the strategy dropdown from DRAFT_STRATEGIES (called at init).
+function buildStrategySelect() {
+  const sel = document.getElementById('strategy-sel');
+  if (!sel) return;
+  sel.innerHTML = Object.entries(DRAFT_STRATEGIES)
+    .map(([key, s]) => `<option value="${key}"${key === draftStrategy ? ' selected' : ''}>${s.label}</option>`)
+    .join('');
+}
+
+// Switch strategy — re-tilts mVOR, then re-renders the board, recs and roster.
+function setStrategy(key) {
+  draftStrategy = DRAFT_STRATEGIES[key] ? key : 'balanced';
+  recomputeBoardMetrics();
+  renderBoard();
+  renderVOR();
+  if (typeof renderRoster === 'function') renderRoster();
 }
 
 // ══════════════════════════════════════════════
@@ -4200,7 +4253,7 @@ function teamHasTop5(rosterId, pos) {
   return draftOrder.some(function(s){ return s.teamId === rosterId && s.playerName && top5Names.has(s.playerName); });
 }
 
-function autoPickForTeam(rosterId, mode) {
+function autoPickForTeam(rosterId, mode, strategyTilt) {
   var {byPos: _byPos} = computeVOR();
 
   // Build position limits for QB and TE
@@ -4299,7 +4352,11 @@ function autoPickForTeam(rosterId, mode) {
   }
 
   var best;
-  if (mode === 'ecr') {
+  if (strategyTilt) {
+    // User's own auto-pick under an active draft strategy: pick the highest
+    // strategy-tilted mVOR (already maintained by recomputeBoardMetrics).
+    best = avail.slice().sort(function(a,b){ return (b.mvor||0) - (a.mvor||0); })[0];
+  } else if (mode === 'ecr') {
     best = avail.slice().sort(function(a,b){ return a.ecr - b.ecr; })[0];
   } else if (mode === 'adp') {
     best = avail.slice().sort(function(a,b){ return a.adp - b.adp; })[0];
@@ -4988,6 +5045,7 @@ function applyCFLMode(config) {
     teamGutMap[t.rosterId] = seededGutValue(sid, t.rosterId);
   });
   buildFilters();
+  buildStrategySelect();
   buildTeamSelect();
   var lbl = document.getElementById('my-team-label-2026');
   if (lbl) lbl.textContent = '★ Team —';
@@ -5583,6 +5641,7 @@ async function init() {
 
   buildDraftOrder();
   buildFilters();
+  buildStrategySelect();
   buildTeamSelect();
   initTeamModes();
   renderAutopilot();
