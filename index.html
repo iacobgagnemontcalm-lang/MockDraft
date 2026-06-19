@@ -397,7 +397,9 @@ header {
 .board-head-row span { text-align: right; }
 .board-head-row .bh-name { text-align: left; }
 .player-row:hover { background: var(--surface2); }
+.player-row.handcuff { background: rgba(245,197,66,0.08); box-shadow: inset 3px 0 0 var(--gold); }
 .player-row.selected { background: rgba(124,108,255,0.12); border-left: 2px solid var(--accent); }
+.handcuff-badge { font-size: 9px; color: var(--gold); font-weight: 700; }
 .player-row.drafted { opacity: 0.28; cursor: default; pointer-events: none; text-decoration: line-through; }
 .player-row.keeper { opacity: 0.35; cursor: default; pointer-events: none; }
 .tier-cliff {
@@ -2964,6 +2966,15 @@ function renderBoard() {
   const showCliffs = rankMode !== 'vor';
   let prevTier = null;
 
+  // Handcuff highlighting: NFL teams where MY roster already owns an RB →
+  // any still-available RB on that team is a handcuff (backup insurance).
+  const myRbTeams = {};
+  players.forEach(p => {
+    if (p.drafted && p.draftedBy === myTeamId && p.pos === 'RB' && p.nfl && p.nfl !== 'FA') {
+      (myRbTeams[p.nfl] = myRbTeams[p.nfl] || []).push(p.name);
+    }
+  });
+
   const rows = filtered.map(p => {
     if (!p.drafted) avail++;
     // Insert a cliff divider when the tier worsens between available players
@@ -2975,7 +2986,8 @@ function renderBoard() {
       prevTier = p.tier;
     }
     const isSel = selectedPlayer && selectedPlayer.name === p.name;
-    const cls = p.drafted ? 'player-row drafted' : isSel ? 'player-row selected' : 'player-row';
+    const isHandcuff = !p.drafted && p.pos === 'RB' && myRbTeams[p.nfl];
+    const cls = 'player-row' + (p.drafted ? ' drafted' : isSel ? ' selected' : '') + (isHandcuff ? ' handcuff' : '');
     const pc = posClass(p.pos);
     const activeRank = rankVal(p);
     const otherRank  = rankMode === 'vor' ? p.ecr : rankMode === 'adp' ? p.ecr : p.adp;
@@ -2991,6 +3003,7 @@ function renderBoard() {
     const riskIcons = ['','✦','◆','●','▲','⬥'];
     const riskBadge = `<span class="risk-badge risk-${riskQ}" title="Risk Q${riskQ} · STD ${(p.std||0).toFixed(1)}">${riskIcons[riskQ]}${riskQ}</span>`;
     const rookieBadge = p.isRookie ? ` <span style="font-size:8px;color:var(--gold);font-weight:700" title="Rookie">R</span>` : '';
+    const handcuffBadge = isHandcuff ? ` <span class="handcuff-badge" title="Handcuff for ${escHtml(myRbTeams[p.nfl].join(', '))} (${escHtml(p.nfl)})">🔗</span>` : '';
     const natBadge = p.isNational ? ` <span style="font-size:8px;color:#00bcd4;font-weight:700" title="National Player (NAT-eligible)">NAT</span>` : '';
     const dataName = p.drafted ? '' : `data-name="${escHtml(p.name)}"`;
 
@@ -3023,7 +3036,7 @@ function renderBoard() {
         + lyStat(p.lyRushYd, 'Last yr rushing yards', false);
     return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
-      <span class="p-name">${escHtml(p.name)}${rookieBadge}${natBadge}</span>
+      <span class="p-name">${escHtml(p.name)}${rookieBadge}${natBadge}${handcuffBadge}</span>
       <span class="p-nfl">${escHtml(p.nfl)}</span>
       <span class="p-tier" style="color:var(--dim)">T${p.tier}</span>
       ${riskBadge}
