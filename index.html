@@ -371,7 +371,7 @@ header {
 }
 .board-meta b { color: var(--text); }
 
-.player-table { flex: 1; overflow-y: auto; }
+.player-table { flex: 1; overflow: auto; }
 .player-table::-webkit-scrollbar { width: 3px; }
 .player-table::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
 
@@ -379,7 +379,23 @@ header {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 12px; border-bottom: 1px solid var(--border);
   cursor: pointer; transition: background 0.1s;
+  width: max-content; min-width: 100%;
 }
+.ly-stat {
+  font-family: 'DM Mono', monospace; font-size: 9px; color: var(--dim);
+  min-width: 34px; text-align: right;
+}
+.board-head-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px; border-bottom: 1px solid var(--border2);
+  width: max-content; min-width: 100%;
+  position: sticky; top: 0; z-index: 5;
+  background: var(--surface);
+  font-family: 'DM Mono', monospace; font-size: 8px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted);
+}
+.board-head-row span { text-align: right; }
+.board-head-row .bh-name { text-align: left; }
 .player-row:hover { background: var(--surface2); }
 .player-row.selected { background: rgba(124,108,255,0.12); border-left: 2px solid var(--accent); }
 .player-row.drafted { opacity: 0.28; cursor: default; pointer-events: none; text-decoration: line-through; }
@@ -406,7 +422,7 @@ header {
 .pos-DS { background: var(--pos-ds-bg); color: var(--pos-ds); }
 .pos-K  { background: var(--pos-k-bg);  color: var(--pos-k);  }
 
-.p-name { font-size: 13px; font-weight: 500; flex: 1; color: var(--text); }
+.p-name { font-size: 13px; font-weight: 500; min-width: 150px; color: var(--text); }
 .p-nfl  { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--dim); min-width: 28px; }
 .p-rank { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--dim); min-width: 28px; text-align: right; }
 .risk-badge { font-size: 8px; font-weight: 700; font-family: 'DM Mono', monospace; min-width: 18px; text-align: center; border-radius: 3px; padding: 1px 3px; }
@@ -1876,9 +1892,10 @@ function getTeam(rosterId) { return teams.find(t => t.rosterId === rosterId); }
 // ══════════════════════════════════════════════
 let fcValueMap = {};   // name → FantasyCalc trade value (for report card)
 let projPtsMap  = {};  // name → season projected PPR pts (Sleeper wk1 × 16)
+let lastYrStatsMap = {};  // name → {fpts, tgt, rec, car, rushYd, ypc} from 2025 regular season
 
 // Data source status for badge display
-const dataStatus = { fp: 'pending', fc: 'pending', proj: 'pending' };
+const dataStatus = { fp: 'pending', fc: 'pending', proj: 'pending', lastyr: 'pending' };
 
 // ── Name normalisation (robust fuzzy lookup) ──────────────────────────────
 function _norm(s)   { return s.toLowerCase().replace(/[.'`]/g,'').replace(/\s+/g,' ').trim(); }
@@ -2044,6 +2061,74 @@ async function fetchSleeperProjections() {
   }
 }
 
+// ── Fetch Sleeper 2025 regular-season stats (last year's production) ──
+// Same weekly-fetch pattern as projections: each item embeds a player object,
+// so we match by name (no player-ID map needed). Counting stats are summed
+// across all 18 weeks; yards-per-carry is derived from the season totals.
+async function fetchSleeperLastYearStats() {
+  try {
+    var PARAMS = '?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE&position[]=K&position[]=DEF';
+    var BASE   = 'https://api.sleeper.app/stats/nfl/2025/';
+
+    // Fetch all 18 weeks in parallel (regular season can run to week 18)
+    var fetches = Array.from({length: 18}, function(_, i) {
+      return fetch(BASE + (i + 1) + PARAMS)
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .catch(function() { return []; });
+    });
+    var weeks = await Promise.all(fetches);
+
+    // name → running totals
+    var totals = {};
+    weeks.forEach(function(data) {
+      if (!Array.isArray(data)) return;
+      data.forEach(function(item) {
+        var name = item.player
+          ? ((item.player.first_name || '') + ' ' + (item.player.last_name || '')).trim()
+          : null;
+        if (!name) return;
+        var s = item.stats || {};
+        if (!totals[name]) totals[name] = { fpts: 0, tgt: 0, rec: 0, car: 0, rushYd: 0 };
+        var t = totals[name];
+        t.fpts   += s.pts_ppr  || 0;
+        t.tgt    += s.rec_tgt  || 0;
+        t.rec    += s.rec      || 0;
+        t.car    += s.rush_att || 0;
+        t.rushYd += s.rush_yd  || 0;
+      });
+    });
+
+    Object.keys(totals).forEach(function(name) {
+      var t = totals[name];
+      lastYrStatsMap[name] = {
+        fpts:   Math.round(t.fpts * 10) / 10,
+        tgt:    Math.round(t.tgt),
+        rec:    Math.round(t.rec),
+        car:    Math.round(t.car),
+        rushYd: Math.round(t.rushYd),
+        ypc:    t.car > 0 ? Math.round((t.rushYd / t.car) * 10) / 10 : 0,
+      };
+    });
+
+    players.forEach(function(p) {
+      var st = fuzzyGet(lastYrStatsMap, p.name);
+      if (st) {
+        p.lyFpts   = st.fpts;
+        p.lyTgt    = st.tgt;
+        p.lyRec    = st.rec;
+        p.lyCar    = st.car;
+        p.lyRushYd = st.rushYd;
+        p.lyYpc    = st.ypc;
+      }
+    });
+    dataStatus.lastyr = 'live';
+    console.log('Sleeper 2025 stats: ' + Object.keys(lastYrStatsMap).length + ' players');
+  } catch(e) {
+    dataStatus.lastyr = 'error';
+    console.warn('Sleeper last-year stats failed:', e.message);
+  }
+}
+
 // ── Merge ADP + FC values into a player object ────────────────────────────
 function enrichPlayerADP(p) {
   if (p.fpAdp && p.fpAdp > 0) p.adp = p.fpAdp;
@@ -2051,6 +2136,11 @@ function enrichPlayerADP(p) {
   if (fcv !== undefined) p.fcValue = fcv;
   const pts = fuzzyGet(projPtsMap, p.name);
   if (pts != null) p.projPts = pts;
+  const st = fuzzyGet(lastYrStatsMap, p.name);
+  if (st) {
+    p.lyFpts = st.fpts; p.lyTgt = st.tgt; p.lyRec = st.rec;
+    p.lyCar = st.car; p.lyRushYd = st.rushYd; p.lyYpc = st.ypc;
+  }
 }
 
 // ── Data source status badges ─────────────────────────────────────────────
@@ -2068,7 +2158,8 @@ function updateDataSourceBadges() {
   el.innerHTML =
     badge('FP',   dataStatus.fp,   `FantasyPros rankings/ADP — ${players.length} players loaded`) +
     badge('FC',   dataStatus.fc,   `FantasyCalc trade values — ${Object.keys(fcValueMap).length} players`) +
-    badge('Proj', dataStatus.proj, `Sleeper 2026 projections — ${Object.keys(projPtsMap).length} players, ${_projLiveWeeks}/17 weeks loaded`);
+    badge('Proj', dataStatus.proj, `Sleeper 2026 projections — ${Object.keys(projPtsMap).length} players, ${_projLiveWeeks}/17 weeks loaded`) +
+    badge('LY',   dataStatus.lastyr, `Sleeper 2025 season stats — ${Object.keys(lastYrStatsMap).length} players`);
 }
 
 // Slot value weights: how important is the Nth player at a position?
@@ -2919,6 +3010,17 @@ function renderBoard() {
     const projCell = p.projPts
       ? `<span title="Projected season PPR points" style="font-size:9px;font-family:DM Mono,monospace;color:var(--dim);min-width:38px;text-align:right">${Math.round(p.projPts)}</span>`
       : `<span style="min-width:38px"></span>`;
+    // ── Last-year (2025) stat columns: FPTS · TGT · REC · CAR · YPC · RYD ──
+    const lyStat = (val, title, dec) =>
+      `<span class="ly-stat" title="${title}">${val != null ? (dec ? val.toFixed(1) : Math.round(val)) : '—'}</span>`;
+    const lyCells = p.drafted
+      ? `<span class="ly-stat"></span>`.repeat(6)
+      : lyStat(p.lyFpts, 'Last yr fantasy pts (PPR)', false)
+        + lyStat(p.lyTgt, 'Last yr targets', false)
+        + lyStat(p.lyRec, 'Last yr catches', false)
+        + lyStat(p.lyCar, 'Last yr carries', false)
+        + lyStat(p.lyYpc, 'Last yr yards per carry', true)
+        + lyStat(p.lyRushYd, 'Last yr rushing yards', false);
     return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
       <span class="p-name">${escHtml(p.name)}${rookieBadge}${natBadge}</span>
@@ -2931,9 +3033,30 @@ function renderBoard() {
       ${probHtml}
       <span class="p-rank">#${activeRank.toFixed(0)}</span>
       ${extra}
+      ${lyCells}
     </div>`;
   });
-  table.innerHTML = rows.join('');
+  // Sticky header — cell widths mirror the data row so columns line up.
+  const headRow = `<div class="board-head-row">
+      <span style="min-width:26px;text-align:center">POS</span>
+      <span class="bh-name" style="min-width:150px">PLAYER</span>
+      <span style="min-width:28px">TM</span>
+      <span style="min-width:20px">TIER</span>
+      <span style="min-width:18px">RSK</span>
+      <span style="min-width:48px" title="ECR or ADP (opposite of active sort)">ECR/ADP</span>
+      <span style="min-width:42px" title="Marginal value over replacement">VOR</span>
+      <span style="min-width:38px" title="Projected season PPR points">PROJ</span>
+      <span style="min-width:40px" title="Probability still available at your next pick">AVL</span>
+      <span style="min-width:28px">RANK</span>
+      <span style="min-width:20px"></span>
+      <span class="ly-stat" title="Last yr fantasy pts (PPR)">FPTS</span>
+      <span class="ly-stat" title="Last yr targets">TGT</span>
+      <span class="ly-stat" title="Last yr catches">REC</span>
+      <span class="ly-stat" title="Last yr carries">CAR</span>
+      <span class="ly-stat" title="Last yr yards per carry">YPC</span>
+      <span class="ly-stat" title="Last yr rushing yards">RYD</span>
+    </div>`;
+  table.innerHTML = headRow + rows.join('');
   document.getElementById('avail-count').textContent = avail;
   updateDataSourceBadges();
 }
@@ -5546,7 +5669,7 @@ async function init() {
   // Both are NFL-only sources — skip them entirely in CFL mode (CSV has projections).
   setLoad(5, 'Loading external data…');
   if (!isCFL) {
-    await Promise.allSettled([fetchFantasyCalc(), fetchSleeperProjections()]);
+    await Promise.allSettled([fetchFantasyCalc(), fetchSleeperProjections(), fetchSleeperLastYearStats()]);
   }
   updateDataSourceBadges();
 
