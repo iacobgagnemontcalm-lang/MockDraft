@@ -2289,22 +2289,58 @@ function setTeamGut(rosterId, val) {
   if (fbRef) fbRef.child('teamGut/' + rosterId).set(teamGutMap[rosterId]);
 }
 
-// Composite autopilot score — lower = better pick.
+// ── Seeded randomness helpers ────────────────────────────────────────────
+// All bot randomness is keyed off strings (session + pick + player) so the
+// same draft state always produces the same result across reloads/clients —
+// nothing random needs to be persisted to Firebase.
+
+// 32-bit string hash (xmur3-style mix) → uint32
+function hash32(str) {
+  var h = 1779033703;
+  for (var i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  h = h ^ (h >>> 16);
+  return h >>> 0;
+}
+
+// Deterministic uniform in [0,1) for a key
+function seededUniform(key) { return hash32(key) / 4294967296; }
+
+// Deterministic standard normal (mean 0, σ 1) via Box–Muller
+function seededNormal(key) {
+  var u1 = Math.max(seededUniform(key + '|a'), 1e-9);
+  var u2 = seededUniform(key + '|b');
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
 // ── GutScore: composite autopilot pick score (lower = better pick) ──────
 // mb = 0→1 MoneyBall weight, gf = 0→1 GutFeeling weight (mb + gf = 1)
 //
-// 100% MoneyBall:
-//   - Ranks by ECR (expert consensus)
-//   - VOR matters in a tight ±5 player window
-//   - STD risk: small penalty (data says risk is quantifiable)
-//   - Rookies: BONUS (high upside per ECR data)
-//   - Prev-year familiarity: NO effect (pure data)
+// The slider is a spectrum around a NEUTRAL midpoint that drafts like a
+// typical mock-draft bot (Sleeper-style): near the ECR/ADP consensus with
+// moderate pick-to-pick noise that widens in later rounds.
 //
-// 100% GutFeeling:
-//   - Ranks by ADP (market/crowd wisdom)
-//   - VOR matters in a wider ±10 player window
-//   - STD risk: HEAVY penalty (gut hates uncertainty)
-//   - Rookies: extra buzz bonus (excitement factor)
+// 100% MoneyBall (data-centered, near-deterministic):
+//   - Ranks by ECR (expert consensus)
+//   - Strong VOR / value-over-replacement weighting
+//   - Small reliability premium (slight penalty for high-STD players)
+//   - Almost no pick noise — takes the best value on the board
+//   - Rookies / prev-year familiarity: NO effect (pure data, no loyalty)
+//
+// 50 Neutral (normal drafter):
+//   - Ranks by ECR/ADP consensus
+//   - Moderate need awareness, roughly risk-neutral
+//   - Moderate noise: usually top pick, sometimes 2nd/3rd best, small reaches
+//
+// 100% GutFeeling (wild):
+//   - Ranks by ADP (market buzz) but with BIG random reaches
+//   - CHASES boom-or-bust upside (bonus for high-variance players)
+//   - Looser about positional value
+//   - Rookies: buzz bonus (excitement factor)
 //   - Prev-year familiarity: STRONG bonus (loyalty/known quantity)
 //
 function gutScore(player, rosterId, byPos) {
@@ -2312,39 +2348,45 @@ function gutScore(player, rosterId, byPos) {
   const mb = (100 - gfVal) / 100;  // 0–1
   const gf = gfVal / 100;           // 0–1
 
-  // Base rank score
-  const mbBase = player.ecr;   // MoneyBall uses ECR
-  const gfBase = player.adp;   // GutFeeling uses ADP
+  // Base rank: MoneyBall trusts the experts (ECR), Gut follows the room (ADP).
+  // At neutral this is the ECR/ADP consensus — the "normal drafter" baseline.
+  const base = mb * player.ecr + gf * player.adp;
 
-  // Risk (STD quintile 1–5)
+  // Risk (STD quintile 1–5): MoneyBall pays a small reliability premium;
+  // GutFeeling chases boom-or-bust upside (negative = bonus).
   const q = player.stdQuintile || 3;
-  const mbRisk = (q - 1) * 0.5;   // subtle — data accounts for risk via ECR
-  const gfRisk = (q - 1) * 3.0;   // heavy — gut fears variance
+  const risk = mb * ((q - 1) * 0.6) - gf * ((q - 1) * 1.2);
 
-  // VOR bonus (higher VOR = better, so subtract from score)
+  // VOR bonus (higher VOR = better, so subtracted from score).
+  // MoneyBall is strongly value-over-replacement driven; Gut fills needs loosely.
   const mvor = marginalValue(player, rosterId, byPos) || 0;
-  const mbVor = mvor * 0.04;   // tight window — only big VOR moves needle
-  const gfVor = mvor * 0.10;   // wide window — GutFeeling values positional scarcity more
+  const vorBonus = mvor * (mb * 0.08 + gf * 0.05);
 
   // Rookie bonus (GutFeeling only — MoneyBall trusts ECR to already price rookies)
-  const isRook = player.isRookie || false;
-  const gfRookieBonus = isRook ? 8 : 0;
+  const gfRookieBonus = player.isRookie ? 8 : 0;
 
   // Previous year familiarity bonus (GutFeeling only — MoneyBall is pure data, no loyalty)
   const team = getTeam(rosterId);
   const prevRoster = team ? (PREV_ROSTER_BY_SHORT[team.shortName] || []) : [];
   // Match full name OR last name (Sleeper sometimes returns abbreviated names)
   const lastName = player.name.split(' ').slice(-1)[0].toLowerCase();
-  const isFamiliar = prevRoster.some(n => 
-    n === player.name || 
+  const isFamiliar = prevRoster.some(n =>
+    n === player.name ||
     n.toLowerCase().split(' ').slice(-1)[0] === lastName
   );
   const gfFamiliarBonus = isFamiliar ? 10 : 0;
 
-  const mbScore = mbBase + mbRisk - mbVor;
-  const gfScore = gfBase + gfRisk - gfVor - gfRookieBonus - gfFamiliarBonus;
+  // Pick noise (Sleeper-style): each pick, every player gets a deterministic
+  // gaussian nudge. σ grows from ~0.75 ranks (MoneyBall: near-strict) through
+  // ~3 (neutral: normal bot behavior) to ~9 (Gut: wild reaches), and widens
+  // as the draft goes deeper — bots reach more in later rounds, like real ones.
+  const noiseSd = 0.75 + 2.0 * gf + 6.25 * gf * gf;
+  const pickIdx = Math.max(0, currentPickIndex());
+  const depthMult = Math.min(3, 1 + pickIdx / 60);
+  const noise = seededNormal(getSessionId() + '|p' + pickIdx + '|' + player.name)
+                * noiseSd * depthMult;
 
-  return mb * mbScore + gf * gfScore;
+  return base + risk - vorBonus - gf * (gfRookieBonus + gfFamiliarBonus) + noise;
 }
 
 function computeVOR() {
@@ -5095,24 +5137,17 @@ function buildSnakeOrLinearOrder(draftType, numTeams, numRounds) {
 }
 
 // Deterministic per-session pseudo-random value (0..100) for a given (sessionId, rosterId).
-// Used in 2026 mode to randomize each bot team's MoneyBall↔GutFeeling slider.
+// Used in 2026 mode to seed each bot team's MoneyBall↔GutFeeling slider.
 // Deterministic so the same session always produces the same values across reloads —
 // no need to persist them to Firebase. Different sessions get different randomization.
-// Uses an xmur3-style mix so consecutive rosterIds in the same session produce
-// well-spread values (not nearly-consecutive output).
+//
+// Values follow a NORMAL distribution centered on 50 (σ=18), clamped to 0–100:
+// most bots draft like a "normal" neutral drafter, with only the occasional
+// hard-MoneyBall or hard-Gut outlier — instead of the old uniform 0–100 spread.
 function seededGutValue(sessionId, rosterId) {
-  var s = String(sessionId || '');
-  var h = 1779033703 ^ rosterId;
-  for (var i = 0; i < s.length; i++) {
-    h = Math.imul(h ^ s.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  // Re-mix rosterId at the end so small rosterId deltas avalanche
-  h = Math.imul(h ^ (rosterId * 2654435761), 461845907);
-  h = (h << 17) | (h >>> 15);
-  h = Math.imul(h, 2246822507);
-  h = h ^ (h >>> 16);
-  return Math.abs(h | 0) % 101;
+  var z = seededNormal(String(sessionId || '') + '|gut|' + rosterId);
+  var v = Math.round(50 + z * 18);
+  return Math.max(0, Math.min(100, v));
 }
 
 // Override the dynasty teams + draft order with the 2026 redraft setup.
@@ -5999,15 +6034,15 @@ init();
 
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">💻 MoneyBall ↔ 🤠 Gut Feeling (autopilot)</div>
-        Each bot team has its own slider controlling how it drafts:
+        Each bot team has its own slider controlling how it drafts. The <strong>middle of the slider is a normal drafter</strong> — it picks near the ECR/ADP consensus with a little randomness (like a Sleeper mock-draft bot), reaching a bit more in later rounds. Bot sliders are seeded on a bell curve around the middle, so most bots draft normally and only a few are extreme.
         <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
           <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:6px;padding:8px 10px">
             <div style="color:var(--blue);font-weight:700;margin-bottom:5px">💻 MoneyBall</div>
-            <div style="color:var(--muted);line-height:1.6">Drafts by <strong style="color:var(--text)">ECR</strong>. Tight VOR window. Small risk penalty. Pure data — snaps up ECR-undervalued players early.</div>
+            <div style="color:var(--muted);line-height:1.6">Pure data, near-deterministic. Drafts by <strong style="color:var(--text)">ECR</strong> with strong VOR weighting and a small reliability premium — always takes the best value on the board.</div>
           </div>
           <div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:6px;padding:8px 10px">
             <div style="color:var(--gold);font-weight:700;margin-bottom:5px">🤠 Gut Feeling</div>
-            <div style="color:var(--muted);line-height:1.6">Drafts by <strong style="color:var(--text)">ADP</strong>. Wider VOR window. Heavy risk penalty. Boosts rookies &amp; last year's holdovers — leaves ECR steals on the board longer.</div>
+            <div style="color:var(--muted);line-height:1.6">Wild. Drafts by <strong style="color:var(--text)">ADP</strong> buzz with big random reaches, chases boom-or-bust upside, and boosts rookies &amp; last year's holdovers.</div>
           </div>
         </div>
       </div>
