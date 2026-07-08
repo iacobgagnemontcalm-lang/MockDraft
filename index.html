@@ -4752,7 +4752,8 @@ function loadADPCSVText(text) {
   var headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
   var ci = name => headers.indexOf(name);
 
-  var iName = ci('player');
+  // NFL export headers the column "Player (Bye)"; CFL uses plain "Player"
+  var iName = headers.findIndex(h => h === 'player' || h.indexOf('player') === 0);
   var iAdp  = ci('avg');
   if (iName === -1 || iAdp === -1) {
     console.warn('ADP CSV missing Player or AVG column'); return 0;
@@ -4769,6 +4770,12 @@ function loadADPCSVText(text) {
     var cells = parseCSVLine(lines[i]);
     var get = idx => (idx >= 0 && cells[idx] != null) ? cells[idx].trim() : '';
     var rawName = get(iName); if (!rawName) continue;
+    // NFL names carry a team/bye suffix — "Jahmyr Gibbs   DET (6)",
+    // "Houston Texans DST   (8)" — strip it to match rankings.csv names
+    rawName = rawName
+      .replace(/\s{2,}(?:[A-Z]{2,3}\s*)?\(\d+\)\s*$/, '')
+      .replace(/\s+DST$/, '')
+      .trim();
     var name = isCFL ? normalizeCFLADPName(rawName) : rawName;
     var adp  = parseFloat(get(iAdp)); if (isNaN(adp)) continue;
     var p = byName[name.toLowerCase()];
