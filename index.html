@@ -2179,13 +2179,19 @@ const DRAFT_STRATEGIES = {
   balanced: { label: 'Balanced',       mult: () => 1 },
   heroRB:   { label: 'Hero RB',        mult: p => p.pos==='RB' ? (p.tier<=2 ? 1.5 : 0.7) : 1 },
   zeroRB:   { label: 'Zero RB',        mult: p => p.pos==='RB' ? 0.55 : p.pos==='WR' ? 1.2 : (p.pos==='TE'||p.pos==='QB') ? 1.1 : 1 },
-  lateQB:   { label: 'Late Round QB',  mult: p => p.pos==='QB' ? 0.5 : 1 },
+  lateQB:   { label: 'Late Round QB',  punt: ['QB'], mult: p => p.pos==='QB' ? 0.5 : 1 },
   heavyRB:  { label: 'Heavy RB',       mult: p => p.pos==='RB' ? 1.4 : p.pos==='WR' ? 0.9 : 1 },
-  puntTE:   { label: 'Punt TE',        mult: p => p.pos==='TE' ? 0.4 : 1 },
+  puntTE:   { label: 'Punt TE',        punt: ['TE'], mult: p => p.pos==='TE' ? 0.4 : 1 },
 };
 function strategyMult(p) {
   const s = DRAFT_STRATEGIES[draftStrategy] || DRAFT_STRATEGIES.balanced;
   return s.mult(p);
+}
+// Positions the current strategy punts — hidden from the Top Picks panel
+// (candidateFilter re-admits them from round 10 if the roster still has none).
+function strategyPunts(pos) {
+  const s = DRAFT_STRATEGIES[draftStrategy] || DRAFT_STRATEGIES.balanced;
+  return (s.punt || []).indexOf(pos) !== -1;
 }
 
 const SLOT_VALUE = {
@@ -2546,7 +2552,10 @@ function renderVOR() {
     if (_curRound >= 5 && _rbHave === 0) nudges.push('⚠️ 0 RB through R' + _curRound + ' — pool thinning fast');
     if (_curRound >= 5 && _wrHave === 0) nudges.push('⚠️ 0 WR through R' + _curRound + ' — pool thinning fast');
     if (_curRound >= 7 && (_rbHave + _wrHave) < 3) nudges.push('⚠️ Thin at RB/WR (' + _rbHave + 'RB·' + _wrHave + 'WR) — prioritize starters');
-    if (_curRound >= 4 && _qbHave === 0 && _teHave === 0 && (_rbHave + _wrHave) >= 5) nudges.push('💡 Strong RB/WR core — QB/TE now is fine');
+    if (_curRound >= 4 && _qbHave === 0 && _teHave === 0 && (_rbHave + _wrHave) >= 5) {
+      var _onramp = ['QB','TE'].filter(function(pos){ return !strategyPunts(pos); });
+      if (_onramp.length) nudges.push('💡 Strong RB/WR core — ' + _onramp.join('/') + ' now is fine');
+    }
   }
   var nudgeEl = document.getElementById('vor-roster-nudge');
   if (nudgeEl) {
@@ -2709,6 +2718,10 @@ function renderVOR() {
       if (_myKCount  === 0) return p.pos === 'K'  || p.pos === 'DST';
       return p.pos === 'K' || p.pos === 'DST';
     }
+    // Punted position (Punt TE / Late Round QB): keep it off the panel, but
+    // resurface from round 10 if the roster still has none — a starter is
+    // needed eventually and _lateRounds mode only recommends K/DST.
+    if (strategyPunts(p.pos) && !(_curRound >= 10 && teamPosCount(_vorTeamId, p.pos) === 0)) return false;
     if (p.pos === 'QB' && _qbHave >= _qbCap) return false;
     if (!_isCFLVor && p.pos === 'TE' && _teHave >= _teCap) return false;
     if (!_isCFLVor && p.pos === 'QB' && teamHasTop5(_vorTeamId, 'QB')) return false;
