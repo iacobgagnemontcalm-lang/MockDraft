@@ -1,493 +1,502 @@
-"RK",TIERS,"PLAYER NAME",TEAM,"POS","BYE WEEK","UPSIDE ","BUST ","SOS SEASON","ECR VS. ADP"
-"1",1,"Ja'Marr Chase",CIN,"WR1","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+2"
-"2",1,"Bijan Robinson",ATL,"RB1","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","0"
-"3",1,"Puka Nacua",LAR,"WR2","11","Coach Upside rating","Coach Bust rating","1 out of 5 stars","+1"
-"4",1,"Jahmyr Gibbs",DET,"RB2","6","Coach Upside rating","Coach Bust rating","5 out of 5 stars","-3"
-"5",1,"Jaxon Smith-Njigba",SEA,"WR3","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","0"
-"6",2,"Amon-Ra St. Brown",DET,"WR4","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+1"
-"7",2,"Christian McCaffrey",SF,"RB3","8","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-1"
-"8",2,"CeeDee Lamb",DAL,"WR5","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+3"
-"9",2,"Justin Jefferson",MIN,"WR6","6","Coach Upside rating","Coach Bust rating","5 out of 5 stars","+1"
-"10",2,"Jonathan Taylor",IND,"RB4","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-1"
-"11",2,"Drake London",ATL,"WR7","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+7"
-"12",3,"Nico Collins",HOU,"WR8","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+10"
-"13",3,"Ashton Jeanty",LV,"RB5","13","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-5"
-"14",3,"A.J. Brown",NE,"WR9","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+5"
-"15",3,"George Pickens",DAL,"WR10","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+8"
-"16",3,"James Cook III",BUF,"RB6","7","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-4"
-"17",3,"De'Von Achane",MIA,"RB7","6","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-2"
-"18",3,"Trey McBride",ARI,"TE1","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+6"
-"19",3,"Chris Olave",NO,"WR11","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+9"
-"20",3,"Brock Bowers",LV,"TE2","13","Coach Upside rating","Coach Bust rating","3 out of 5 stars","0"
-"21",3,"Chase Brown",CIN,"RB8","6","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-5"
-"22",3,"Rashee Rice",KC,"WR12","5","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+3"
-"23",4,"Josh Allen",BUF,"QB1","7","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+6"
-"24",4,"DeVonta Smith",PHI,"WR13","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+3"
-"25",4,"Saquon Barkley",PHI,"RB9","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-11"
-"26",4,"Omarion Hampton",LAC,"RB10","7","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-13"
-"27",4,"Tetairoa McMillan",CAR,"WR14","5","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+12"
-"28",4,"Garrett Wilson",NYJ,"WR15","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+9"
-"29",4,"Malik Nabers",NYG,"WR16","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+11"
-"30",4,"Kenneth Walker III",KC,"RB11","5","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-13"
-"31",4,"Lamar Jackson",BAL,"QB2","13","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+21"
-"32",4,"Tee Higgins",CIN,"WR17","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+4"
-"33",4,"Drake Maye",NE,"QB3","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+29"
-"34",4,"Zay Flowers",BAL,"WR18","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-3"
-"35",4,"Jeremiyah Love",ARI,"RB12","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-9"
-"36",5,"Colston Loveland",CHI,"TE3","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+5"
-"37",5,"Ladd McConkey",LAC,"WR19","7","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-2"
-"38",5,"Derrick Henry",BAL,"RB13","13","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-17"
-"39",5,"Jaylen Waddle",DEN,"WR20","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+6"
-"40",5,"Breece Hall",NYJ,"RB14","13","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-10"
-"41",5,"Joe Burrow",CIN,"QB4","6","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+19"
-"42",5,"Emeka Egbuka",TB,"WR21","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-9"
-"43",5,"Terry McLaurin",WAS,"WR22","7","Coach Upside rating","Coach Bust rating","2 out of 5 stars","0"
-"44",5,"Kyren Williams",LAR,"RB15","11","Coach Upside rating","Coach Bust rating","5 out of 5 stars","-12"
-"45",5,"Luther Burden III",CHI,"WR23","10","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-1"
-"46",5,"Josh Jacobs",GB,"RB16","11","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-4"
-"47",5,"Travis Etienne Jr.",NO,"RB17","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-9"
-"48",5,"Javonte Williams",DAL,"RB18","14","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-14"
-"49",5,"Davante Adams",LAR,"WR24","11","Coach Upside rating","Coach Bust rating","1 out of 5 stars","0"
-"50",6,"Mike Evans",SF,"WR25","8","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+3"
-"51",6,"Jameson Williams",DET,"WR26","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-1"
-"52",6,"DJ Moore",BUF,"WR27","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+2"
-"53",6,"Tyler Warren",IND,"TE4","13","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+8"
-"54",6,"Jayden Daniels",WAS,"QB5","7","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+11"
-"55",6,"Cam Skattebo",NYG,"RB19","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-9"
-"56",6,"Christian Watson",GB,"WR28","11","Coach Upside rating","Coach Bust rating","5 out of 5 stars","-1"
-"57",6,"Bucky Irving",TB,"RB20","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+2"
-"58",6,"Jalen Hurts",PHI,"QB6","10","Coach Upside rating","Coach Bust rating","5 out of 5 stars","+17"
-"59",6,"Rome Odunze",CHI,"WR29","10","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-1"
-"60",6,"Quinshon Judkins",CLE,"RB21","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-4"
-"61",6,"TreVeyon Henderson",NE,"RB22","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-10"
-"62",6,"D'Andre Swift",CHI,"RB23","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-15"
-"63",6,"Carnell Tate",TEN,"WR30","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+1"
-"64",6,"David Montgomery",HOU,"RB24","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-16"
-"65",6,"Caleb Williams",CHI,"QB7","10","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+5"
-"66",6,"Justin Herbert",LAC,"QB8","7","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+7"
-"67",6,"Marvin Harrison Jr.",ARI,"WR31","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-1"
-"68",7,"Jaylen Warren",PIT,"RB25","9","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+1"
-"69",7,"Tucker Kraft",GB,"TE5","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+13"
-"70",7,"Bhayshul Tuten",JAC,"RB26","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-13"
-"71",7,"Harold Fannin Jr.",CLE,"TE6","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+26"
-"72",7,"Alec Pierce",IND,"WR32","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+11"
-"73",7,"DK Metcalf",PIT,"WR33","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-2"
-"74",7,"Courtland Sutton",DEN,"WR34","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+2"
-"75",7,"Trevor Lawrence",JAC,"QB9","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+5"
-"76",7,"Jadarian Price",SEA,"RB27","11","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-8"
-"77",7,"Chris Godwin Jr.",TB,"WR35","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+8"
-"78",7,"Kyle Pitts Sr.",ATL,"TE7","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+9"
-"79",7,"Chuba Hubbard",CAR,"RB28","5","Coach Upside rating","Coach Bust rating","1 out of 5 stars","-1"
-"80",7,"Dak Prescott",DAL,"QB10","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+1"
-"81",7,"Brian Thomas Jr.",JAC,"WR36","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-18"
-"82",7,"Rhamondre Stevenson",NE,"RB29","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-3"
-"83",7,"Tony Pollard",TEN,"RB30","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-9"
-"84",7,"Michael Pittman Jr.",PIT,"WR37","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+4"
-"85",7,"Michael Wilson",ARI,"WR38","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+6"
-"86",7,"Jordyn Tyson",NO,"WR39","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-14"
-"87",7,"Jaxson Dart",NYG,"QB11","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+9"
-"88",7,"Rico Dowdle",PIT,"RB31","9","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+1"
-"89",7,"Sam LaPorta",DET,"TE8","6","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+3"
-"90",7,"RJ Harvey",DEN,"RB32","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-6"
-"91",7,"Wan'Dale Robinson",TEN,"WR40","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+16"
-"92",7,"Jakobi Meyers",JAC,"WR41","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+12"
-"93",7,"Parker Washington",JAC,"WR42","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-26"
-"94",7,"Makai Lemon",PHI,"WR43","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-4"
-"95",7,"Brock Purdy",SF,"QB12","8","Coach Upside rating","Coach Bust rating","1 out of 5 stars","0"
-"96",8,"Josh Downs",IND,"WR44","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-2"
-"97",8,"Travis Kelce",KC,"TE9","5","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+17"
-"98",8,"Kenny Gainwell",TB,"RB33","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-12"
-"99",8,"Kyle Monangai",CHI,"RB34","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-1"
-"100",8,"Patrick Mahomes II",KC,"QB13","5","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+1"
-"101",8,"Bo Nix",DEN,"QB14","10","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+10"
-"102",8,"Ricky Pearsall",SF,"WR45","8","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-2"
-"103",8,"Matthew Stafford",LAR,"QB15","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-4"
-"104",8,"Jake Ferguson",DAL,"TE10","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+22"
-"105",8,"J.K. Dobbins",DEN,"RB35","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+3"
-"106",8,"Aaron Jones Sr.",MIN,"RB36","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+18"
-"107",8,"Jared Goff",DET,"QB16","6","Coach Upside rating","Coach Bust rating","5 out of 5 stars","+3"
-"108",8,"Jordan Addison",MIN,"WR46","6","Coach Upside rating","Coach Bust rating","5 out of 5 stars","-3"
-"109",8,"Quentin Johnston",LAC,"WR47","7","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-32"
-"110",8,"Blake Corum",LAR,"RB37","11","Coach Upside rating","Coach Bust rating","5 out of 5 stars","-7"
-"111",8,"Dalton Kincaid",BUF,"TE11","7","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+5"
-"112",8,"Jayden Reed",GB,"WR48","11","Coach Upside rating","Coach Bust rating","5 out of 5 stars","-19"
-"113",8,"Rachaad White",WAS,"RB38","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-7"
-"114",8,"Kyler Murray",MIN,"QB17","6","Coach Upside rating","Coach Bust rating","5 out of 5 stars","+3"
-"115",8,"George Kittle",SF,"TE12","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-3"
-"116",8,"Isaiah Likely",NYG,"TE13","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+9"
-"117",8,"Khalil Shakir",BUF,"WR49","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+6"
-"118",8,"Jordan Love",GB,"QB18","11","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+1"
-"119",8,"Baker Mayfield",TB,"QB19","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-4"
-"120",8,"Jayden Higgins",HOU,"WR50","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+2"
-"121",8,"Dallas Goedert",PHI,"TE14","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+10"
-"122",8,"Tyler Shough",NO,"QB20","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-1"
-"123",9,"Jacory Croskey-Merritt",WAS,"RB39","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+5"
-"124",9,"Xavier Worthy",KC,"WR51","5","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-15"
-"125",9,"Romeo Doubs",NE,"WR52","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-7"
-"126",9,"KC Concepcion",CLE,"WR53","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+1"
-"127",9,"Malik Willis",MIA,"QB21","6","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+6"
-"128",9,"Tyrone Tracy Jr.",NYG,"RB40","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+4"
-"129",9,"Jordan Mason",MIN,"RB41","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-9"
-"130",9,"Jalen Coker",CAR,"WR54","5","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-1"
-"131",9,"Mark Andrews",BAL,"TE15","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-1"
-"132",9,"Woody Marks",HOU,"RB42","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+8"
-"133",9,"Tyler Allgeier",ARI,"RB43","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+12"
-"134",9,"C.J. Stroud",HOU,"QB22","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+4"
-"135",9,"Matthew Golden",GB,"WR55","11","Coach Upside rating","Coach Bust rating","5 out of 5 stars","-22"
-"136",9,"Zach Charbonnet",SEA,"RB44","11","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+16"
-"137",9,"Sam Darnold",SEA,"QB23","11","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+5"
-"138",9,"Juwan Johnson",NO,"TE16","8","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+8"
-"139",9,"Jonathon Brooks",CAR,"RB45","5","Coach Upside rating","Coach Bust rating","1 out of 5 stars","-37"
-"140",9,"Tyjae Spears",TEN,"RB46","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+11"
-"141",9,"Chris Rodriguez Jr.",JAC,"RB47","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-7"
-"142",9,"Dylan Sampson",CLE,"RB48","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+14"
-"143",9,"Isiah Pacheco",DET,"RB49","6","Coach Upside rating","Coach Bust rating","5 out of 5 stars","+6"
-"144",9,"Cam Ward",TEN,"QB24","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-1"
-"145",9,"Alvin Kamara",NO,"RB50","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+21"
-"146",9,"Brenton Strange",JAC,"TE17","7","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+2"
-"147",9,"Rashid Shaheed",SEA,"WR56","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-10"
-"148",9,"Jerry Jeudy",CLE,"WR57","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+27"
-"149",9,"Oronde Gadsden II",LAC,"TE18","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-5"
-"150",9,"Jauan Jennings",MIN,"WR58","6","Coach Upside rating","Coach Bust rating","5 out of 5 stars","+4"
-"151",9,"Daniel Jones",IND,"QB25","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-4"
-"152",9,"Omar Cooper Jr.",NYJ,"WR59","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+8"
-"153",9,"Denzel Boston",CLE,"WR60","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+2"
-"154",9,"Bryce Young",CAR,"QB26","5","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+4"
-"155",9,"Hunter Henry",NE,"TE19","11","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+2"
-"156",9,"Keaton Mitchell",LAC,"RB51","7","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-20"
-"157",10,"Jonah Coleman",DEN,"RB52","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+2"
-"158",10,"Chig Okonkwo",WAS,"TE20","7","Coach Upside rating","Coach Bust rating","1 out of 5 stars","-19"
-"159",10,"Houston Texans",HOU,"DST1","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+43"
-"160",10,"Travis Hunter",JAC,"WR61","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+10"
-"161",10,"Jalen McMillan",TB,"WR62","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-20"
-"162",10,"Brian Robinson Jr.",ATL,"RB53","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+6"
-"163",10,"Dalton Schultz",HOU,"TE21","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+10"
-"164",10,"Adonai Mitchell",NYJ,"WR63","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","0"
-"165",10,"Braelon Allen",NYJ,"RB54","13","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+24"
-"166",10,"Tank Bigsby",PHI,"RB55","10","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-1"
-"167",10,"Tre' Harris",LAC,"WR64","7","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-5"
-"168",10,"Tre Tucker",LV,"WR65","13","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-15"
-"169",10,"Denver Broncos",DEN,"DST2","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+50"
-"170",10,"Kayshon Boutte",NE,"WR66","11","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+39"
-"171",10,"Troy Franklin",DEN,"WR67","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+46"
-"172",10,"T.J. Hockenson",MIN,"TE22","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-3"
-"173",10,"Seattle Seahawks",SEA,"DST3","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+41"
-"174",10,"Stefon Diggs",FA,"WR68","-","Coach Upside rating","Coach Bust rating","-","-39"
-"175",10,"Los Angeles Rams",LAR,"DST4","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+35"
-"176",10,"Ryan Flournoy",DAL,"WR69","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-15"
-"177",10,"James Conner",ARI,"RB56","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","+44"
-"178",10,"Philadelphia Eagles",PHI,"DST5","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","0 out of 5 stars","+45"
-"179",10,"Emanuel Wilson",SEA,"RB57","11","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+29"
-"180",10,"Jacoby Brissett",ARI,"QB27","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-3"
-"181",10,"Deebo Samuel Sr.",FA,"WR70","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-14"
-"182",10,"Jaylin Noel",HOU,"WR71","8","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+60"
-"183",10,"Calvin Ridley",TEN,"WR72","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+8"
-"184",10,"Kenyon Sadiq",NYJ,"TE23","13","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-21"
-"185",10,"Minnesota Vikings",MIN,"DST6","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","+43"
-"186",10,"New England Patriots",NE,"DST7","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+36"
-"187",10,"Emmett Johnson",KC,"RB58","5","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-9"
-"188",10,"Isaac TeSlaa",DET,"WR73","6","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-17"
-"189",10,"Brandon Aubrey",DAL,"K1","14","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-"
-"190",10,"Jacksonville Jaguars",JAC,"DST8","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+35"
-"191",10,"Pittsburgh Steelers",PIT,"DST9","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","+35"
-"192",10,"Kimani Vidal",LAC,"RB59","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","0"
-"193",10,"Darnell Mooney",NYG,"WR74","8","Coach Upside rating","Coach Bust rating","4 out of 5 stars","+6"
-"194",11,"AJ Barner",SEA,"TE24","11","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-11"
-"195",11,"Pat Bryant",DEN,"WR75","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+40"
-"196",11,"Ka'imi Fairbairn",HOU,"K2","8","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-"
-"197",11,"Brandon Aiyuk",SF,"WR76","8","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-7"
-"198",11,"Mike Washington Jr.",LV,"RB60","13","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-10"
-"199",11,"Ray Davis",BUF,"RB61","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-14"
-"200",11,"Cameron Dicker",LAC,"K3","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"201",11,"Los Angeles Chargers",LAC,"DST10","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+31"
-"202",11,"Cam Little",JAC,"K4","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"203",11,"Jason Myers",SEA,"K5","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"204",11,"Jalen Nailor",LV,"WR77","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-54"
-"205",11,"Malik Washington",MIA,"WR78","6","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-29"
-"206",11,"Dontayvion Wicks",PHI,"WR79","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+1"
-"207",11,"Green Bay Packers",GB,"DST11","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+38"
-"208",11,"Chimere Dike",TEN,"WR80","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","+117"
-"209",11,"Antonio Williams",WAS,"WR81","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-35"
-"210",11,"Gunnar Helm",TEN,"TE25","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-24"
-"211",11,"Baltimore Ravens",BAL,"DST12","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","+23"
-"212",11,"Eddy Pineiro",SF,"K6","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"213",11,"Sean Tucker",TB,"RB62","10","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-29"
-"214",11,"Tyler Loop",BAL,"K7","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"215",11,"Kansas City Chiefs",KC,"DST13","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+35"
-"216",11,"Nicholas Singleton",TEN,"RB63","9","Coach Upside rating","Coach Bust rating","3 out of 5 stars","-18"
-"217",11,"Cairo Santos",CHI,"K8","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","0 out of 5 stars","-"
-"218",11,"Evan McPherson",CIN,"K9","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"219",11,"Andy Borregales",NE,"K10","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-"
-"220",11,"Cleveland Browns",CLE,"DST14","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","+19"
-"221",11,"Geno Smith",NYJ,"QB28","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-39"
-"222",11,"Cooper Kupp",SEA,"WR82","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-6"
-"223",11,"De'Zhaun Stribling",SF,"WR83","8","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-19"
-"224",11,"Detroit Lions",DET,"DST15","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","+30"
-"225",11,"Jaylen Wright",MIA,"RB64","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-1"
-"226",11,"Germie Bernard",PIT,"WR84","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-13"
-"227",11,"Kaytron Allen",WAS,"RB65","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-46"
-"228",11,"David Njoku",LAC,"TE26","7","Coach Upside rating","Coach Bust rating","4 out of 5 stars","-16"
-"229",11,"Aaron Rodgers",PIT,"QB29","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-57"
-"230",11,"Tank Dell",HOU,"WR85","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-29"
-"231",11,"Chase McLaughlin",TB,"K11","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"232",11,"Jake Bates",DET,"K12","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"233",11,"Elic Ayomanor",TEN,"WR86","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+76"
-"234",11,"Buffalo Bills",BUF,"DST16","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+13"
-"235",11,"Cade Otton",TB,"TE27","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-42"
-"236",11,"Fernando Mendoza",LV,"QB30","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-57"
-"237",11,"Pat Freiermuth",PIT,"TE28","9","Coach Upside rating","Coach Bust rating","2 out of 5 stars","-41"
-"238",11,"Rashod Bateman",BAL,"WR87","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+19"
-"239",11,"Justice Hill",BAL,"RB66","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-24"
-"240",11,"Terrance Ferguson",LAR,"TE29","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-34"
-"241",11,"Ted Hurst III",TB,"WR88","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-4"
-"242",11,"Ollie Gordon II",MIA,"RB67","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+56"
-"243",11,"Zachariah Branch",ATL,"WR89","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-56"
-"244",12,"Tyreek Hill",FA,"WR90","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-13"
-"245",12,"Harrison Mevis",LAR,"K13","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"246",12,"Harrison Butker",KC,"K14","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"247",12,"Colby Parkinson",LAR,"TE30","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-29"
-"248",12,"Jack Bech",LV,"WR91","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+54"
-"249",12,"Chris Bell",MIA,"WR92","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-3"
-"250",12,"Evan Engram",DEN,"TE31","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+3"
-"251",12,"Christian Kirk",SF,"WR93","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-46"
-"252",12,"Keon Coleman",BUF,"WR94","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-11"
-"253",12,"Elijah Sarratt",BAL,"WR95","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-4"
-"254",12,"Chris Boswell",PIT,"K15","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"255",12,"Ty Johnson",BUF,"RB68","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+14"
-"256",12,"Eli Stowers",PHI,"TE32","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-8"
-"257",12,"MarShawn Lloyd",GB,"RB69","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-60"
-"258",12,"Tory Horton",SEA,"WR96","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+23"
-"259",12,"Malachi Fields",NYG,"WR97","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-16"
-"260",12,"Mason Taylor",NYJ,"TE33","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+2"
-"261",12,"Devin Neal",NO,"RB70","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+137"
-"262",12,"Theo Johnson",NYG,"TE34","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+60"
-"263",12,"Jaydon Blue",DAL,"RB71","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-69"
-"264",12,"Isaiah Davis",NYJ,"RB72","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+125"
-"265",12,"Marvin Mims Jr.",DEN,"WR98","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+145"
-"266",12,"DJ Giddens",IND,"RB73","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+5"
-"267",12,"Chris Brooks",GB,"RB74","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+40"
-"268",12,"Michael Penix Jr.",ATL,"QB31","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-41"
-"269",12,"Chris Brazzell II",CAR,"WR99","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+10"
-"270",12,"Darius Slayton",NYG,"WR100","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+18"
-"271",12,"Samaje Perine",CIN,"RB75","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-19"
-"272",12,"Tua Tagovailoa",ATL,"QB32","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-77"
-"273",12,"Xavier Legette",CAR,"WR101","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+136"
-"274",12,"Demond Claiborne",MIN,"RB76","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-71"
-"275",12,"Kaleb Johnson",PIT,"RB77","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+116"
-"276",12,"Seth McGowan",IND,"RB78","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+108"
-"277",12,"Trey Benson",ARI,"RB79","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+109"
-"278",12,"LeQuint Allen Jr.",JAC,"RB80","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-4"
-"279",12,"Tyquan Thornton",KC,"WR102","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-28"
-"280",12,"Jordan James",SF,"RB81","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-80"
-"281",12,"Atlanta Falcons",ATL,"DST17","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-25"
-"282",12,"Malik Davis",DAL,"RB82","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+4"
-"283",12,"Devaughn Vele",NO,"WR103","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-10"
-"284",12,"Wil Lutz",DEN,"K16","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-"
-"285",12,"Mack Hollins",NE,"WR104","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+119"
-"286",12,"George Holani",SEA,"RB83","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-75"
-"287",12,"Kyle Williams",NE,"WR105","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+120"
-"288",12,"Will Reichard",MIN,"K17","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"289",12,"Keenan Allen",LAC,"WR106","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-24"
-"290",12,"Brashard Smith",KC,"RB84","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+118"
-"291",12,"Greg Dulcich",MIA,"TE35","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-111"
-"292",12,"San Francisco 49ers",SF,"DST18","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-32"
-"293",12,"Shedeur Sanders",CLE,"QB33","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-55"
-"294",12,"Hollywood Brown",PHI,"WR107","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+11"
-"295",12,"Oscar Delp",NO,"TE36","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+102"
-"296",12,"Kendre Miller",NO,"RB85","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+54"
-"297",12,"Devin Singletary",NYG,"RB86","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+109"
-"298",12,"Mike Gesicki",CIN,"TE37","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-58"
-"299",13,"Kirk Cousins",LV,"QB34","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-70"
-"300",13,"Jerome Ford",WAS,"RB87","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+78"
-"301",13,"Deshaun Watson",CLE,"QB35","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-68"
-"302",13,"Jaleel McLaughlin",DEN,"RB88","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"303",13,"Charlie Smyth",NO,"K18","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"304",13,"Emari Demercado",KC,"RB89","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-43"
-"305",13,"Najee Harris",LAC,"RB90","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+24"
-"306",13,"Indianapolis Colts",IND,"DST19","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-42"
-"307",13,"Kaelon Black",SF,"RB91","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-87"
-"308",13,"Isaiah Bond",CLE,"WR108","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+13"
-"309",13,"Trevor Etienne",CAR,"RB92","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","+32"
-"310",13,"Skyler Bell",BUF,"WR109","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-33"
-"311",13,"Jake Tonges",SF,"TE38","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-81"
-"312",13,"Adam Randall",BAL,"RB93","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-37"
-"313",13,"Tahj Brooks",CIN,"RB94","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+69"
-"314",13,"Ja'Kobi Lane",BAL,"WR110","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-1"
-"315",13,"Isaac Guerendo",SF,"RB95","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+34"
-"316",13,"Joe Mixon",FA,"RB96","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","+7"
-"317",13,"Jarquez Hunter",LAR,"RB97","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","+11"
-"318",13,"Andrei Iosivas",CIN,"WR111","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-26"
-"319",13,"New Orleans Saints",NO,"DST20","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-64"
-"320",13,"Chicago Bears",CHI,"DST21","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-84"
-"321",13,"Audric Estime",NO,"RB98","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+47"
-"322",13,"Darnell Washington",PIT,"TE39","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-54"
-"323",13,"Cedric Tillman",CLE,"WR112","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+12"
-"324",13,"J.J. McCarthy",MIN,"QB36","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","+78"
-"325",13,"Tez Johnson",TB,"WR113","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+75"
-"326",13,"Will Shipley",PHI,"RB99","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+17"
-"327",13,"Jalen Royals",KC,"WR114","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-30"
-"328",13,"Luke McCaffrey",WAS,"WR115","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-4"
-"329",13,"Max Klare",LAR,"TE40","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+27"
-"330",13,"Kareem Hunt",FA,"RB100","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","+47"
-"331",13,"Calvin Austin III",NYG,"WR116","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+52"
-"332",13,"Konata Mumpfield",LAR,"WR117","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-54"
-"333",13,"Jahan Dotson",ATL,"WR118","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-37"
-"334",14,"Olamide Zaccheaus",ATL,"WR119","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+61"
-"335",14,"Mac Jones",SF,"QB37","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","+57"
-"336",14,"Bam Knight",ARI,"RB101","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"337",14,"Caleb Douglas",MIA,"WR120","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-26"
-"338",14,"Elijah Arroyo",SEA,"TE41","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+65"
-"339",14,"Tyler Higbee",LAR,"TE42","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-20"
-"340",14,"Jalen Tolbert",MIA,"WR121","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-25"
-"341",14,"Noah Gray",KC,"TE43","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+55"
-"342",14,"Joshua Palmer",BUF,"WR122","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+27"
-"343",14,"Michael Mayer",LV,"TE44","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-43"
-"344",14,"Carolina Panthers",CAR,"DST22","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-72"
-"345",14,"Ja'Tavion Sanders",CAR,"TE45","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-12"
-"346",14,"DeMario Douglas",NE,"WR123","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+29"
-"347",14,"Ty Simpson",LAR,"QB38","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+46"
-"348",14,"J'Mari Taylor",JAC,"RB102","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"349",14,"Carson Beck",ARI,"QB39","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-83"
-"350",14,"Dont'e Thornton Jr.",LV,"WR124","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"351",14,"Kendrick Bourne",ARI,"WR125","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-20"
-"352",14,"Xavier Hutchinson",HOU,"WR126","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+1"
-"353",14,"Justin Fields",KC,"QB40","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-86"
-"354",14,"Cole Kmet",CHI,"TE46","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","+51"
-"355",14,"Dawson Knox",BUF,"TE47","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-38"
-"356",14,"Eli Heidenreich",PIT,"RB103","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-112"
-"357",14,"Brenen Thompson",LAC,"WR127","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-54"
-"358",14,"Michael Carter",TEN,"RB104","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"359",14,"Bryce Lance",NO,"WR128","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-76"
-"360",14,"Dallas Cowboys",DAL,"DST23","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-97"
-"361",14,"Nick Chubb",FA,"RB105","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"362",14,"Anthony Richardson Sr.",IND,"QB41","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+23"
-"363",14,"KaVontae Turpin",DAL,"WR129","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-81"
-"364",14,"Jawhar Jordan",HOU,"RB106","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"365",14,"Kalif Raymond",CHI,"WR130","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-35"
-"366",14,"Treylon Burks",WAS,"WR131","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-5"
-"367",14,"John Metchie III",CAR,"WR132","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"368",14,"Nick Westbrook-Ikhine",IND,"WR133","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","+3"
-"369",14,"Noah Fant",NO,"TE48","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-15"
-"370",14,"Tyler Bass",BUF,"K19","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"371",14,"Zane Gonzalez",MIA,"K20","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"372",14,"Jaylin Lane",WAS,"WR134","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"373",14,"Tutu Atwell",MIA,"WR135","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","+15"
-"374",14,"New York Giants",NYG,"DST24","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-116"
-"375",14,"Raheim Sanders",CLE,"RB107","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-95"
-"376",14,"Justin Joly",DEN,"TE49","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-16"
-"377",14,"Tennessee Titans",TEN,"DST25","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-33"
-"378",14,"Eli Raridon",NE,"TE50","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-4"
-"379",14,"Austin Ekeler",FA,"RB108","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-43"
-"380",14,"Nick Folk",ATL,"K21","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","0 out of 5 stars","-"
-"381",14,"Zavion Thomas",CHI,"WR136","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-122"
-"382",14,"Cincinnati Bengals",CIN,"DST26","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-16"
-"383",14,"Savion Williams",GB,"WR137","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-45"
-"384",14,"Kevin Coleman Jr.",MIA,"WR138","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-50"
-"385",14,"Tampa Bay Buccaneers",TB,"DST27","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-115"
-"386",14,"Jake Elliott",PHI,"K22","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"387",14,"Phil Mafah",DAL,"RB109","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-17"
-"388",14,"Tommy Tremble",CAR,"TE51","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-97"
-"389",14,"Ryan Fitzgerald",CAR,"K23","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","0 out of 5 stars","-"
-"390",14,"Luke Musgrave",GB,"TE52","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-43"
-"391",14,"Ben Sinnott",WAS,"TE53","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-26"
-"392",14,"Blake Grupe",IND,"K24","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"393",14,"Washington Commanders",WAS,"DST28","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-13"
-"394",14,"Trey Smack",GB,"K25","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"395",14,"John Bates",WAS,"TE54","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-"
-"396",15,"Marcus Mariota",WAS,"QB42","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-6"
-"397",15,"DeAndre Hopkins",BAL,"WR139","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"398",15,"Jameis Winston",NYG,"QB43","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-17"
-"399",15,"Ben Sauls",NYG,"K26","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"400",15,"Ashton Dulin",IND,"WR140","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-124"
-"401",15,"Greg Dortch",DET,"WR141","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-81"
-"402",15,"Miami Dolphins",MIA,"DST29","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-15"
-"403",15,"Tyler Lockett",LV,"WR142","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"404",15,"Austin Hooper",ATL,"TE55","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-100"
-"405",15,"Chad Ryland",ARI,"K27","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"406",15,"Daniel Bellinger",TEN,"TE56","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-58"
-"407",15,"Joey Slye",TEN,"K28","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"408",15,"Kyle Juszczyk",SF,"RB110","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"409",15,"Joe Flacco",CIN,"QB44","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-8"
-"410",15,"Deion Burks",IND,"WR143","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"411",15,"Darren Waller",FA,"TE57","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-116"
-"412",15,"Brandon McManus",FA,"K29","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"413",15,"Devontez Walker",BAL,"WR144","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-123"
-"414",15,"Jonnu Smith",FA,"TE58","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-42"
-"415",15,"Jordan Whittington",LAR,"WR145","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-107"
-"416",15,"Jeremy McNichols",WAS,"RB111","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"417",15,"Dyami Brown",WAS,"WR146","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-85"
-"418",15,"Terrell Jennings",NE,"RB112","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"419",15,"Zach Ertz",FA,"TE59","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-113"
-"420",15,"Cyrus Allen",KC,"WR147","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"421",15,"Daniel Carlson",LV,"K30","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-"
-"422",15,"Dameon Pierce",PHI,"RB113","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"423",15,"CJ Daniels",LAR,"WR148","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-"
-"424",15,"Tommy Myers",FA,"TE60","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"425",15,"Demarcus Robinson",SF,"WR149","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"426",15,"Jam Miller",NE,"RB114","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-133"
-"427",15,"Damien Martinez",GB,"RB115","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-87"
-"428",15,"Mitchell Evans",CAR,"TE61","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"429",15,"Elijah Higgins",ARI,"TE62","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-145"
-"430",15,"Marlin Klein",HOU,"TE63","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"431",15,"Rasheen Ali",BAL,"RB116","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-146"
-"432",15,"Spencer Shrader",IND,"K31","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"433",15,"Dylan Laube",LV,"RB117","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"434",15,"Sterling Shepard",FA,"WR150","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"435",15,"Antonio Gibson",FA,"RB118","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"436",15,"Kevin Austin Jr.",NO,"WR151","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"437",15,"Roschon Johnson",CHI,"RB119","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"438",15,"Elijah Moore",PHI,"WR152","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"439",15,"Odell Beckham Jr.",NYG,"WR153","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-140"
-"440",15,"Erick All Jr.",CIN,"TE64","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-124"
-"441",15,"Josh Oliver",MIN,"TE65","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"442",15,"Joe Milton III",DAL,"QB45","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-116"
-"443",15,"Miles Sanders",FA,"RB120","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"444",15,"Nate Boerkircher",JAC,"TE66","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"445",15,"Sam Roush",CHI,"TE67","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"446",15,"Jaret Patterson",LAC,"RB121","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"447",15,"Khalil Herbert",FA,"RB122","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"448",15,"Mitch Tinsley",CIN,"WR154","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"449",15,"Cade Klubnik",NYJ,"QB46","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"450",15,"Ty Chandler",NO,"RB123","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"451",15,"Alexander Mattison",FA,"RB124","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"452",15,"Raheem Mostert",LV,"RB125","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"453",15,"Brittain Brown",CHI,"RB126","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"454",15,"Jordan Waters",LAR,"RB127","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"455",15,"Las Vegas Raiders",LV,"DST30","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-82"
-"456",15,"Diontae Johnson",FA,"WR155","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"457",15,"Jahdae Walker",CHI,"WR156","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"458",15,"Xavier Smith",LAR,"WR157","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-"
-"459",15,"Roman Wilson",PIT,"WR158","9","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"460",15,"Colbie Young",CIN,"WR159","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-84"
-"461",15,"Tai Felton",MIN,"WR160","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"462",15,"Gardner Minshew II",ARI,"QB47","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-173"
-"463",15,"Robert Henry Jr.",WAS,"RB128","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"464",15,"Tanner McKee",PHI,"QB48","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"465",15,"Adam Trautman",DEN,"TE68","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"466",15,"Luke Schoonmaker",DAL,"TE69","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"467",15,"Brock Wright",DET,"TE70","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"468",15,"Jermaine Burton",FA,"WR161","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"469",15,"Ameer Abdullah",JAC,"RB129","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"470",15,"AJ Dillon",CAR,"RB130","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","1 out of 5 stars","-"
-"471",15,"Sione Vaki",DET,"RB131","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","5 out of 5 stars","-"
-"472",16,"Pierre Strong Jr.",GB,"RB132","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
-"473",16,"Tanner Hudson",CIN,"TE71","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"474",16,"Riley Leonard",IND,"QB49","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-173"
-"475",16,"Ronnie Bell",NO,"WR162","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"476",16,"Drew Sample",CIN,"TE72","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"477",16,"Myles Montgomery",NE,"RB133","11","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"478",16,"Taysom Hill",FA,"TE73","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"479",16,"Cam Akers",FA,"RB134","-","Coach Upside rating–No rating available","Coach Bust rating–No rating available","-","-"
-"480",16,"Malik Benson",LV,"WR163","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-153"
-"481",16,"Charlie Kolar",LAC,"TE74","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-187"
-"482",16,"Quinn Ewers",MIA,"QB50","6","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-131"
-"483",16,"Tanner Koziol",JAC,"TE75","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"484",16,"Roman Hemby",LV,"RB135","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"485",16,"Jackson Hawes",BUF,"TE76","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"486",16,"Jaydn Ott",KC,"RB136","5","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"487",16,"Trey Lance",LAC,"QB51","7","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-145"
-"488",16,"Michael Trigg",DAL,"TE77","14","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"489",16,"Thomas Fidone II",NYG,"TE78","8","Coach Upside rating–No rating available","Coach Bust rating–No rating available","3 out of 5 stars","-"
-"490",16,"Jason Sanders",NYJ,"K32","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","2 out of 5 stars","-"
-"491",16,"New York Jets",NYJ,"DST31","13","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-97"
-"492",16,"Elijah Mitchell",PHI,"RB137","10","Coach Upside rating–No rating available","Coach Bust rating–No rating available","4 out of 5 stars","-"
+RK,TIERS,PLAYER NAME,TEAM,POS,BYE WEEK,BEST,WORST,AVG.,STD.DEV,ECR VS. ADP
+1,1,Ja'Marr Chase,CIN,WR1,6,1,4,1.67,1.04,
+2,1,Bijan Robinson,ATL,RB1,11,1,7,3.06,1.49,
+3,1,Puka Nacua,LAR,WR2,11,1,8,3.24,1.32,
+4,1,Jahmyr Gibbs,DET,RB2,6,1,7,3.92,1.80,
+5,1,Jaxon Smith-Njigba,SEA,WR3,11,1,7,4.21,1.18,
+6,2,Amon-Ra St. Brown,DET,WR4,6,4,9,5.97,1.39,
+7,2,Christian McCaffrey,SF,RB3,8,2,21,8.89,4.09,
+8,2,Justin Jefferson,MIN,WR5,6,4,19,9.11,2.28,
+9,2,CeeDee Lamb,DAL,WR6,14,6,19,9.21,2.46,
+10,2,Jonathan Taylor,IND,RB4,13,5,24,11.27,4.16,
+11,2,Drake London,ATL,WR7,11,8,19,11.81,2.43,
+12,3,Nico Collins,HOU,WR8,8,9,28,15.16,3.75,
+13,3,A.J. Brown,NE,WR9,11,8,42,15.60,5.99,
+14,3,Ashton Jeanty,LV,RB5,13,7,31,16.06,5.74,
+15,3,James Cook III,BUF,RB6,7,7,34,18.35,7.03,
+16,3,George Pickens,DAL,WR10,14,12,33,18.86,4.22,
+17,3,Chris Olave,NO,WR11,8,11,35,18.90,5.33,
+18,3,De'Von Achane,MIA,RB7,6,5,39,19.37,6.87,
+19,3,Trey McBride,ARI,TE1,14,16,66,19.46,9.00,
+20,3,Brock Bowers,LV,TE2,13,12,32,20.83,3.01,
+21,3,Chase Brown,CIN,RB8,6,10,33,21.03,4.85,
+22,3,Rashee Rice,KC,WR12,5,11,48,22.67,9.20,
+23,4,Josh Allen,BUF,QB1,7,21,31,25.22,1.25,
+24,4,Omarion Hampton,LAC,RB9,7,10,53,25.52,8.02,
+25,4,DeVonta Smith,PHI,WR13,10,11,52,25.68,8.97,
+26,4,Saquon Barkley,PHI,RB10,10,10,46,27.35,7.37,
+27,4,Tetairoa McMillan,CAR,WR14,5,15,49,29.57,8.58,
+28,4,Garrett Wilson,NYJ,WR15,13,19,47,29.97,6.13,
+29,4,Kenneth Walker III,KC,RB11,5,14,53,31.46,7.52,
+30,4,Tee Higgins,CIN,WR16,6,18,51,33.25,7.68,
+31,4,Zay Flowers,BAL,WR17,13,11,52,33.35,8.56,
+32,4,Lamar Jackson,BAL,QB2,13,23,63,33.89,10.80,
+33,4,Drake Maye,NE,QB3,11,27,65,34.08,9.48,
+34,4,Jeremiyah Love,ARI,RB12,14,22,65,34.87,7.01,
+35,4,Malik Nabers,NYG,WR18,8,11,71,35.30,13.09,
+36,4,Ladd McConkey,LAC,WR19,7,15,51,35.73,6.52,
+37,5,Jaylen Waddle,DEN,WR20,10,18,52,38.14,7.94,
+38,5,Colston Loveland,CHI,TE3,10,22,97,38.46,13.53,
+39,5,Derrick Henry,BAL,RB13,13,13,56,39.52,7.74,
+40,5,Emeka Egbuka,TB,WR21,10,14,64,41.37,10.06,
+41,5,Breece Hall,NYJ,RB14,13,31,75,41.95,6.51,
+42,5,Kyren Williams,LAR,RB15,11,23,56,43.05,7.28,
+43,5,Terry McLaurin,WAS,WR22,7,28,64,43.54,7.71,
+44,5,Joe Burrow,CIN,QB4,6,27,98,43.67,13.36,
+45,5,Josh Jacobs,GB,RB16,11,24,61,44.19,6.92,
+46,5,Luther Burden III,CHI,WR23,10,28,88,44.40,8.38,
+47,5,Travis Etienne Jr.,NO,RB17,8,24,75,46.81,8.40,
+48,5,Javonte Williams,DAL,RB18,14,34,61,47.76,6.40,
+49,5,Davante Adams,LAR,WR24,11,40,69,49.21,6.09,
+50,5,DJ Moore,BUF,WR25,7,20,81,52.79,10.75,
+51,5,Tyler Warren,IND,TE4,13,32,73,52.97,10.86,
+52,5,Jameson Williams,DET,WR26,6,42,69,53.43,6.30,
+53,5,Mike Evans,SF,WR27,8,38,107,53.73,12.68,
+54,6,Cam Skattebo,NYG,RB19,8,39,80,56.08,8.76,
+55,6,Jayden Daniels,WAS,QB5,7,30,92,56.79,14.33,
+56,6,Christian Watson,GB,WR28,11,42,90,57.57,11.30,
+57,6,Bucky Irving,TB,RB20,10,35,78,58.63,8.80,
+58,6,Jalen Hurts,PHI,QB6,10,27,104,59.08,15.13,
+59,6,TreVeyon Henderson,NE,RB21,11,33,86,59.81,11.45,
+60,6,Rome Odunze,CHI,WR29,10,38,94,60.68,10.05,
+61,6,Quinshon Judkins,CLE,RB22,11,39,78,60.81,8.67,
+62,6,D'Andre Swift,CHI,RB23,10,47,78,62.32,7.41,
+63,6,Carnell Tate,TEN,WR30,9,38,218,64.60,26.30,
+64,6,David Montgomery,HOU,RB24,8,45,122,66.14,13.24,
+65,6,Caleb Williams,CHI,QB7,10,30,101,67.30,14.16,
+66,6,Marvin Harrison Jr.,ARI,WR31,14,45,121,68.90,15.08,
+67,6,Justin Herbert,LAC,QB8,7,40,108,70.25,13.22,
+68,6,Tucker Kraft,GB,TE5,11,54,106,73.38,10.88,
+69,6,Bhayshul Tuten,JAC,RB25,7,47,127,73.59,13.67,
+70,6,Jaylen Warren,PIT,RB26,9,65,89,73.89,5.49,
+71,6,Alec Pierce,IND,WR32,13,38,110,74.25,13.42,
+72,6,Harold Fannin Jr.,CLE,TE6,11,51,106,74.57,11.21,
+73,6,DK Metcalf,PIT,WR33,9,48,107,74.81,12.72,
+74,7,Courtland Sutton,DEN,WR34,10,48,100,77.08,12.49,
+75,7,Jadarian Price,SEA,RB27,11,46,118,77.30,11.76,
+76,7,Trevor Lawrence,JAC,QB9,7,59,105,77.87,11.64,
+77,7,Chris Godwin Jr.,TB,WR35,10,45,128,81.54,14.80,
+78,7,Kyle Pitts Sr.,ATL,TE7,11,65,106,81.87,9.74,
+79,7,Brian Thomas Jr.,JAC,WR36,7,51,115,81.90,16.96,
+80,7,Dak Prescott,DAL,QB10,14,58,105,82.75,13.08,
+81,7,Chuba Hubbard,CAR,RB28,5,56,122,83.56,13.83,
+82,7,Michael Pittman Jr.,PIT,WR37,9,45,113,83.57,12.92,
+83,7,Rhamondre Stevenson,NE,RB29,11,67,117,84.33,8.61,
+84,7,Tony Pollard,TEN,RB30,9,65,127,85.10,10.20,
+85,7,Rico Dowdle,PIT,RB31,9,65,107,86.37,9.23,
+86,7,Sam LaPorta,DET,TE8,6,60,112,86.40,9.53,
+87,7,Wan'Dale Robinson,TEN,WR38,9,45,126,86.63,15.18,
+88,7,RJ Harvey,DEN,RB32,10,43,130,86.92,19.10,
+89,7,Michael Wilson,ARI,WR39,14,60,126,87.75,14.56,
+90,7,Jordyn Tyson,NO,WR40,8,60,239,88.13,29.72,
+91,7,Jaxson Dart,NYG,QB11,8,63,119,89.08,14.44,
+92,7,Parker Washington,JAC,WR41,7,57,133,91.16,17.34,
+93,7,Brock Purdy,SF,QB12,8,59,113,93.83,10.79,
+94,7,Jakobi Meyers,JAC,WR42,7,69,121,94.02,11.58,
+95,7,Makai Lemon,PHI,WR43,10,64,224,94.19,23.69,
+96,7,Josh Downs,IND,WR44,13,62,150,97.62,17.19,
+97,7,Travis Kelce,KC,TE9,5,73,144,98.83,12.44,
+98,8,Kyle Monangai,CHI,RB33,10,78,126,100.22,12.05,
+99,8,Patrick Mahomes II,KC,QB13,5,66,126,100.60,10.97,
+100,8,Kenny Gainwell,TB,RB34,10,75,141,100.83,15.46,
+101,8,Bo Nix,DEN,QB14,10,74,116,101.30,8.08,
+102,8,Ricky Pearsall,SF,WR45,8,71,180,102.22,19.60,
+103,8,Matthew Stafford,LAR,QB15,11,54,129,104.08,12.93,
+104,8,Quentin Johnston,LAC,WR46,7,62,137,106.40,16.20,
+105,8,J.K. Dobbins,DEN,RB35,10,80,146,106.48,14.13,
+106,8,Aaron Jones Sr.,MIN,RB36,6,77,143,107.24,15.11,
+107,8,Jake Ferguson,DAL,TE10,14,73,148,107.38,13.81,
+108,8,George Kittle,SF,TE11,8,32,157,107.94,22.57,
+109,8,Jared Goff,DET,QB16,6,63,125,108.48,11.30,
+110,8,Jordan Addison,MIN,WR47,6,80,137,108.59,11.61,
+111,8,Blake Corum,LAR,RB37,11,86,143,109.48,12.95,
+112,8,Rachaad White,WAS,RB38,7,72,156,110.70,16.74,
+113,8,Kyler Murray,MIN,QB17,6,63,147,111.02,13.34,
+114,8,Jayden Reed,GB,WR48,11,81,149,111.30,13.41,
+115,8,Dalton Kincaid,BUF,TE12,7,85,155,112.43,14.47,
+116,8,Khalil Shakir,BUF,WR49,7,88,142,117.92,11.67,
+117,8,Jordan Love,GB,QB18,11,104,139,117.97,7.58,
+118,8,Isaiah Likely,NYG,TE13,8,87,261,119.95,31.72,
+119,8,Baker Mayfield,TB,QB19,10,92,152,119.97,9.62,
+120,8,Dallas Goedert,PHI,TE14,10,95,158,122.00,16.02,
+121,8,Jayden Higgins,HOU,WR50,8,109,165,123.22,10.40,
+122,8,Jacory Croskey-Merritt,WAS,RB39,7,93,159,123.92,13.33,
+123,8,Xavier Worthy,KC,WR51,5,85,150,124.22,11.93,
+124,8,Tyler Shough,NO,QB20,8,105,161,124.65,10.24,
+125,8,Jordan Mason,MIN,RB40,6,102,162,128.38,11.48,
+126,8,KC Concepcion,CLE,WR52,11,82,305,129.44,39.72,
+127,8,Romeo Doubs,NE,WR53,11,90,176,130.59,15.71,
+128,8,Tyrone Tracy Jr.,NYG,RB41,8,113,164,131.83,11.21,
+129,8,Malik Willis,MIA,QB21,6,105,242,132.10,28.56,
+130,9,Jalen Coker,CAR,WR54,5,107,205,134.17,18.26,
+131,9,Mark Andrews,BAL,TE15,13,97,203,135.02,21.73,
+132,9,Jonathon Brooks,CAR,RB42,5,84,357,134.15,45.13,
+133,9,Matthew Golden,GB,WR55,11,91,195,138.71,20.39,
+134,9,Woody Marks,HOU,RB43,8,86,219,139.41,19.99,
+135,9,C.J. Stroud,HOU,QB22,8,114,179,139.62,12.89,
+136,9,Zach Charbonnet,SEA,RB44,11,86,201,141.49,18.08,
+137,9,Tyler Allgeier,ARI,RB45,14,120,257,141.92,23.06,
+138,9,Sam Darnold,SEA,QB23,11,121,242,142.24,17.41,
+139,9,Juwan Johnson,NO,TE16,8,87,196,144.49,22.29,
+140,9,Tyjae Spears,TEN,RB46,9,120,189,144.70,13.27,
+141,9,Chris Rodriguez Jr.,JAC,RB47,7,103,233,145.25,22.33,
+142,9,Dylan Sampson,CLE,RB48,11,122,189,145.49,12.74,
+143,9,Isiah Pacheco,DET,RB49,6,102,169,148.14,11.26,
+144,9,Cam Ward,TEN,QB24,9,124,214,149.51,14.65,
+145,9,Brenton Strange,JAC,TE17,7,106,203,151.54,22.60,
+146,9,Rashid Shaheed,SEA,WR56,11,123,287,153.65,23.36,
+147,9,Alvin Kamara,NO,RB50,8,118,237,153.95,22.47,
+148,9,Jerry Jeudy,CLE,WR57,11,128,199,156.75,17.42,
+149,9,Omar Cooper Jr.,NYJ,WR58,13,128,305,157.08,25.58,
+150,9,Denzel Boston,CLE,WR59,11,115,309,154.81,33.98,
+151,9,Daniel Jones,IND,QB25,13,114,276,159.41,27.82,
+152,9,Bryce Young,CAR,QB26,5,134,242,160.76,20.00,
+153,9,Jauan Jennings,MIN,WR60,6,91,271,153.25,27.70,
+154,9,Hunter Henry,NE,TE18,11,97,226,161.78,24.86,
+155,9,Oronde Gadsden II,LAC,TE19,7,95,254,161.97,37.89,
+156,9,Chig Okonkwo,WAS,TE20,7,98,259,163.49,36.51,
+157,9,Houston Texans,HOU,DST1,8,151,183,153.73,6.50,
+158,9,Jonah Coleman,DEN,RB51,10,125,371,164.24,42.13,
+159,9,Jalen McMillan,TB,WR61,10,121,305,168.79,30.18,
+160,9,Adonai Mitchell,NYJ,WR62,13,136,305,173.49,29.49,
+161,9,Keaton Mitchell,LAC,RB52,7,130,268,165.59,31.70,
+162,10,Dalton Schultz,HOU,TE21,8,112,228,176.43,26.09,
+163,10,Tank Bigsby,PHI,RB53,10,141,290,177.70,28.43,
+164,10,Brian Robinson Jr.,ATL,RB54,11,143,291,175.11,29.75,
+165,10,Denver Broncos,DEN,DST2,10,151,203,163.10,7.55,
+166,10,Travis Hunter,JAC,WR63,7,83,291,171.70,38.11,
+167,10,Tre Tucker,LV,WR64,13,116,291,177.32,27.58,
+168,10,Braelon Allen,NYJ,RB55,13,120,314,173.69,33.59,
+169,10,Seattle Seahawks,SEA,DST3,11,161,189,167.97,4.64,
+170,10,Los Angeles Rams,LAR,DST4,11,151,190,169.27,6.66,
+171,10,Tre' Harris,LAC,WR65,7,133,296,182.32,32.12,
+172,10,T.J. Hockenson,MIN,TE22,6,138,246,187.13,19.72,
+173,10,Troy Franklin,DEN,WR66,10,100,270,189.41,35.09,
+174,10,Ryan Flournoy,DAL,WR67,14,149,327,189.67,29.39,
+175,10,Philadelphia Eagles,PHI,DST5,10,167,204,174.44,6.27,
+176,10,Kayshon Boutte,NE,WR68,11,142,293,191.62,32.06,
+177,10,Stefon Diggs,FA,WR69,,76,312,161.20,47.77,
+178,10,James Conner,ARI,RB56,14,86,304,185.68,46.17,
+179,10,Jacoby Brissett,ARI,QB27,14,128,308,199.62,42.68,
+180,10,Emanuel Wilson,SEA,RB57,11,135,301,193.72,38.46,
+181,10,Brandon Aubrey,DAL,K1,14,185,193,187.20,1.29,
+182,10,New England Patriots,NE,DST6,11,172,249,187.59,13.83,
+183,10,Pittsburgh Steelers,PIT,DST7,9,171,255,188.78,11.37,
+184,10,Jacksonville Jaguars,JAC,DST8,7,179,235,189.08,9.75,
+185,10,Kenyon Sadiq,NYJ,TE23,13,138,339,204.10,32.46,
+186,10,Minnesota Vikings,MIN,DST9,6,171,241,186.26,11.50,
+187,10,Jaylin Noel,HOU,WR70,8,140,285,197.82,32.97,
+188,10,Calvin Ridley,TEN,WR71,9,137,312,203.11,37.36,
+189,10,AJ Barner,SEA,TE24,11,144,256,208.41,24.14,
+190,10,Emmett Johnson,KC,RB58,5,138,335,191.97,43.18,
+191,10,Ka'imi Fairbairn,HOU,K2,8,187,207,192.50,2.85,
+192,10,Cameron Dicker,LAC,K3,7,188,253,196.39,9.75,
+193,10,Isaac TeSlaa,DET,WR72,6,166,280,205.75,25.67,
+194,10,Los Angeles Chargers,LAC,DST10,7,179,279,194.88,18.75,
+195,10,Jalen Nailor,LV,WR73,13,121,304,203.27,47.81,
+196,10,Deebo Samuel Sr.,FA,WR74,,109,340,183.67,45.48,
+197,10,Darnell Mooney,NYG,WR75,8,154,303,207.00,24.37,
+198,10,Ray Davis,BUF,RB59,7,146,326,203.57,35.55,
+199,10,Cam Little,JAC,K4,7,183,333,201.02,19.44,
+200,10,Jason Myers,SEA,K5,11,193,240,201.07,6.54,
+201,10,Malik Washington,MIA,WR76,6,110,303,216.65,40.43,
+202,10,Antonio Williams,WAS,WR77,7,123,322,192.18,45.54,
+203,10,Kimani Vidal,LAC,RB60,7,156,271,200.97,32.20,
+204,10,Mike Washington Jr.,LV,RB61,13,143,319,201.40,38.02,
+205,10,Baltimore Ravens,BAL,DST11,13,183,280,205.88,20.29,
+206,10,Pat Bryant,DEN,WR78,10,168,272,209.60,24.03,
+207,11,Gunnar Helm,TEN,TE25,9,149,292,220.94,29.64,
+208,11,Eddy Pineiro,SF,K6,8,202,242,208.37,5.94,
+209,11,Tyler Loop,BAL,K7,13,193,258,209.12,11.21,
+210,11,Dontayvion Wicks,PHI,WR79,10,154,293,216.21,25.62,
+211,11,Green Bay Packers,GB,DST12,11,188,280,198.91,16.41,
+212,11,Sean Tucker,TB,RB62,10,148,275,205.74,29.78,
+213,11,Cairo Santos,CHI,K8,10,204,260,214.83,6.54,
+214,11,Kansas City Chiefs,KC,DST13,5,186,279,211.12,14.01,
+215,11,Chimere Dike,TEN,WR80,9,142,323,221.68,42.34,
+216,11,Nicholas Singleton,TEN,RB63,9,139,359,218.44,46.68,
+217,11,Detroit Lions,DET,DST14,6,185,279,218.51,23.18,
+218,11,Evan McPherson,CIN,K9,6,200,253,212.93,12.08,
+219,11,De'Zhaun Stribling,SF,WR81,8,168,346,233.54,40.06,
+220,11,Andy Borregales,NE,K10,11,204,282,218.41,15.28,
+221,11,Tank Dell,HOU,WR82,8,173,316,230.36,29.49,
+222,11,Cooper Kupp,SEA,WR83,11,166,299,230.49,32.30,
+223,11,Cleveland Browns,CLE,DST15,11,184,356,210.45,36.68,
+224,11,Brandon Aiyuk,SF,WR84,8,133,341,202.72,47.86,-10
+225,11,Geno Smith,NYJ,QB28,13,153,327,234.44,36.56,
+226,11,Aaron Rodgers,PIT,QB29,9,139,332,229.35,40.75,
+227,11,Buffalo Bills,BUF,DST16,7,185,280,226.54,17.64,
+228,11,Jaylen Wright,MIA,RB64,6,160,288,227.47,23.86,
+229,11,Jake Bates,DET,K11,6,200,266,227.90,15.39,
+230,11,Kaytron Allen,WAS,RB65,7,155,333,219.18,42.94,
+231,11,Germie Bernard,PIT,WR85,9,170,321,230.27,37.96,
+232,11,Chase McLaughlin,TB,K12,10,207,253,222.23,13.51,
+233,11,Justice Hill,BAL,RB66,13,145,318,234.49,46.10,
+234,11,Rashod Bateman,BAL,WR86,13,170,298,237.68,26.74,
+235,11,Cade Otton,TB,TE26,10,173,281,244.76,21.28,
+236,11,Pat Freiermuth,PIT,TE27,9,173,309,246.08,20.81,
+237,11,Fernando Mendoza,LV,QB30,13,159,332,244.18,40.75,
+238,11,Ted Hurst III,TB,WR87,10,195,371,250.52,37.16,
+239,11,David Njoku,LAC,TE28,7,155,342,245.95,28.17,
+240,11,Terrance Ferguson,LAR,TE29,11,158,372,243.78,26.95,
+241,11,Harrison Mevis,LAR,K13,11,204,282,234.88,22.16,
+242,11,Elic Ayomanor,TEN,WR88,9,166,341,238.10,40.08,
+243,11,Zachariah Branch,ATL,WR89,11,170,318,241.31,32.14,
+244,11,Jack Bech,LV,WR90,13,174,367,248.00,34.20,
+245,11,Ollie Gordon II,MIA,RB67,6,169,325,245.62,25.31,
+246,11,Harrison Butker,KC,K14,5,200,282,241.96,25.08,
+247,11,Chris Bell,MIA,WR91,6,149,313,232.56,37.75,
+248,11,Colby Parkinson,LAR,TE30,11,181,300,256.85,22.91,
+249,11,MarShawn Lloyd,GB,RB68,11,156,326,249.05,44.86,
+250,11,Keon Coleman,BUF,WR92,7,180,303,250.31,28.86,
+251,11,Evan Engram,DEN,TE31,10,193,295,260.26,18.46,
+252,11,Ty Johnson,BUF,RB69,7,162,386,252.02,33.94,
+253,12,Elijah Sarratt,BAL,WR93,13,178,324,250.56,30.25,
+254,12,Christian Kirk,SF,WR94,8,170,325,252.40,32.64,
+255,12,Tyreek Hill,FA,WR95,,107,347,225.49,56.18,
+256,12,Chris Boswell,PIT,K15,9,207,282,247.73,11.08,
+257,12,Tory Horton,SEA,WR96,11,150,347,260.21,29.86,
+258,12,Malachi Fields,NYG,WR97,8,154,374,254.91,42.16,
+259,12,Mason Taylor,NYJ,TE32,13,202,352,264.34,34.37,
+260,12,Theo Johnson,NYG,TE33,8,178,325,264.37,31.48,
+261,12,Eli Stowers,PHI,TE34,10,173,361,265.63,34.79,
+262,12,Jaydon Blue,DAL,RB70,14,162,350,258.57,39.49,
+263,12,DJ Giddens,IND,RB71,13,156,329,262.54,31.14,
+264,12,Tua Tagovailoa,ATL,QB31,11,153,332,271.03,40.01,
+265,12,Chris Brooks,GB,RB72,11,177,320,263.30,31.19,
+266,12,Isaiah Davis,NYJ,RB73,13,214,317,256.22,26.29,
+267,12,Marvin Mims Jr.,DEN,WR98,10,184,368,254.70,30.86,
+268,12,Samaje Perine,CIN,RB74,6,157,415,270.05,47.98,
+269,12,Michael Penix Jr.,ATL,QB32,11,179,324,275.20,31.00,
+270,12,Devin Neal,NO,RB75,8,162,364,259.34,40.67,
+271,12,Chris Brazzell II,CAR,WR99,5,175,325,260.26,31.89,
+272,12,Greg Dulcich,MIA,TE35,6,131,309,220.21,47.92,
+273,12,Darius Slayton,NYG,WR100,8,178,381,267.56,40.70,
+274,12,Kaleb Johnson,PIT,RB76,9,146,338,259.71,42.52,
+275,12,Xavier Legette,CAR,WR101,5,205,331,259.88,33.18,
+276,12,LeQuint Allen Jr.,JAC,RB77,7,201,355,263.21,31.61,
+277,12,Demond Claiborne,MIN,RB78,6,157,329,254.10,39.46,
+278,12,Jordan James,SF,RB79,8,157,402,266.48,42.48,
+279,12,Malik Davis,DAL,RB80,14,162,327,274.89,32.09,
+280,12,George Holani,SEA,RB81,11,162,330,264.72,38.53,
+281,12,Seth McGowan,IND,RB82,13,234,335,290.19,25.24,
+282,12,Tyquan Thornton,KC,WR102,5,170,338,274.04,33.15,
+283,12,Devaughn Vele,NO,WR103,8,186,366,272.55,31.02,
+284,12,Wil Lutz,DEN,K16,10,215,333,275.64,29.08,
+285,12,Trey Benson,ARI,RB83,14,120,337,265.88,45.24,
+286,12,Mack Hollins,NE,WR104,11,195,384,273.92,43.48,
+287,12,Atlanta Falcons,ATL,DST17,11,212,347,260.53,24.32,
+288,12,Will Reichard,MIN,K17,6,200,333,265.00,31.06,
+289,12,Kyle Williams,NE,WR105,11,205,382,266.44,37.39,
+290,12,Keenan Allen,LAC,WR106,7,160,305,267.08,29.57,
+291,12,Brashard Smith,KC,RB84,5,231,363,273.64,28.31,
+292,12,Hollywood Brown,PHI,WR107,10,158,371,284.57,30.87,
+293,12,San Francisco 49ers,SF,DST18,8,188,327,263.13,28.88,
+294,12,Shedeur Sanders,CLE,QB33,11,179,335,292.63,32.74,
+295,12,Mike Gesicki,CIN,TE36,6,209,328,265.70,24.88,
+296,12,Deshaun Watson,CLE,QB34,11,179,341,285.27,32.46,
+297,12,Devin Singletary,NYG,RB85,8,182,338,289.85,27.72,
+298,12,Oscar Delp,NO,TE37,8,268,373,312.46,30.66,
+299,12,Kirk Cousins,LV,QB35,13,214,339,300.09,23.90,
+300,12,Emari Demercado,KC,RB86,5,189,343,288.92,33.44,
+301,12,Kendre Miller,NO,RB87,8,169,360,282.27,39.36,
+302,12,Kaelon Black,SF,RB88,8,187,337,276.76,39.87,
+303,12,Jerome Ford,WAS,RB89,7,222,337,286.31,27.87,
+304,12,Najee Harris,LAC,RB90,7,189,317,279.14,31.78,
+305,12,Charlie Smyth,NO,K18,8,226,366,287.22,36.03,
+306,12,Jaleel McLaughlin,DEN,RB91,10,177,370,287.24,32.41,
+307,12,Ja'Kobi Lane,BAL,WR108,13,157,342,276.61,35.55,
+308,12,Skyler Bell,BUF,WR109,7,217,375,277.88,35.71,
+309,12,Trevor Etienne,CAR,RB92,5,268,360,306.22,16.92,
+310,12,Isaiah Bond,CLE,WR110,11,239,376,297.19,34.05,
+311,12,Adam Randall,BAL,RB93,13,231,329,289.91,26.59,
+312,13,Tahj Brooks,CIN,RB94,6,243,361,305.53,23.92,
+313,13,Indianapolis Colts,IND,DST19,13,220,358,286.93,31.71,
+314,13,Jake Tonges,SF,TE38,8,208,336,276.61,28.19,
+315,13,Isaac Guerendo,SF,RB95,8,222,394,299.34,33.43,
+316,13,Andrei Iosivas,CIN,WR111,6,210,343,272.15,30.79,
+317,13,Joe Mixon,FA,RB96,,148,332,284.81,48.02,
+318,13,Jarquez Hunter,LAR,RB97,11,248,364,303.46,22.26,
+319,13,Chicago Bears,CHI,DST20,10,190,349,267.83,48.18,
+320,13,New Orleans Saints,NO,DST21,8,212,356,284.00,36.07,
+321,13,Audric Estime,NO,RB98,8,260,371,306.75,22.99,
+322,13,Darnell Washington,PIT,TE39,9,244,390,293.10,31.03,
+323,13,Will Shipley,PHI,RB99,10,271,348,311.71,19.81,
+324,13,Cedric Tillman,CLE,WR112,11,271,380,308.00,29.41,
+325,13,Konata Mumpfield,LAR,WR113,11,241,369,295.14,31.87,
+326,13,J.J. McCarthy,MIN,QB36,6,241,366,313.67,26.09,
+327,13,Luke McCaffrey,WAS,WR114,7,203,373,305.77,34.26,
+328,13,Kareem Hunt,FA,RB100,,248,423,317.09,27.97,
+329,13,Jahan Dotson,ATL,WR115,11,168,364,289.92,47.21,
+330,13,Jalen Royals,KC,WR116,5,213,380,308.73,37.84,
+331,13,Calvin Austin III,NYG,WR117,8,250,412,309.23,42.62,
+332,13,Tez Johnson,TB,WR118,10,180,362,303.54,36.11,
+333,13,Olamide Zaccheaus,ATL,WR119,11,205,385,297.81,39.55,
+334,13,Caleb Douglas,MIA,WR120,6,174,391,292.46,60.08,
+335,13,Max Klare,LAR,TE40,11,268,352,302.73,26.76,
+336,13,Jalen Tolbert,MIA,WR121,6,206,389,297.08,47.95,
+337,13,Joshua Palmer,BUF,WR122,7,203,376,300.13,46.62,
+338,13,Mac Jones,SF,QB37,8,271,445,331.84,32.94,
+339,13,Elijah Arroyo,SEA,TE41,11,252,364,312.64,25.69,
+340,13,Bam Knight,ARI,RB101,14,243,372,311.33,28.99,
+341,13,Noah Gray,KC,TE42,5,259,367,321.69,26.41,
+342,13,Michael Mayer,LV,TE43,13,267,389,303.62,32.00,
+343,13,Tyler Higbee,LAR,TE44,11,226,384,314.30,38.97,
+344,13,Ja'Tavion Sanders,CAR,TE45,5,261,390,314.45,28.06,
+345,13,Cole Kmet,CHI,TE46,10,259,398,316.29,33.17,
+346,13,DeMario Douglas,NE,WR123,11,184,425,321.32,48.45,
+347,13,Dont'e Thornton Jr.,LV,WR124,13,272,373,318.14,35.63,
+348,13,Kendrick Bourne,ARI,WR125,14,224,448,310.21,64.37,
+349,13,Dawson Knox,BUF,TE47,7,256,405,321.67,35.72,
+350,13,Carson Beck,ARI,QB38,14,257,392,334.00,27.79,
+351,13,Eli Heidenreich,PIT,RB102,9,251,388,317.25,39.15,
+352,13,Ty Simpson,LAR,QB39,11,282,398,335.17,23.52,
+353,13,Xavier Hutchinson,HOU,WR126,8,256,384,318.50,35.67,
+354,13,Justin Fields,KC,QB40,5,290,380,337.29,23.22,
+355,14,Carolina Panthers,CAR,DST22,5,220,368,305.65,41.34,
+356,14,J'Mari Taylor,JAC,RB103,7,286,381,326.80,23.16,
+357,14,Jawhar Jordan,HOU,RB104,8,162,407,318.61,53.65,
+358,14,Bryce Lance,NO,WR127,8,237,387,311.38,37.48,
+359,14,Brenen Thompson,LAC,WR128,7,245,394,319.06,43.35,
+360,14,Kalif Raymond,CHI,WR129,10,225,406,320.25,43.77,
+361,14,Michael Carter,TEN,RB105,9,294,417,335.06,36.87,
+362,14,Anthony Richardson Sr.,IND,QB41,13,303,381,340.42,20.13,
+363,14,Dallas Cowboys,DAL,DST23,14,186,367,283.91,50.47,
+364,14,Treylon Burks,WAS,WR130,7,250,397,313.57,45.34,
+365,14,Tyler Bass,BUF,K19,7,216,411,272.10,53.95,
+366,14,KaVontae Turpin,DAL,WR131,14,210,435,299.25,61.43,
+367,14,Nick Chubb,FA,RB106,,305,385,331.38,25.10,
+368,14,John Metchie III,CAR,WR132,5,289,418,337.82,41.22,
+369,14,Nick Westbrook-Ikhine,IND,WR133,13,230,412,320.93,55.17,
+370,14,Jaylin Lane,WAS,WR134,7,293,399,341.24,34.54,
+371,14,Savion Williams,GB,WR135,11,286,446,341.38,41.27,
+372,14,Tutu Atwell,MIA,WR136,6,270,426,328.93,46.85,
+373,14,Raheim Sanders,CLE,RB107,11,282,411,339.94,35.52,
+374,14,Noah Fant,NO,TE48,8,288,417,344.38,29.72,
+375,14,Eli Raridon,NE,TE49,11,247,449,341.53,48.55,
+376,14,Zane Gonzalez,MIA,K20,6,203,409,320.08,49.70,
+377,14,Justin Joly,DEN,TE50,10,261,395,338.64,34.99,
+378,14,Jake Elliott,PHI,K21,10,212,384,283.88,63.16,
+379,14,New York Giants,NYG,DST24,8,190,388,270.71,62.64,
+380,14,Kevin Coleman Jr.,MIA,WR137,6,262,422,334.25,48.62,
+381,14,Cincinnati Bengals,CIN,DST25,6,206,359,250.83,53.87,
+382,14,Zavion Thomas,CHI,WR138,10,258,443,327.20,60.21,
+383,14,Phil Mafah,DAL,RB108,14,210,401,325.80,51.59,
+384,14,Austin Ekeler,FA,RB109,,275,404,341.36,37.36,
+385,14,Tommy Tremble,CAR,TE51,5,306,419,348.17,30.15,
+386,14,Greg Dortch,DET,WR139,6,208,414,326.56,62.61,
+387,14,Trey Smack,GB,K22,11,200,375,259.20,61.55,
+388,14,Tampa Bay Buccaneers,TB,DST26,10,249,366,320.38,42.54,
+389,14,Luke Musgrave,GB,TE52,11,314,386,355.83,21.64,
+390,14,Tennessee Titans,TEN,DST27,9,151,361,238.00,79.10,
+391,14,Nick Folk,ATL,K23,11,181,368,244.25,72.72,
+392,14,John Bates,WAS,TE53,7,274,431,336.00,50.51,
+393,14,Ben Sinnott,WAS,TE54,7,321,415,361.09,28.84,
+394,14,Jameis Winston,NYG,QB42,8,321,398,356.20,23.49,
+395,14,Ben Sauls,NYG,K24,8,183,455,299.60,100.53,
+396,14,Dameon Pierce,PHI,RB110,10,314,389,352.00,23.15,
+397,14,Devontez Walker,BAL,WR140,13,273,453,323.83,59.73,
+398,14,Jordan Whittington,LAR,WR141,11,291,444,355.89,47.77,
+399,14,Joe Flacco,CIN,QB43,6,328,388,359.90,22.05,
+400,14,Kyle Juszczyk,SF,RB111,8,219,358,300.00,55.68,
+401,14,Daniel Bellinger,TEN,TE55,9,311,398,357.56,27.08,
+402,14,Terrell Jennings,NE,RB112,11,311,408,350.00,35.75,
+403,14,Deion Burks,IND,WR142,13,315,456,362.78,41.20,
+404,14,Dyami Brown,WAS,WR143,7,298,457,334.50,56.55,
+405,14,Ashton Dulin,IND,WR144,13,298,331,312.40,11.67,
+406,14,Washington Commanders,WAS,DST28,7,190,404,314.60,73.99,
+407,14,Ryan Fitzgerald,CAR,K25,5,184,410,292.50,99.24,
+408,14,Jam Miller,NE,RB113,11,326,379,348.14,16.00,
+409,14,Erick All Jr.,CIN,TE56,6,306,369,336.33,23.41,
+410,14,Odell Beckham Jr.,NYG,WR145,8,154,374,297.50,85.35,
+411,14,Antonio Gibson,FA,RB114,,263,436,342.17,52.51,
+412,14,Spencer Shrader,IND,K26,13,215,282,259.67,31.58,
+413,14,Tommy Myers,FA,TE57,,290,427,352.43,52.74,
+414,14,Cyrus Allen,KC,WR146,5,272,440,354.71,52.62,
+415,14,CJ Daniels,LAR,WR147,11,303,420,352.29,35.50,
+416,14,Marlin Klein,HOU,TE58,8,324,372,352.57,14.41,
+417,14,Marcus Mariota,WAS,QB44,7,327,378,352.86,18.34,
+418,14,Austin Hooper,ATL,TE59,11,309,353,326.60,18.52,
+419,14,DeAndre Hopkins,BAL,WR148,13,126,452,281.33,133.53,
+420,14,Darren Waller,FA,TE60,,320,413,356.43,29.81,
+421,14,Elijah Higgins,ARI,TE61,14,340,429,373.00,25.02,
+422,14,Jonnu Smith,FA,TE62,,255,430,314.75,69.13,
+423,15,Blake Grupe,IND,K27,13,199,356,278.00,64.10,
+424,15,Joe Milton III,DAL,QB45,14,310,388,339.80,28.07,
+425,15,Chad Ryland,ARI,K28,14,192,395,320.00,78.60,
+426,15,Zach Ertz,FA,TE63,,246,403,340.20,53.34,
+427,15,Tyler Lockett,LV,WR149,13,199,414,290.00,90.82,
+428,15,Josh Oliver,MIN,TE64,6,315,367,344.80,18.39,
+429,15,Damien Martinez,GB,RB115,11,317,413,357.67,32.95,
+430,15,Jeremy McNichols,WAS,RB116,7,238,387,327.50,54.87,
+431,15,Miami Dolphins,MIA,DST29,6,318,394,346.20,28.62,
+432,15,Joey Slye,TEN,K29,9,203,405,328.50,76.82,
+433,15,Jahdae Walker,CHI,WR150,10,289,375,328.75,30.63,
+434,15,Cade Klubnik,NYJ,QB46,13,323,388,347.80,21.59,
+435,15,Rasheen Ali,BAL,RB117,13,292,317,304.33,10.21,
+436,15,Sterling Shepard,FA,WR151,,244,267,255.50,11.50,
+437,15,Dylan Laube,LV,RB118,13,288,330,313.33,18.21,
+438,15,Elijah Moore,PHI,WR152,10,262,384,315.33,50.97,
+439,15,Xavier Smith,LAR,WR153,11,264,372,318.33,44.09,
+440,15,Miles Sanders,FA,RB119,,222,447,329.00,92.18,
+441,15,Sam Roush,CHI,TE65,10,298,377,345.00,29.54,
+442,15,Nate Boerkircher,JAC,TE66,7,293,390,345.25,34.85,
+443,15,Mitchell Evans,CAR,TE67,5,339,392,370.50,18.66,
+444,15,Kevin Austin Jr.,NO,WR154,8,264,280,272.00,8.00,
+445,15,Roschon Johnson,CHI,RB120,10,332,394,362.60,26.32,
+446,15,Demarcus Robinson,SF,WR155,8,308,416,363.00,36.23,
+447,15,Jaret Patterson,LAC,RB121,7,292,365,329.67,29.85,
+448,15,Charlie Kolar,LAC,TE68,7,320,372,353.75,21.29,12
+449,15,Mitch Tinsley,CIN,WR156,6,298,396,332.33,45.07,
+450,15,Khalil Herbert,FA,RB122,,278,311,294.50,16.50,-15
+451,15,Alexander Mattison,FA,RB123,,266,326,296.00,30.00,-14
+452,15,Brandon McManus,FA,K30,,210,396,303.00,93.00,
+453,15,Hunter Luepke,DAL,RB124,14,294,313,303.50,9.50,23
+454,15,Malik Benson,LV,WR157,13,350,437,377.40,31.68,
+455,15,Ty Chandler,NO,RB125,8,314,383,344.33,28.78,
+456,15,Daniel Carlson,LV,K31,13,209,406,307.50,98.50,
+457,15,Sione Vaki,DET,RB126,6,294,327,310.50,16.50,
+458,15,Van Jefferson,WAS,WR158,7,284,344,314.00,30.00,
+459,15,Raheem Mostert,LV,RB127,13,315,318,316.50,1.50,
+460,15,Las Vegas Raiders,LV,DST30,13,280,362,321.00,41.00,
+461,15,Diontae Johnson,FA,WR159,,283,361,322.00,39.00,
+462,15,Jordan Waters,LAR,RB128,11,283,364,323.50,40.50,
+463,15,Colbie Young,CIN,WR160,6,312,345,328.50,16.50,
+464,15,Tai Felton,MIN,WR161,6,241,458,349.50,108.50,
+465,15,Gardner Minshew II,ARI,QB47,14,339,375,360.33,15.43,
+466,15,Robert Henry Jr.,WAS,RB129,7,332,400,375.75,26.63,
+467,15,Myles Montgomery,NE,RB130,11,352,367,361.67,6.85,
+468,15,Adam Trautman,DEN,TE69,10,355,378,363.67,10.21,
+469,15,Riley Leonard,IND,QB48,13,310,398,365.67,39.53,
+470,15,Jermaine Burton,FA,WR162,,258,459,358.50,100.50,
+471,15,Ronnie Rivers,LAR,RB131,11,327,354,340.50,13.50,15
+472,15,Brock Wright,DET,TE70,6,353,382,368.00,11.86,
+473,15,Cash Jones,ATL,RB132,11,329,358,343.50,14.50,14
+474,15,Ameer Abdullah,JAC,RB133,7,301,389,345.00,44.00,-22
+475,15,Roman Wilson,PIT,WR163,9,343,347,345.00,2.00,
+476,15,Tyler Badie,DEN,RB134,10,365,380,370.33,6.85,28
+477,15,Tanner Hudson,CIN,TE71,6,342,355,348.50,6.50,
+478,15,Luke Schoonmaker,DAL,TE72,14,381,395,386.00,5.39,
+479,15,Durham Smythe,BAL,TE73,13,353,365,359.00,6.00,12
+480,15,Drew Sample,CIN,TE74,6,352,367,359.50,7.50,
+481,15,Taysom Hill,FA,TE75,,299,441,370.00,71.00,
+482,15,Jaydn Ott,KC,RB135,5,376,383,380.00,2.94,17
+483,15,Cam Akers,FA,RB136,,304,439,371.50,67.50,-26
+484,15,Elijah Tau-Tolliver,BAL,RB137,13,332,394,363.00,31.00,26
+485,15,Ronnie Bell,NO,WR164,8,341,385,363.00,22.00,
+486,16,Quinn Ewers,MIA,QB49,6,349,382,365.50,16.50,
+487,16,Jackson Hawes,BUF,TE76,7,369,392,383.67,10.40,
+488,16,Donovan Edwards,MIA,RB138,6,346,387,366.50,20.50,
+489,16,Tanner Koziol,JAC,TE77,7,356,377,366.50,10.50,
+490,16,Frank Gore Jr.,BUF,RB139,7,365,370,367.50,2.50,23
+491,16,Roman Hemby,LV,RB140,13,366,373,369.50,3.50,
+492,16,Mo Alie-Cox,IND,TE78,13,350,395,372.50,22.50,
+493,16,David Sills V,TB,WR165,10,351,397,374.00,23.00,22
+494,16,Reggie Virgil,ARI,WR166,14,384,396,389.33,4.99,
+495,16,Jared Wiley,KC,TE79,5,357,395,376.00,19.00,14
+496,16,Jimmy Horn Jr.,CAR,WR167,5,380,383,381.50,1.50,20
+497,16,Michael Trigg,DAL,TE80,14,347,434,390.50,43.50,
+498,16,Trey Lance,LAC,QB50,7,377,398,387.50,10.50,
+499,16,Thomas Fidone II,NYG,TE81,8,355,442,398.50,43.50,
+500,16,Jason Sanders,NYJ,K32,13,376,407,391.50,15.50,
+501,16,New York Jets,NYJ,DST31,13,365,433,399.00,34.00,
