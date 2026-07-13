@@ -4,9 +4,6 @@ on:
   schedule:
     - cron: '0 10 * * *'   # daily 10:00 UTC (6am ET)
   workflow_dispatch:
-  push:  # TEMPORARY: pre-merge test run — remove before merging
-    branches:
-      - claude/fantasy-football-rankings-0wpf34
 
 permissions:
   contents: write
