@@ -25,15 +25,26 @@ CSVs and registers a service worker, both of which require http(s).)
 | `sw.js` | Service worker — offline caching for app shell + CDN assets |
 | `manifest.json` | PWA manifest |
 | `rankings.csv` / `adp_rankings.csv` | NFL ECR + ADP data (FantasyPros export format) |
-| `cfl_rankings.csv` / `cfl_adp_rankings.csv` | CFL equivalents |
+| `sleeper_rankings.csv` | Sleeper site ranks + Landmine scores ("Abusing Draft Rankings" sheet) |
+| `cfl_rankings.csv` / `cfl_adp_rankings.csv` | CFL equivalents (maintained by hand) |
 | `keepers.xlsx` | Dynasty keepers + pick ownership sheet |
+| `scripts/update_rankings.py` | Refreshes the three NFL CSVs from their live sources |
 | `backtest/` | Standalone draft-strategy simulation scripts (run with `node`) |
 
 ## Data sources
 
 - **FantasyPros CSV** (bundled or imported via 📂 Rankings) — ECR, ADP, tiers, std-dev
+- **"Abusing Draft Rankings" Google Sheet** — Sleeper's own draft ranks + Landmine scores
 - **Sleeper API** — league/rosters/draft order (Dynasty), weekly projections
 - **FantasyCalc API** — trade values for the draft report card
+
+The three NFL CSVs refresh automatically every day at 10:00 UTC via the
+`Update rankings` GitHub Actions workflow
+(`.github/workflows/update-rankings.yml`), which runs
+`scripts/update_rankings.py` and commits only when the data changed. It can
+also be run on demand from the repo's Actions tab. A source that fails to
+fetch keeps its previous CSV, and a source returning suspiciously few
+players is rejected rather than committed.
 
 ## Draft logic
 
