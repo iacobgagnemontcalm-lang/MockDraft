@@ -629,9 +629,9 @@ header {
       <div id="cfg-adpsource-row" style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ADP Rankings</div>
         <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="sleeper" checked><span class="radio-dot"></span><span>Sleeper ranks</span></label>
-          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="market"><span class="radio-dot"></span><span>Market ADP</span></label>
-          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="blend"><span class="radio-dot"></span><span>Earliest of both</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="sleeper" checked><span class="radio-dot"></span><span>Sleeper PPR</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="espn"><span class="radio-dot"></span><span>ESPN PPR</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="yahoo"><span class="radio-dot"></span><span>Yahoo PPR</span></label>
         </div>
       </div>
 
@@ -946,7 +946,7 @@ let teamModes = {};   // rosterId -> 'manual' | 'vor' | 'ecr' | 'adp'
 let teamGutMap = {};  // rosterId -> 0–100 (0=MoneyBall, 100=GutFeeling) for autopilot
 let cachedADPText = null; // raw text of adp_rankings.csv, re-applied after any buildPlayers()
 let cachedECRText = null; // raw text of rankings.csv, re-applied after any buildPlayers()
-let cachedSleeperRankText = null; // raw text of sleeper_rankings.csv, re-applied after any buildPlayers()
+let cachedSiteRankText = null; // raw text of sleeper_rankings.csv, re-applied after any buildPlayers()
 let autoPilotRunning = false;
 
 // ── Hypothetical trades ──
@@ -1782,7 +1782,7 @@ function buildPlayers() {
   if (cachedECRText) {
     loadCSVText(cachedECRText);        // fully rebuilds players[] from rankings.csv
     if (cachedADPText) loadADPCSVText(cachedADPText); // overlay ADP source
-    if (cachedSleeperRankText) loadSleeperRankCSVText(cachedSleeperRankText); // overlay Sleeper site ranks
+    if (cachedSiteRankText) loadSiteRankCSVText(cachedSiteRankText); // overlay Sleeper site ranks
     applyADPSource();                  // set .adp from the configured ADP source
   }
   // If cachedECRText is null, players stays empty — init() will load the CSVs shortly
@@ -1954,26 +1954,57 @@ let _availAdpSorted = null;
 function invalidateBoardCaches() { _availAdpSorted = null; }
 
 // ── ADP source (config.adpSource) ──────────────────────────────────────────
-// 'sleeper' — Sleeper's own draft rank drives the ADP column, board sort and
-//             availability odds (matches what your Sleeper room actually does)
-// 'market'  — classic market ADP (FantasyPros/FFC)
-// 'blend'   — the EARLIER of the two (the "Abusing Draft Rankings" insight:
-//             a player leaves the board at whichever rank comes first)
+// 'sleeper' | 'espn' | 'yahoo' — that platform's own draft rank (from the
+//     "Abusing Draft Rankings" sheet) drives the ADP column, board sort and
+//     availability odds: it's the order that platform's rooms actually draft in.
+//     Players beyond the sheet's top 200 fall back to market ADP.
+// 'market' — classic market ADP (FantasyPros/FFC), badges still from Sleeper
+// 'blend'  — legacy: the EARLIER of market ADP and Sleeper's rank
+var SITE_SOURCES = { sleeper: 'Sleeper', espn: 'ESPN', yahoo: 'Yahoo' };
+function siteLabel() {
+  var s = (LEAGUE_CONFIG && LEAGUE_CONFIG.adpSource) || 'blend';
+  return SITE_SOURCES[s] || 'Sleeper';
+}
+function siteShort() {
+  var s = (LEAGUE_CONFIG && LEAGUE_CONFIG.adpSource) || 'blend';
+  return s === 'espn' ? 'ESPN' : s === 'yahoo' ? 'YHOO' : 'SLPR';
+}
 function applyADPSourceTo(p) {
   var mode   = (LEAGUE_CONFIG && LEAGUE_CONFIG.adpSource) || 'blend';
   var market = (p.fpAdp && p.fpAdp > 0) ? p.fpAdp : null;
-  var slpr   = p.sleeperRank || null;
-  if (mode === 'sleeper') {
-    if (slpr) p.adp = slpr; else if (market) p.adp = market;
+  var site   = p.siteRank || null;
+  if (SITE_SOURCES[mode]) {
+    if (site) p.adp = site; else if (market) p.adp = market;
   } else if (mode === 'market') {
     if (market) p.adp = market;
   } else {
-    var eff = Math.min(market || Infinity, slpr || Infinity);
+    var eff = Math.min(market || Infinity, site || Infinity);
     if (eff < Infinity) p.adp = eff;
   }
   // players matched by neither source keep their expert-avg fallback from rankings.csv
 }
 function applyADPSource() { players.forEach(applyADPSourceTo); invalidateBoardCaches(); }
+
+// Fetch the site-rank CSV matching the configured ADP source. 'market' and
+// legacy 'blend' still load Sleeper's file for the 💣/💎 badges and blending.
+let loadedSiteRankSource = null;
+async function loadSiteRanks() {
+  if (LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl') return;
+  var cfgSrc = (LEAGUE_CONFIG && LEAGUE_CONFIG.adpSource) || 'blend';
+  var src = SITE_SOURCES[cfgSrc] ? cfgSrc : 'sleeper';
+  if (loadedSiteRankSource === src && cachedSiteRankText) return;
+  try {
+    const res = await fetch(src + '_rankings.csv', { cache: 'no-cache' });
+    if (res.ok) {
+      cachedSiteRankText = await res.text();
+      loadedSiteRankSource = src;
+      const n = loadSiteRankCSVText(cachedSiteRankText);
+      if (n) console.log('Auto-loaded ' + src + '_rankings.csv —', n, 'players updated');
+    }
+  } catch(e) {
+    console.warn('Could not auto-load ' + src + ' site ranks:', e.message);
+  }
+}
 
 // Effective draft position for availability odds — p.adp already reflects the
 // configured ADP source (see applyADPSourceTo).
@@ -3103,11 +3134,11 @@ function renderBoard() {
     const rookieBadge = p.isRookie ? ` <span style="font-size:8px;color:var(--gold);font-weight:700" title="Rookie">R</span>` : '';
     const handcuffBadge = isHandcuff ? ` <span class="handcuff-badge" title="Handcuff for ${escHtml(myRbTeams[p.nfl].join(', '))} (${escHtml(p.nfl)})">🔗</span>` : '';
     // Landmine / value badge (Abusing Draft Rankings — Sleeper rank vs FantasyPros ECR)
-    const lmBadge = (!p.drafted && p.landmine != null && p.sleeperRank)
+    const lmBadge = (!p.drafted && p.landmine != null && p.siteRank)
       ? (p.landmine >= 7.5
-          ? ` <span style="font-size:9px" title="Landmine ${p.landmine.toFixed(1)}/10 — Sleeper ranks him #${p.sleeperRank.toFixed(0)} vs ECR #${p.ecr.toFixed(0)}: likely drafted well before his ECR">💣</span>`
+          ? ` <span style="font-size:9px" title="Landmine ${p.landmine.toFixed(1)}/10 — ${siteLabel()} ranks him #${p.siteRank.toFixed(0)} vs ECR #${p.ecr.toFixed(0)}: likely drafted well before his ECR">💣</span>`
         : p.landmine <= 4.5
-          ? ` <span style="font-size:9px" title="Value ${p.landmine.toFixed(1)}/10 — Sleeper ranks him #${p.sleeperRank.toFixed(0)} vs ECR #${p.ecr.toFixed(0)}: likely to fall past his ECR">💎</span>`
+          ? ` <span style="font-size:9px" title="Value ${p.landmine.toFixed(1)}/10 — ${siteLabel()} ranks him #${p.siteRank.toFixed(0)} vs ECR #${p.ecr.toFixed(0)}: likely to fall past his ECR">💎</span>`
         : '')
       : '';
     const natBadge = p.isNational ? ` <span style="font-size:8px;color:#00bcd4;font-weight:700" title="National Player (NAT-eligible)">NAT</span>` : '';
@@ -3116,7 +3147,7 @@ function renderBoard() {
     // ── Pick probability bar ──
     const prob = p.drafted ? null : computePickProb(p);
     const probHtml = (prob !== null && !p.drafted)
-      ? `<span style="min-width:40px;text-align:right" title="Still available: ${(prob*100).toFixed(0)}% · ADP#${p.adp.toFixed(0)}${p.sleeperRank ? ' · SLPR#' + p.sleeperRank.toFixed(0) : ''}">
+      ? `<span style="min-width:40px;text-align:right" title="Still available: ${(prob*100).toFixed(0)}% · ADP#${p.adp.toFixed(0)}${p.siteRank ? ' · ' + siteShort() + '#' + p.siteRank.toFixed(0) : ''}">
            <div style="font-size:8px;color:var(--dim);text-align:right;line-height:1.2">${(prob*100).toFixed(0)}%</div>
            <div class="pick-prob-bar" style="width:40px"><div class="pick-prob-fill" style="width:${(prob*100).toFixed(0)}%;opacity:${prob < 0.2 ? 0.4 : 1}"></div></div>
          </span>`
@@ -3380,7 +3411,7 @@ function selectPlayer(name) {
   if (!selectedPlayer) return;
   const pc = posClass(selectedPlayer.pos);
   document.getElementById('sel-info').innerHTML =
-    `<span class="sel-name">${escHtml(selectedPlayer.name)}</span> &nbsp;<span class="pos-tag pos-${pc}" style="display:inline">${selectedPlayer.pos}</span>&nbsp; <span class="sel-pos">${escHtml(selectedPlayer.nfl)} · ECR #${selectedPlayer.ecr.toFixed(0)} · ADP #${selectedPlayer.adp.toFixed(0)}${selectedPlayer.sleeperRank ? ' · SLPR #' + selectedPlayer.sleeperRank.toFixed(0) : ''}${selectedPlayer.landmine != null ? ' · LM ' + selectedPlayer.landmine.toFixed(1) : ''} · Tier ${selectedPlayer.tier}</span>`;
+    `<span class="sel-name">${escHtml(selectedPlayer.name)}</span> &nbsp;<span class="pos-tag pos-${pc}" style="display:inline">${selectedPlayer.pos}</span>&nbsp; <span class="sel-pos">${escHtml(selectedPlayer.nfl)} · ECR #${selectedPlayer.ecr.toFixed(0)} · ADP #${selectedPlayer.adp.toFixed(0)}${selectedPlayer.siteRank ? ' · ' + siteShort() + ' #' + selectedPlayer.siteRank.toFixed(0) : ''}${selectedPlayer.landmine != null ? ' · LM ' + selectedPlayer.landmine.toFixed(1) : ''} · Tier ${selectedPlayer.tier}</span>`;
   document.getElementById('draft-btn').disabled = false;
   // Sync mobile draft bar
   const mobName = document.getElementById('mob-sel-name');
@@ -4849,23 +4880,26 @@ function loadADPCSVText(text) {
   return matched;
 }
 
-// Loads the Sleeper site-rank CSV (sleeper_rankings.csv, exported from the
-// community "Abusing Draft Rankings" sheet — Sleeper PPR tab). Columns:
-// PLAYER NAME, TEAM, POS, BYE, FP RANK, SLEEPER RANK, LANDMINE.
-// Sets .sleeperRank (Sleeper's default draft rank — the order Sleeper rooms
-// actually draft in) and .landmine (0–10 reach-risk score: ~6 neutral,
+// Loads a platform site-rank CSV ({sleeper|espn|yahoo}_rankings.csv, exported
+// from the community "Abusing Draft Rankings" sheet's PPR tabs). Columns:
+// PLAYER NAME, TEAM, POS, BYE, FP RANK, SITE RANK, LANDMINE.
+// Sets .siteRank (the platform's default draft rank — the order that site's
+// rooms actually draft in) and .landmine (0–10 reach-risk score: ~6 neutral,
 // low = value that will fall, high = will go well before ECR).
-function loadSleeperRankCSVText(text) {
+function loadSiteRankCSVText(text) {
   var lines = text.trim().split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) return 0;
 
   var headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
   var iName = headers.indexOf('player name');
-  var iRank = headers.indexOf('sleeper rank');
+  var iRank = headers.indexOf('site rank');
+  if (iRank === -1) iRank = headers.indexOf('sleeper rank'); // legacy header
   var iLand = headers.indexOf('landmine');
   if (iName === -1 || iRank === -1) {
-    console.warn('Sleeper rank CSV missing PLAYER NAME or SLEEPER RANK column'); return 0;
+    console.warn('Site rank CSV missing PLAYER NAME or SITE RANK column'); return 0;
   }
+  // Clear previous overlay so switching platforms doesn't leave stale ranks
+  players.forEach(p => { p.siteRank = null; p.landmine = null; });
 
   var byName = {};
   players.forEach(p => { byName[p.name] = p; });
@@ -4878,7 +4912,7 @@ function loadSleeperRankCSVText(text) {
     var rank = parseFloat(get(iRank)); if (isNaN(rank)) continue;
     var p = fuzzyGet(byName, name);
     if (!p) continue;
-    p.sleeperRank = rank;
+    p.siteRank = rank;
     var lm = parseFloat(get(iLand));
     p.landmine = isNaN(lm) ? null : lm;
     matched++;
@@ -5493,7 +5527,9 @@ function lobbyJoinById() {
 }
 
 function startDraft(sessionId) {
-  applyADPSource(); // session config (incl. adpSource) is resolved by now
+  // Session config (incl. adpSource) is resolved by now — the right platform
+  // file may differ from the one init() preloaded, so re-fetch if needed.
+  loadSiteRanks().then(function() { applyADPSource(); renderAll(); });
   document.getElementById('session-id-display').textContent = sessionId;
   ensureFirebaseDb();
   if (fbDb) {
@@ -5659,10 +5695,10 @@ function parseHashConfig() {
   return null;
 }
 
-// 'sleeper' | 'market' | 'blend'; legacy sessions without the param keep the
-// old behavior (market ADP display, earliest-of-both availability) via 'blend'.
+// 'sleeper' | 'espn' | 'yahoo' pick a platform's ranks; 'market' and 'blend'
+// are legacy values kept so old session links behave as before.
 function parseAdpSourceParam(a) {
-  return (a === 'sleeper' || a === 'market' || a === 'blend') ? a : 'blend';
+  return (a === 'sleeper' || a === 'espn' || a === 'yahoo' || a === 'market' || a === 'blend') ? a : 'blend';
 }
 
 // Build the hash string for a given session+config (used by lobbyCreate / lobbyJoin)
@@ -5938,19 +5974,8 @@ async function init() {
     console.warn('Could not auto-load ADP rankings:', e.message);
   }
 
-  // Auto-load Sleeper site ranks + Landmine scores (Abusing Draft Rankings sheet)
-  if (!isCFL) {
-    try {
-      const srRes = await fetch('sleeper_rankings.csv', { cache: 'no-cache' });
-      if (srRes.ok) {
-        cachedSleeperRankText = await srRes.text();
-        const srMatched = loadSleeperRankCSVText(cachedSleeperRankText);
-        if (srMatched) console.log('Auto-loaded sleeper_rankings.csv —', srMatched, 'players updated');
-      }
-    } catch(e) {
-      console.warn('Could not auto-load Sleeper site ranks:', e.message);
-    }
-  }
+  // Auto-load site ranks + Landmine scores (Abusing Draft Rankings sheet)
+  if (!isCFL) await loadSiteRanks();
   applyADPSource();
 
   buildDraftOrder();

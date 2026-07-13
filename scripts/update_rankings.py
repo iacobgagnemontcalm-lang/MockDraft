@@ -3,10 +3,11 @@
 
 Regenerates the bundled NFL ranking CSVs from their live sources:
 
-  rankings.csv          FantasyPros PPR consensus cheatsheet (ECR + tiers)
-  adp_rankings.csv      FantasyPros PPR overall ADP
-  sleeper_rankings.csv  "Abusing Fantasy Draft Rankings 2026" Google Sheet,
-                        Sleeper PPR tab (Sleeper site rank + Landmine score)
+  rankings.csv                    FantasyPros PPR consensus cheatsheet (ECR + tiers)
+  adp_rankings.csv                FantasyPros PPR overall ADP
+  {sleeper,espn,yahoo}_rankings.csv  "Abusing Fantasy Draft Rankings 2026" Google
+                                  Sheet, one file per platform PPR tab (site
+                                  draft rank + Landmine score)
 
 Each source is fetched independently — if one fails, its CSV is left
 untouched (stale but valid) and the others still update. The script exits
@@ -217,33 +218,27 @@ def update_adp():
     return len(out)
 
 
-def update_sleeper_sheet():
-    """sleeper_rankings.csv from the Abusing Draft Rankings sheet (Sleeper PPR tab)."""
+# Sheet tab -> output CSV basename. Each becomes {name}_rankings.csv with the
+# platform's own draft rank + Landmine score (the app loads the one matching
+# the session's ADP source).
+SITE_TABS = {
+    "Sleeper PPR": "sleeper",
+    "ESPN PPR": "espn",
+    "Yahoo PPR": "yahoo",
+}
+
+
+def update_site_sheets():
+    """{sleeper,espn,yahoo}_rankings.csv from the Abusing Draft Rankings sheet."""
     resp = requests.get(SHEET_XLSX_URL, headers=UA, timeout=120)
     resp.raise_for_status()
     wb = load_workbook(io.BytesIO(resp.content), read_only=True, data_only=True)
 
-    tab = next((n for n in wb.sheetnames if re.search(r"sleeper\s*ppr", n, re.I)), None)
-    if tab is None:
-        raise RuntimeError(f"no 'Sleeper PPR' tab — sheets: {wb.sheetnames}")
-    ws = wb[tab]
-    all_rows = list(ws.iter_rows(values_only=True))
-
-    header = [str(c).strip().lower() if c is not None else "" for c in all_rows[0]]
-
-    def col(pattern):
-        for i, h in enumerate(header):
-            if re.fullmatch(pattern, h):
-                return i
-        raise RuntimeError(f"column /{pattern}/ not found in sheet header: {header}")
-
-    i_name = col(r"name")
-    i_team = col(r"team")
-    i_bye = col(r"bye")
-    i_pos = col(r"pos")
-    i_fp = col(r"fantasypros")
-    i_slp = col(r"sleeper(\s+adp)?")
-    i_lm = col(r"landmine")
+    # Canonical spellings from rankings.csv — the app matches by exact name
+    canon = {}
+    with open(f"{REPO_ROOT}/rankings.csv") as f:
+        for row in csv.DictReader(f):
+            canon.setdefault(_norm_name(row["PLAYER NAME"]), row["PLAYER NAME"])
 
     def iv(x):
         try:
@@ -251,28 +246,48 @@ def update_sleeper_sheet():
         except (TypeError, ValueError):
             return ""
 
-    rows = []
-    for r in all_rows[1:]:
-        if not r[i_name] or r[i_fp] is None or r[i_slp] is None:
-            continue
-        rows.append([
-            str(r[i_name]).strip(),
-            r[i_team] or "",
-            r[i_pos] or "",
-            iv(r[i_bye]),
-            iv(r[i_fp]),
-            iv(r[i_slp]),
-            r[i_lm] if r[i_lm] is not None else "",
-        ])
+    total = 0
+    for tab_pattern, out_name in SITE_TABS.items():
+        tab = next((n for n in wb.sheetnames if n.strip().lower() == tab_pattern.lower()), None)
+        if tab is None:
+            raise RuntimeError(f"no '{tab_pattern}' tab — sheets: {wb.sheetnames}")
+        all_rows = list(wb[tab].iter_rows(values_only=True))
+        header = [str(c).strip().lower() if c is not None else "" for c in all_rows[0]]
 
-    if len(rows) < MIN_SHEET_PLAYERS:
-        raise RuntimeError(f"only {len(rows)} sheet rows parsed — refusing to overwrite")
-    write_csv(
-        f"{REPO_ROOT}/sleeper_rankings.csv",
-        ["PLAYER NAME", "TEAM", "POS", "BYE", "FP RANK", "SLEEPER RANK", "LANDMINE"],
-        rows,
-    )
-    return len(rows)
+        def col(name):
+            if name not in header:
+                raise RuntimeError(f"column '{name}' not found in '{tab}' header: {header}")
+            return header.index(name)
+
+        i_name, i_team, i_bye, i_pos = col("name"), col("team"), col("bye"), col("pos")
+        i_fp = col("fantasypros")
+        i_site = i_fp + 1  # the platform's rank column always follows FantasyPros
+        i_lm = col("landmine")
+        width = max(i_lm, i_site) + 1
+
+        rows = []
+        for r in all_rows[1:]:
+            r = list(r) + [None] * max(0, width - len(r))
+            if not r[i_name] or r[i_fp] is None or r[i_site] is None:
+                continue
+            name = str(r[i_name]).strip()
+            name = canon.get(_norm_name(name), name)
+            rows.append([
+                name, r[i_team] or "", r[i_pos] or "", iv(r[i_bye]),
+                iv(r[i_fp]), iv(r[i_site]),
+                r[i_lm] if r[i_lm] is not None else "",
+            ])
+
+        if len(rows) < MIN_SHEET_PLAYERS:
+            raise RuntimeError(f"only {len(rows)} rows parsed from '{tab}' — refusing to overwrite")
+        write_csv(
+            f"{REPO_ROOT}/{out_name}_rankings.csv",
+            ["PLAYER NAME", "TEAM", "POS", "BYE", "FP RANK", "SITE RANK", "LANDMINE"],
+            rows,
+        )
+        print(f"     {out_name}_rankings.csv: {len(rows)} players")
+        total += len(rows)
+    return total
 
 
 def main():
@@ -280,7 +295,7 @@ def main():
     for label, fn in [
         ("rankings.csv (FantasyPros ECR)", update_ecr),
         ("adp_rankings.csv (FantasyPros ADP)", update_adp),
-        ("sleeper_rankings.csv (Abusing Draft Rankings sheet)", update_sleeper_sheet),
+        ("site rank CSVs (Abusing Draft Rankings sheet)", update_site_sheets),
     ]:
         try:
             results[label] = fn()
