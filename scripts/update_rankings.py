@@ -21,6 +21,7 @@ import io
 import json
 import re
 import sys
+import unicodedata
 
 import requests
 from bs4 import BeautifulSoup
@@ -125,8 +126,31 @@ def adp_from_fantasypros():
         except ValueError:
             continue
         rank = tds[0].get_text(strip=True)
-        rows.append([rank, name + suffix, tds[i_pos].get_text(strip=True), avg])
+        rows.append([rank, name, suffix, tds[i_pos].get_text(strip=True), avg])
     return rows
+
+
+# FFC names defenses by city ("Seattle Defense"); rankings.csv uses full team
+# names ("Seattle Seahawks"). index.html matches ADP rows to players by exact
+# name, so translate.
+FFC_DST_NAMES = {
+    "Arizona": "Arizona Cardinals", "Atlanta": "Atlanta Falcons",
+    "Baltimore": "Baltimore Ravens", "Buffalo": "Buffalo Bills",
+    "Carolina": "Carolina Panthers", "Chicago": "Chicago Bears",
+    "Cincinnati": "Cincinnati Bengals", "Cleveland": "Cleveland Browns",
+    "Dallas": "Dallas Cowboys", "Denver": "Denver Broncos",
+    "Detroit": "Detroit Lions", "Green Bay": "Green Bay Packers",
+    "Houston": "Houston Texans", "Indianapolis": "Indianapolis Colts",
+    "Jacksonville": "Jacksonville Jaguars", "Kansas City": "Kansas City Chiefs",
+    "LA Chargers": "Los Angeles Chargers", "LA Rams": "Los Angeles Rams",
+    "Las Vegas": "Las Vegas Raiders", "Miami": "Miami Dolphins",
+    "Minnesota": "Minnesota Vikings", "New England": "New England Patriots",
+    "New Orleans": "New Orleans Saints", "NY Giants": "New York Giants",
+    "NY Jets": "New York Jets", "Philadelphia": "Philadelphia Eagles",
+    "Pittsburgh": "Pittsburgh Steelers", "San Francisco": "San Francisco 49ers",
+    "Seattle": "Seattle Seahawks", "Tampa Bay": "Tampa Bay Buccaneers",
+    "Tennessee": "Tennessee Titans", "Washington": "Washington Commanders",
+}
 
 
 def adp_from_ffc():
@@ -140,11 +164,37 @@ def adp_from_ffc():
         name = p.get("name", "").strip()
         if not name:
             continue
+        m = re.fullmatch(r"(.+?)\s+Defense", name)
+        if m:
+            name = FFC_DST_NAMES.get(m.group(1), name)
         suffix = ""
         if p.get("team"):
             bye = f" ({p['bye']})" if p.get("bye") else ""
             suffix = f"   {p['team']}{bye}"
-        rows.append([i, name + suffix, p.get("position", ""), p.get("adp", "")])
+        rows.append([i, name, suffix, p.get("position", ""), p.get("adp", "")])
+    return rows
+
+
+def _norm_name(n):
+    """Suffix- and accent-insensitive name key (mirrors index.html's fuzzyGet)."""
+    n = unicodedata.normalize("NFKD", n).encode("ascii", "ignore").decode()
+    n = n.lower().replace(".", "").replace("'", "")
+    n = re.sub(r"\s+(jr|sr|ii|iii|iv|v)$", "", n.strip())
+    return re.sub(r"\s+", " ", n)
+
+
+def canonicalize_adp_names(rows):
+    """Rewrite ADP names to the exact spelling used in rankings.csv, since the
+    app matches ADP rows by exact (case-insensitive) name. Fixes suffix and
+    accent drift like "Patrick Mahomes" vs "Patrick Mahomes II"."""
+    canon = {}
+    with open(f"{REPO_ROOT}/rankings.csv") as f:
+        for row in csv.DictReader(f):
+            canon.setdefault(_norm_name(row["PLAYER NAME"]), row["PLAYER NAME"])
+    for r in rows:
+        exact = canon.get(_norm_name(r[1]))
+        if exact:
+            r[1] = exact
     return rows
 
 
@@ -160,9 +210,11 @@ def update_adp():
 
     if len(rows) < MIN_ADP_PLAYERS:
         raise RuntimeError(f"only {len(rows)} ADP rows parsed ({source}) — refusing to overwrite")
-    write_csv(f"{REPO_ROOT}/adp_rankings.csv", ["Rank", "Player (Bye)", "POS", "AVG"], rows)
+    rows = canonicalize_adp_names(rows)
+    out = [[r[0], r[1] + r[2], r[3], r[4]] for r in rows]
+    write_csv(f"{REPO_ROOT}/adp_rankings.csv", ["Rank", "Player (Bye)", "POS", "AVG"], out)
     print(f"     ADP source: {source}")
-    return len(rows)
+    return len(out)
 
 
 def update_sleeper_sheet():
