@@ -76,7 +76,7 @@ Rank,Player (Bye),POS,AVG
 75,Tony Pollard   TEN (9),RB,73.3
 76,Justin Herbert   LAC (7),QB,74.5
 77,Courtland Sutton   DEN (10),WR,74.5
-78,Patrick Mahomes   KC (5),QB,74.9
+78,Patrick Mahomes II   KC (5),QB,74.9
 79,Jadarian Price   SEA (11),RB,75.5
 80,Rico Dowdle   PIT (9),RB,77.9
 81,Chris Godwin Jr.   TB (10),WR,78.5
@@ -96,7 +96,7 @@ Rank,Player (Bye),POS,AVG
 95,J.K. Dobbins   DEN (10),RB,94.7
 96,Jalen Hurts   PHI (10),QB,94.9
 97,Aaron Jones Sr.   MIN (6),RB,95.6
-98,Seattle Defense   SEA (11),DEF,97.4
+98,Seattle Seahawks   SEA (11),DEF,97.4
 99,Xavier Worthy   KC (5),WR,97.8
 100,Jakobi Meyers   JAX (7),WR,98.3
 101,Travis Kelce   KC (5),TE,99.1
@@ -106,14 +106,14 @@ Rank,Player (Bye),POS,AVG
 105,Khalil Shakir   BUF (7),WR,100.9
 106,Kenny Gainwell   TB (10),RB,101.2
 107,Rachaad White   WAS (7),RB,102.2
-108,Denver Defense   DEN (10),DEF,102.6
+108,Denver Broncos   DEN (10),DEF,102.6
 109,Matthew Stafford   LAR (11),QB,103.0
 110,Ricky Pearsall   SF (8),WR,103.1
 111,Kyle Monangai   CHI (10),RB,105.2
 112,George Kittle   SF (8),TE,105.9
-113,LA Rams Defense   LAR (11),DEF,106.9
+113,Los Angeles Rams   LAR (11),DEF,106.9
 114,Makai Lemon   PHI (10),WR,107.7
-115,Houston Defense   HOU (8),DEF,108.4
+115,Houston Texans   HOU (8),DEF,108.4
 116,Caleb Williams   CHI (10),QB,109.1
 117,Matthew Golden   GB (11),WR,112.6
 118,Jalen Coker   CAR (5),WR,113.9
@@ -122,12 +122,12 @@ Rank,Player (Bye),POS,AVG
 121,Bo Nix   DEN (10),QB,117.0
 122,Jayden Higgins   HOU (8),WR,119.5
 123,KC Concepcion   CLE (11),WR,120.4
-124,New England Defense   NE (11),DEF,120.8
+124,New England Patriots   NE (11),DEF,120.8
 125,Blake Corum   LAR (11),RB,121.2
 126,Jacory Croskey-Merritt   WAS (7),RB,121.7
 127,Dallas Goedert   PHI (10),TE,122.0
-128,Philadelphia Defense   PHI (10),DEF,126.8
-129,Jacksonville Defense   JAX (7),DEF,127.7
+128,Philadelphia Eagles   PHI (10),DEF,126.8
+129,Jacksonville Jaguars   JAX (7),DEF,127.7
 130,Mark Andrews   BAL (13),TE,128.1
 131,Jonathon Brooks   CAR (5),RB,128.2
 132,Baker Mayfield   TB (10),QB,128.6
@@ -143,23 +143,23 @@ Rank,Player (Bye),POS,AVG
 142,Jason Myers   SEA (11),PK,133.9
 143,Denzel Boston   CLE (11),WR,135.7
 144,Tre Tucker   LV (13),WR,136.9
-145,Minnesota Defense   MIN (6),DEF,137.1
+145,Minnesota Vikings   MIN (6),DEF,137.1
 146,Jerry Jeudy   CLE (11),WR,138.1
 147,Tyjae Spears   TEN (9),RB,138.4
 148,Isaiah Likely   NYG (8),TE,139.1
 149,Woody Marks   HOU (8),RB,140.9
 150,Cameron Dicker   LAC (7),PK,141.3
-151,Green Bay Defense   GB (11),DEF,142.6
+151,Green Bay Packers   GB (11),DEF,142.6
 152,Jake Bates   DET (6),PK,142.7
 153,Harrison Mevis   LAR (11),PK,142.7
 154,Antonio Williams   WAS (7),WR,143.2
 155,Jalen McMillan   TB (10),WR,143.3
-156,Detroit Defense   DET (6),DEF,143.6
+156,Detroit Lions   DET (6),DEF,143.6
 157,Tyler Shough   NO (8),QB,143.9
 158,Juwan Johnson   NO (8),TE,144.1
 159,Calvin Ridley   TEN (9),WR,145.2
-160,Eddy Piñeiro   SF (8),PK,145.4
-161,Pittsburgh Defense   PIT (9),DEF,145.5
+160,Eddy Pineiro   SF (8),PK,145.4
+161,Pittsburgh Steelers   PIT (9),DEF,145.5
 162,Tank Bigsby   PHI (10),RB,146.4
 163,Brandon Aiyuk   SF (8),WR,146.9
 164,Sam Darnold   SEA (11),QB,147.7
@@ -168,21 +168,21 @@ Rank,Player (Bye),POS,AVG
 167,Kyler Murray   MIN (6),QB,150.3
 168,Tyler Loop   BAL (13),PK,152.7
 169,Isiah Pacheco   DET (6),RB,152.7
-170,Buffalo Defense   BUF (7),DEF,153.1
+170,Buffalo Bills   BUF (7),DEF,153.1
 171,Cam Little   JAX (7),PK,153.1
 172,T.J. Hockenson   MIN (6),TE,153.4
 173,Hunter Henry   NE (11),TE,153.4
-174,Oronde Gadsden   LAC (7),TE,154.0
+174,Oronde Gadsden II   LAC (7),TE,154.0
 175,C.J. Stroud   HOU (8),QB,154.6
 176,Rashod Bateman   BAL (13),WR,155.2
-177,Baltimore Defense   BAL (13),DEF,155.2
+177,Baltimore Ravens   BAL (13),DEF,155.2
 178,Alvin Kamara   NO (8),RB,155.2
 179,Travis Hunter   JAX (7),WR,155.6
 180,Zach Charbonnet   SEA (11),RB,156.0
 181,Harrison Butker   KC (5),PK,156.4
 182,Malik Washington   MIA (6),WR,156.6
 183,Tyrone Tracy Jr.   NYG (8),RB,156.8
-184,LA Chargers Defense   LAC (7),DEF,158.8
+184,Los Angeles Chargers   LAC (7),DEF,158.8
 185,Brenton Strange   JAX (7),TE,159.1
 186,Chris Rodriguez Jr.   JAX (7),RB,160.7
 187,Trey Smack   GB (11),PK,161.1
@@ -199,10 +199,10 @@ Rank,Player (Bye),POS,AVG
 198,Cooper Kupp   SEA (11),WR,166.9
 199,Daniel Jones   IND (13),QB,167.5
 200,Tyler Allgeier   ARI (14),RB,167.5
-201,Washington Defense   WAS (7),DEF,168.0
+201,Washington Commanders   WAS (7),DEF,168.0
 202,Dalton Schultz   HOU (8),TE,169.6
 203,Cam Ward   TEN (9),QB,171.2
-204,Chicago Defense   CHI (10),DEF,174.4
+204,Chicago Bears   CHI (10),DEF,174.4
 205,Isaac TeSlaa   DET (6),WR,175.4
 206,Tre' Harris   LAC (7),WR,176.7
-207,Atlanta Defense   ATL (11),DEF,176.9
+207,Atlanta Falcons   ATL (11),DEF,176.9
