@@ -625,6 +625,16 @@ header {
         </div>
       </div>
 
+      <!-- ADP Source (which ranks drive the ADP column, board sort & availability odds) -->
+      <div id="cfg-adpsource-row" style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ADP Rankings</div>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="sleeper" checked><span class="radio-dot"></span><span>Sleeper ranks</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="market"><span class="radio-dot"></span><span>Market ADP</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-adpsource" value="blend"><span class="radio-dot"></span><span>Earliest of both</span></label>
+        </div>
+      </div>
+
       <!-- Draft Position row hidden for 2026 — team is chosen via the picker modal at draft start -->
       <div id="cfg-position-row" style="display:none">
         <select id="cfg-position">
@@ -794,8 +804,8 @@ header {
     <span class="my-team-2026-only" id="my-team-label-2026" style="display:none;font-size:13px;font-weight:700;color:var(--accent);padding:5px 12px;border:1px solid var(--accent);border-radius:6px;background:rgba(153,50,204,0.10);font-family:'Syne',sans-serif">★ Team —</span>
     <button class="hdr-btn" onclick="undoPick()">↩ Undo</button>
     <div style="display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px">
-    <button class="rank-toggle active" id="btn-ecr" onclick="setRankMode('ecr')">ECR</button>
-    <button class="rank-toggle" id="btn-adp" onclick="setRankMode('adp')">ADP</button>
+    <button class="rank-toggle" id="btn-ecr" onclick="setRankMode('ecr')">ECR</button>
+    <button class="rank-toggle active" id="btn-adp" onclick="setRankMode('adp')">ADP</button>
     <button class="rank-toggle" id="btn-vor" onclick="setRankMode('vor')">VOR</button>
   </div>
   <span style="display:inline-flex;align-items:center;gap:5px">
@@ -930,7 +940,7 @@ let pickHistory = [];     // for undo
 let posFilter = 'ALL';
 let sleeperOk = false;
 let sleeperDraftPicks = []; // [{round, pick_no, roster_id}] from /draft/<id>/picks
-let rankMode = 'ecr'; // 'ecr' | 'adp' | 'vor'
+let rankMode = 'adp'; // 'ecr' | 'adp' | 'vor' — ADP by default: the board mirrors the room's draft order
 let autoMode = 'vor'; // 'vor' | 'ecr' | 'adp'
 let teamModes = {};   // rosterId -> 'manual' | 'vor' | 'ecr' | 'adp'
 let teamGutMap = {};  // rosterId -> 0–100 (0=MoneyBall, 100=GutFeeling) for autopilot
@@ -1773,6 +1783,7 @@ function buildPlayers() {
     loadCSVText(cachedECRText);        // fully rebuilds players[] from rankings.csv
     if (cachedADPText) loadADPCSVText(cachedADPText); // overlay ADP source
     if (cachedSleeperRankText) loadSleeperRankCSVText(cachedSleeperRankText); // overlay Sleeper site ranks
+    applyADPSource();                  // set .adp from the configured ADP source
   }
   // If cachedECRText is null, players stays empty — init() will load the CSVs shortly
 }
@@ -1942,15 +1953,32 @@ function effectiveTeamId() {
 let _availAdpSorted = null;
 function invalidateBoardCaches() { _availAdpSorted = null; }
 
-// Effective draft position: Sleeper rooms draft close to Sleeper's default
-// rank, so expect a player off the board at the EARLIER of market ADP and
-// Sleeper's site rank (the "Abusing Draft Rankings" insight).
+// ── ADP source (config.adpSource) ──────────────────────────────────────────
+// 'sleeper' — Sleeper's own draft rank drives the ADP column, board sort and
+//             availability odds (matches what your Sleeper room actually does)
+// 'market'  — classic market ADP (FantasyPros/FFC)
+// 'blend'   — the EARLIER of the two (the "Abusing Draft Rankings" insight:
+//             a player leaves the board at whichever rank comes first)
+function applyADPSourceTo(p) {
+  var mode   = (LEAGUE_CONFIG && LEAGUE_CONFIG.adpSource) || 'blend';
+  var market = (p.fpAdp && p.fpAdp > 0) ? p.fpAdp : null;
+  var slpr   = p.sleeperRank || null;
+  if (mode === 'sleeper') {
+    if (slpr) p.adp = slpr; else if (market) p.adp = market;
+  } else if (mode === 'market') {
+    if (market) p.adp = market;
+  } else {
+    var eff = Math.min(market || Infinity, slpr || Infinity);
+    if (eff < Infinity) p.adp = eff;
+  }
+  // players matched by neither source keep their expert-avg fallback from rankings.csv
+}
+function applyADPSource() { players.forEach(applyADPSourceTo); invalidateBoardCaches(); }
+
+// Effective draft position for availability odds — p.adp already reflects the
+// configured ADP source (see applyADPSourceTo).
 function effDraftPos(p) {
-  var adp = (p.adp && p.adp < 500) ? p.adp : null;
-  var sr  = p.sleeperRank || null;
-  if (adp == null) return sr;
-  if (sr == null) return adp;
-  return Math.min(adp, sr);
+  return (p.adp && p.adp < 500) ? p.adp : null;
 }
 
 function remainingRankFor(adp) {
@@ -2148,7 +2176,7 @@ async function fetchSleeperLastYearStats() {
 
 // ── Merge ADP + FC values into a player object ────────────────────────────
 function enrichPlayerADP(p) {
-  if (p.fpAdp && p.fpAdp > 0) p.adp = p.fpAdp;
+  applyADPSourceTo(p);
   const fcv = fuzzyGet(fcValueMap, p.name);
   if (fcv !== undefined) p.fcValue = fcv;
   const pts = fuzzyGet(projPtsMap, p.name);
@@ -5158,12 +5186,19 @@ function getLobbyPosition() {
   var sel = document.getElementById('cfg-position');
   return sel ? parseInt(sel.value, 10) : 1;
 }
+function getLobbyAdpSource() {
+  var el = document.querySelector('input[name="cfg-adpsource"]:checked');
+  return el ? el.value : 'sleeper';
+}
 
 
 function onLeagueTypeChange() {
   var type = getLobbyLeagueType();
   var dt = document.getElementById('cfg-drafttype-row');
   if (dt) dt.style.display = (type === '2026' || type === 'cfl') ? '' : 'none';
+  // Sleeper site ranks are NFL-only — no ADP source choice in CFL mode
+  var asrc = document.getElementById('cfg-adpsource-row');
+  if (asrc) asrc.style.display = (type === 'cfl') ? 'none' : '';
 }
 
 function onDraftTypeChange() {
@@ -5403,6 +5438,7 @@ function lobbyCreate() {
       type: '2026',
       scoring: 'ppr',
       draftType: getLobbyDraftType(),
+      adpSource: getLobbyAdpSource(),
       numTeams: 10,
       numRounds: 15,
     };
@@ -5418,6 +5454,7 @@ function lobbyCreate() {
     config = {
       type: 'dynasty',
       scoring: 'ppr',
+      adpSource: getLobbyAdpSource(),
     };
   }
 
@@ -5456,6 +5493,7 @@ function lobbyJoinById() {
 }
 
 function startDraft(sessionId) {
+  applyADPSource(); // session config (incl. adpSource) is resolved by now
   document.getElementById('session-id-display').textContent = sessionId;
   ensureFirebaseDb();
   if (fbDb) {
@@ -5599,6 +5637,7 @@ function parseHashConfig() {
       type: '2026',
       scoring: 'ppr',
       draftType: (params.d === 'linear' ? 'linear' : 'snake'),
+      adpSource: parseAdpSourceParam(params.a),
       userPosition: null,
       numTeams: 10,
       numRounds: 15,
@@ -5615,9 +5654,15 @@ function parseHashConfig() {
     };
   }
   if (params.t === 'dynasty') {
-    return { type: 'dynasty', scoring: 'ppr' };
+    return { type: 'dynasty', scoring: 'ppr', adpSource: parseAdpSourceParam(params.a) };
   }
   return null;
+}
+
+// 'sleeper' | 'market' | 'blend'; legacy sessions without the param keep the
+// old behavior (market ADP display, earliest-of-both availability) via 'blend'.
+function parseAdpSourceParam(a) {
+  return (a === 'sleeper' || a === 'market' || a === 'blend') ? a : 'blend';
 }
 
 // Build the hash string for a given session+config (used by lobbyCreate / lobbyJoin)
@@ -5626,7 +5671,8 @@ function encodeSessionHash(sessionId, config) {
   if (config.type === '2026') {
     return sessionId
       + '&t=2026'
-      + '&d=' + encodeURIComponent(config.draftType || 'snake');
+      + '&d=' + encodeURIComponent(config.draftType || 'snake')
+      + '&a=' + encodeURIComponent(config.adpSource || 'sleeper');
   }
   if (config.type === 'cfl') {
     return sessionId
@@ -5634,7 +5680,8 @@ function encodeSessionHash(sessionId, config) {
       + '&d=' + encodeURIComponent(config.draftType || 'snake');
   }
   if (config.type === 'dynasty') {
-    return sessionId + '&t=dynasty';
+    return sessionId + '&t=dynasty'
+      + '&a=' + encodeURIComponent(config.adpSource || 'sleeper');
   }
   return sessionId;
 }
@@ -5904,6 +5951,7 @@ async function init() {
       console.warn('Could not auto-load Sleeper site ranks:', e.message);
     }
   }
+  applyADPSource();
 
   buildDraftOrder();
   buildFilters();
