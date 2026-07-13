@@ -87,13 +87,15 @@ def update_ecr():
     return len(rows)
 
 
-def update_adp():
-    """adp_rankings.csv from the FantasyPros PPR overall ADP table."""
-    html = requests.get(ADP_URL, headers=UA, timeout=60).text
-    soup = BeautifulSoup(html, "html.parser")
+def adp_from_fantasypros():
+    """ADP rows from the FantasyPros PPR overall ADP table."""
+    resp = requests.get(ADP_URL, headers=UA, timeout=60)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
     table = soup.select_one("table#data") or soup.find("table")
     if table is None:
-        raise RuntimeError("no ADP table found")
+        snippet = re.sub(r"\s+", " ", resp.text[:200])
+        raise RuntimeError(f"no ADP table found (HTTP {resp.status_code}, body starts: {snippet!r})")
 
     headers = [th.get_text(strip=True).upper() for th in table.select("thead th")]
     try:
@@ -124,10 +126,42 @@ def update_adp():
             continue
         rank = tds[0].get_text(strip=True)
         rows.append([rank, name + suffix, tds[i_pos].get_text(strip=True), avg])
+    return rows
+
+
+def adp_from_ffc():
+    """ADP rows from Fantasy Football Calculator's public JSON API."""
+    url = "https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=10"
+    data = requests.get(url, headers=UA, timeout=60).json()
+    players = data.get("players") or []
+    players.sort(key=lambda p: p.get("adp", 9999))
+    rows = []
+    for i, p in enumerate(players, 1):
+        name = p.get("name", "").strip()
+        if not name:
+            continue
+        suffix = ""
+        if p.get("team"):
+            bye = f" ({p['bye']})" if p.get("bye") else ""
+            suffix = f"   {p['team']}{bye}"
+        rows.append([i, name + suffix, p.get("position", ""), p.get("adp", "")])
+    return rows
+
+
+def update_adp():
+    """adp_rankings.csv — FantasyPros ADP, falling back to FFC's API."""
+    try:
+        rows = adp_from_fantasypros()
+        source = "FantasyPros"
+    except Exception as e:
+        print(f"note: FantasyPros ADP failed ({e}) — falling back to FFC API", file=sys.stderr)
+        rows = adp_from_ffc()
+        source = "FantasyFootballCalculator"
 
     if len(rows) < MIN_ADP_PLAYERS:
-        raise RuntimeError(f"only {len(rows)} ADP rows parsed — refusing to overwrite")
+        raise RuntimeError(f"only {len(rows)} ADP rows parsed ({source}) — refusing to overwrite")
     write_csv(f"{REPO_ROOT}/adp_rankings.csv", ["Rank", "Player (Bye)", "POS", "AVG"], rows)
+    print(f"     ADP source: {source}")
     return len(rows)
 
 
