@@ -936,6 +936,7 @@ let teamModes = {};   // rosterId -> 'manual' | 'vor' | 'ecr' | 'adp'
 let teamGutMap = {};  // rosterId -> 0–100 (0=MoneyBall, 100=GutFeeling) for autopilot
 let cachedADPText = null; // raw text of adp_rankings.csv, re-applied after any buildPlayers()
 let cachedECRText = null; // raw text of rankings.csv, re-applied after any buildPlayers()
+let cachedSleeperRankText = null; // raw text of sleeper_rankings.csv, re-applied after any buildPlayers()
 let autoPilotRunning = false;
 
 // ── Hypothetical trades ──
@@ -1771,6 +1772,7 @@ function buildPlayers() {
   if (cachedECRText) {
     loadCSVText(cachedECRText);        // fully rebuilds players[] from rankings.csv
     if (cachedADPText) loadADPCSVText(cachedADPText); // overlay ADP source
+    if (cachedSleeperRankText) loadSleeperRankCSVText(cachedSleeperRankText); // overlay Sleeper site ranks
   }
   // If cachedECRText is null, players stays empty — init() will load the CSVs shortly
 }
@@ -1939,11 +1941,24 @@ function effectiveTeamId() {
 // "how many available players have a better ADP" scan into a binary search.
 let _availAdpSorted = null;
 function invalidateBoardCaches() { _availAdpSorted = null; }
+
+// Effective draft position: Sleeper rooms draft close to Sleeper's default
+// rank, so expect a player off the board at the EARLIER of market ADP and
+// Sleeper's site rank (the "Abusing Draft Rankings" insight).
+function effDraftPos(p) {
+  var adp = (p.adp && p.adp < 500) ? p.adp : null;
+  var sr  = p.sleeperRank || null;
+  if (adp == null) return sr;
+  if (sr == null) return adp;
+  return Math.min(adp, sr);
+}
+
 function remainingRankFor(adp) {
   if (!_availAdpSorted) {
     _availAdpSorted = players
-      .filter(p => !p.drafted && !p.isKeeper && p.adp && p.adp < 500)
-      .map(p => p.adp)
+      .filter(p => !p.drafted && !p.isKeeper)
+      .map(p => effDraftPos(p))
+      .filter(v => v != null)
       .sort((a, b) => a - b);
   }
   let lo = 0, hi = _availAdpSorted.length;
@@ -1958,8 +1973,8 @@ function remainingRankFor(adp) {
 // "What are the odds this player is still on the board at my next pick?"
 // Uses a sigmoid centred on the player's ADP vs your next pick number.
 function computePickProb(player) {
-  const adp = player.adp;
-  if (!adp || adp >= 500) return null;
+  const adp = effDraftPos(player);
+  if (!adp) return null;
 
   const teamId = effectiveTeamId();
   if (teamId == null) return null; // no team claimed yet — no meaningful horizon
@@ -3059,13 +3074,21 @@ function renderBoard() {
     const riskBadge = `<span class="risk-badge risk-${riskQ}" title="Risk Q${riskQ} · STD ${(p.std||0).toFixed(1)}">${riskIcons[riskQ]}${riskQ}</span>`;
     const rookieBadge = p.isRookie ? ` <span style="font-size:8px;color:var(--gold);font-weight:700" title="Rookie">R</span>` : '';
     const handcuffBadge = isHandcuff ? ` <span class="handcuff-badge" title="Handcuff for ${escHtml(myRbTeams[p.nfl].join(', '))} (${escHtml(p.nfl)})">🔗</span>` : '';
+    // Landmine / value badge (Abusing Draft Rankings — Sleeper rank vs FantasyPros ECR)
+    const lmBadge = (!p.drafted && p.landmine != null && p.sleeperRank)
+      ? (p.landmine >= 7.5
+          ? ` <span style="font-size:9px" title="Landmine ${p.landmine.toFixed(1)}/10 — Sleeper ranks him #${p.sleeperRank.toFixed(0)} vs ECR #${p.ecr.toFixed(0)}: likely drafted well before his ECR">💣</span>`
+        : p.landmine <= 4.5
+          ? ` <span style="font-size:9px" title="Value ${p.landmine.toFixed(1)}/10 — Sleeper ranks him #${p.sleeperRank.toFixed(0)} vs ECR #${p.ecr.toFixed(0)}: likely to fall past his ECR">💎</span>`
+        : '')
+      : '';
     const natBadge = p.isNational ? ` <span style="font-size:8px;color:#00bcd4;font-weight:700" title="National Player (NAT-eligible)">NAT</span>` : '';
     const dataName = p.drafted ? '' : `data-name="${escHtml(p.name)}"`;
 
     // ── Pick probability bar ──
     const prob = p.drafted ? null : computePickProb(p);
     const probHtml = (prob !== null && !p.drafted)
-      ? `<span style="min-width:40px;text-align:right" title="Still available: ${(prob*100).toFixed(0)}% · ADP#${p.adp.toFixed(0)}">
+      ? `<span style="min-width:40px;text-align:right" title="Still available: ${(prob*100).toFixed(0)}% · ADP#${p.adp.toFixed(0)}${p.sleeperRank ? ' · SLPR#' + p.sleeperRank.toFixed(0) : ''}">
            <div style="font-size:8px;color:var(--dim);text-align:right;line-height:1.2">${(prob*100).toFixed(0)}%</div>
            <div class="pick-prob-bar" style="width:40px"><div class="pick-prob-fill" style="width:${(prob*100).toFixed(0)}%;opacity:${prob < 0.2 ? 0.4 : 1}"></div></div>
          </span>`
@@ -3091,7 +3114,7 @@ function renderBoard() {
         + lyStat(p.lyRushYd, 'Last yr rushing yards', false);
     return `${cliffHtml}<div class="${cls}" ${dataName}>
       <span class="pos-tag pos-${pc}">${p.pos}</span>
-      <span class="p-name">${escHtml(p.name)}${rookieBadge}${natBadge}${handcuffBadge}</span>
+      <span class="p-name">${escHtml(p.name)}${rookieBadge}${natBadge}${handcuffBadge}${lmBadge}</span>
       <span class="p-nfl">${escHtml(p.nfl)}</span>
       <span class="p-tier" style="color:var(--dim)">T${p.tier}</span>
       ${riskBadge}
@@ -3329,7 +3352,7 @@ function selectPlayer(name) {
   if (!selectedPlayer) return;
   const pc = posClass(selectedPlayer.pos);
   document.getElementById('sel-info').innerHTML =
-    `<span class="sel-name">${escHtml(selectedPlayer.name)}</span> &nbsp;<span class="pos-tag pos-${pc}" style="display:inline">${selectedPlayer.pos}</span>&nbsp; <span class="sel-pos">${escHtml(selectedPlayer.nfl)} · ECR #${selectedPlayer.ecr.toFixed(0)} · ADP #${selectedPlayer.adp.toFixed(0)} · Tier ${selectedPlayer.tier}</span>`;
+    `<span class="sel-name">${escHtml(selectedPlayer.name)}</span> &nbsp;<span class="pos-tag pos-${pc}" style="display:inline">${selectedPlayer.pos}</span>&nbsp; <span class="sel-pos">${escHtml(selectedPlayer.nfl)} · ECR #${selectedPlayer.ecr.toFixed(0)} · ADP #${selectedPlayer.adp.toFixed(0)}${selectedPlayer.sleeperRank ? ' · SLPR #' + selectedPlayer.sleeperRank.toFixed(0) : ''}${selectedPlayer.landmine != null ? ' · LM ' + selectedPlayer.landmine.toFixed(1) : ''} · Tier ${selectedPlayer.tier}</span>`;
   document.getElementById('draft-btn').disabled = false;
   // Sync mobile draft bar
   const mobName = document.getElementById('mob-sel-name');
@@ -4798,6 +4821,44 @@ function loadADPCSVText(text) {
   return matched;
 }
 
+// Loads the Sleeper site-rank CSV (sleeper_rankings.csv, exported from the
+// community "Abusing Draft Rankings" sheet — Sleeper PPR tab). Columns:
+// PLAYER NAME, TEAM, POS, BYE, FP RANK, SLEEPER RANK, LANDMINE.
+// Sets .sleeperRank (Sleeper's default draft rank — the order Sleeper rooms
+// actually draft in) and .landmine (0–10 reach-risk score: ~6 neutral,
+// low = value that will fall, high = will go well before ECR).
+function loadSleeperRankCSVText(text) {
+  var lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return 0;
+
+  var headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+  var iName = headers.indexOf('player name');
+  var iRank = headers.indexOf('sleeper rank');
+  var iLand = headers.indexOf('landmine');
+  if (iName === -1 || iRank === -1) {
+    console.warn('Sleeper rank CSV missing PLAYER NAME or SLEEPER RANK column'); return 0;
+  }
+
+  var byName = {};
+  players.forEach(p => { byName[p.name] = p; });
+
+  var matched = 0;
+  for (var i = 1; i < lines.length; i++) {
+    var cells = parseCSVLine(lines[i]);
+    var get = idx => (idx >= 0 && cells[idx] != null) ? cells[idx].trim() : '';
+    var name = get(iName); if (!name) continue;
+    var rank = parseFloat(get(iRank)); if (isNaN(rank)) continue;
+    var p = fuzzyGet(byName, name);
+    if (!p) continue;
+    p.sleeperRank = rank;
+    var lm = parseFloat(get(iLand));
+    p.landmine = isNaN(lm) ? null : lm;
+    matched++;
+  }
+
+  return matched;
+}
+
 function importCSV(event) {
   var file = event.target.files[0];
   if (!file) return;
@@ -5828,6 +5889,20 @@ async function init() {
     }
   } catch(e) {
     console.warn('Could not auto-load ADP rankings:', e.message);
+  }
+
+  // Auto-load Sleeper site ranks + Landmine scores (Abusing Draft Rankings sheet)
+  if (!isCFL) {
+    try {
+      const srRes = await fetch('sleeper_rankings.csv', { cache: 'no-cache' });
+      if (srRes.ok) {
+        cachedSleeperRankText = await srRes.text();
+        const srMatched = loadSleeperRankCSVText(cachedSleeperRankText);
+        if (srMatched) console.log('Auto-loaded sleeper_rankings.csv —', srMatched, 'players updated');
+      }
+    } catch(e) {
+      console.warn('Could not auto-load Sleeper site ranks:', e.message);
+    }
   }
 
   buildDraftOrder();
