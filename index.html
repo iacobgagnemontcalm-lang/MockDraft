@@ -625,6 +625,16 @@ header {
         </div>
       </div>
 
+      <!-- League Size (only for 2026 Season redraft) -->
+      <div id="cfg-numteams-row" style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">League Size</div>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="8"><span class="radio-dot"></span><span>8 teams</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="10" checked><span class="radio-dot"></span><span>10 teams</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-numteams" value="12"><span class="radio-dot"></span><span>12 teams</span></label>
+        </div>
+      </div>
+
       <!-- ADP Source (which ranks drive the ADP column, board sort & availability odds) -->
       <div id="cfg-adpsource-row" style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ADP Rankings</div>
@@ -2313,6 +2323,16 @@ function teamPosCounts(teamId) {
 // Global replacement ECR: the ECR of the last player drafted league-wide at that pos
 // (10 teams × starter slots + bench ≈ total drafted per pos)
 const TOTAL_DRAFTED = {QB:15, RB:40, WR:39, TE:16, K:10, DST:10};
+// 2026 redraft supports 8/10/12-team leagues — scale the 10-team baseline per team.
+function getTotalDraftedNFL() {
+  var nT = (LEAGUE_CONFIG && LEAGUE_CONFIG.type === '2026' && LEAGUE_CONFIG.numTeams) || 10;
+  if (nT === 10) return TOTAL_DRAFTED;
+  var out = {};
+  Object.keys(TOTAL_DRAFTED).forEach(function(pos) {
+    out[pos] = Math.round(TOTAL_DRAFTED[pos] * nT / 10);
+  });
+  return out;
+}
 // CFL: 10 teams × 13 rounds = 130 picks (1 QB + 1 RB + 3 WR + 1 NAT + 1 K + 1 DST + 5 bench)
 function getTotalDraftedCFL() {
   var nT = (LEAGUE_CONFIG && LEAGUE_CONFIG.numTeams) || 10;
@@ -2487,7 +2507,7 @@ function computeVOR() {
   // Only count actual draft picks (not keepers) as "used up" slots.
   var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
   const replECR = {};
-  Object.entries(isCFL ? getTotalDraftedCFL() : TOTAL_DRAFTED).forEach(([pos, globalN]) => {
+  Object.entries(isCFL ? getTotalDraftedCFL() : getTotalDraftedNFL()).forEach(([pos, globalN]) => {
     const list = byPos[pos] || [];
     const draftedCount = players.filter(p => p.drafted && !p.isKeeper && p.pos === pos).length;
     const remaining = Math.max(0, globalN - draftedCount);
@@ -5224,12 +5244,20 @@ function getLobbyAdpSource() {
   var el = document.querySelector('input[name="cfg-adpsource"]:checked');
   return el ? el.value : 'sleeper';
 }
+function getLobbyNumTeams() {
+  var el = document.querySelector('input[name="cfg-numteams"]:checked');
+  var n = el ? parseInt(el.value, 10) : 10;
+  return (n === 8 || n === 10 || n === 12) ? n : 10;
+}
 
 
 function onLeagueTypeChange() {
   var type = getLobbyLeagueType();
   var dt = document.getElementById('cfg-drafttype-row');
   if (dt) dt.style.display = (type === '2026' || type === 'cfl') ? '' : 'none';
+  // League size is configurable only for the 2026 redraft (CFL is fixed at 6, Dynasty at 10)
+  var nt = document.getElementById('cfg-numteams-row');
+  if (nt) nt.style.display = (type === '2026') ? '' : 'none';
   // Sleeper site ranks are NFL-only — no ADP source choice in CFL mode
   var asrc = document.getElementById('cfg-adpsource-row');
   if (asrc) asrc.style.display = (type === 'cfl') ? 'none' : '';
@@ -5436,7 +5464,7 @@ function loadLobbySessions() {
       var dateStr = s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '';
       var typeLabel = '';
       if (s.config && s.config.type === '2026') {
-        typeLabel = '2026 · ' + (s.config.draftType === 'linear' ? 'Linear' : 'Snake');
+        typeLabel = '2026 · ' + (s.config.draftType === 'linear' ? 'Linear' : 'Snake') + ' · ' + (s.config.numTeams || 10) + 'tm';
       } else if (s.config && s.config.type === 'cfl') {
         typeLabel = 'CFL · ' + (s.config.draftType === 'linear' ? 'Linear' : 'Snake');
       } else if (s.config && s.config.type === 'dynasty') {
@@ -5473,7 +5501,7 @@ function lobbyCreate() {
       scoring: 'ppr',
       draftType: getLobbyDraftType(),
       adpSource: getLobbyAdpSource(),
-      numTeams: 10,
+      numTeams: getLobbyNumTeams(),
       numRounds: 15,
     };
   } else if (leagueType === 'cfl') {
@@ -5675,7 +5703,7 @@ function parseHashConfig() {
       draftType: (params.d === 'linear' ? 'linear' : 'snake'),
       adpSource: parseAdpSourceParam(params.a),
       userPosition: null,
-      numTeams: 10,
+      numTeams: parseNumTeamsParam(params.n),
       numRounds: 15,
     };
   }
@@ -5695,6 +5723,13 @@ function parseHashConfig() {
   return null;
 }
 
+// League size for the 2026 redraft: 8, 10 or 12 teams (default 10 — also
+// covers legacy links that predate the &n= param).
+function parseNumTeamsParam(n) {
+  var v = parseInt(n, 10);
+  return (v === 8 || v === 10 || v === 12) ? v : 10;
+}
+
 // 'sleeper' | 'espn' | 'yahoo' pick a platform's ranks; 'market' and 'blend'
 // are legacy values kept so old session links behave as before.
 function parseAdpSourceParam(a) {
@@ -5708,7 +5743,8 @@ function encodeSessionHash(sessionId, config) {
     return sessionId
       + '&t=2026'
       + '&d=' + encodeURIComponent(config.draftType || 'snake')
-      + '&a=' + encodeURIComponent(config.adpSource || 'sleeper');
+      + '&a=' + encodeURIComponent(config.adpSource || 'sleeper')
+      + '&n=' + encodeURIComponent(config.numTeams || 10);
   }
   if (config.type === 'cfl') {
     return sessionId
