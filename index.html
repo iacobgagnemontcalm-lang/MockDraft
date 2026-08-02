@@ -635,6 +635,16 @@ header {
         </div>
       </div>
 
+      <!-- Roster Format (only for 2026 Season redraft) -->
+      <div id="cfg-rosterfmt-row" style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Roster Format</div>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="cfg-rosterfmt" value="k" checked onchange="onRosterFormatChange()"><span class="radio-dot"></span><span>K + 1 FLEX</span></label>
+          <label class="radio-opt"><input type="radio" name="cfg-rosterfmt" value="flex2" onchange="onRosterFormatChange()"><span class="radio-dot"></span><span>No K + 2 FLEX</span></label>
+        </div>
+        <div style="font-size:10px;color:var(--dim);margin-top:5px">QB · RB×2 · WR×2 · TE · FLEX · <span id="cfg-rosterfmt-hint">K</span> · DEF</div>
+      </div>
+
       <!-- ADP Source (which ranks drive the ADP column, board sort & availability odds) -->
       <div id="cfg-adpsource-row" style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ADP Rankings</div>
@@ -980,7 +990,21 @@ let LEAGUE_CONFIG = {
   type: 'dynasty',     // 'dynasty' | '2026' | 'cfl'
   draftType: 'snake',  // 'snake' | 'linear' (only used when type='2026'|'cfl')
   userPosition: 1,     // 1-10 (only used when type='2026'|'cfl')
+  hasKicker: true,     // 2026 only: false = no K slot, a 2nd FLEX instead
 };
+
+// ── Roster format (2026 redraft only) ──
+// Default lineup is QB/RB×2/WR×2/TE/FLEX/K/DST. When the league is created
+// with hasKicker:false the K slot becomes a second FLEX (RB/WR/TE) and
+// kickers are dropped from the draft pool entirely.
+// Dynasty and CFL always use a kicker.
+function leagueHasKicker() {
+  if (!LEAGUE_CONFIG || LEAGUE_CONFIG.type !== '2026') return true;
+  return LEAGUE_CONFIG.hasKicker !== false;
+}
+function leagueFlexCount() {
+  return leagueHasKicker() ? 1 : 2;
+}
 
 // ══════════════════════════════════════════════
 // LOADING HELPERS
@@ -2286,6 +2310,16 @@ const SLOT_VALUE = {
   K:   [1.0, 0.02],
   DST: [1.0, 0.02],
 };
+// No-kicker redraft: the K slot becomes a 2nd FLEX, so the 3rd RB/WR (and a
+// 2nd TE) can all start — bump those slots, drop K to nothing.
+const SLOT_VALUE_NO_K = {
+  QB:  [1.0, 0.50, 0.00, 0.00],
+  RB:  [1.0, 0.90, 0.70, 0.35, 0.12, 0.05], // 2 starters + 2 FLEX-worthy
+  WR:  [1.0, 0.90, 0.70, 0.35, 0.12, 0.05],
+  TE:  [1.0, 0.55, 0.05, 0.00],             // TE2 can fill a FLEX
+  K:   [0.0],
+  DST: [1.0, 0.02],
+};
 // CFL: QB/Flex (1) + RB (1) + WR×3 + NAT (1 Cdn RB/WR) + K (1) + DST (1) + 5 bench
 const SLOT_VALUE_CFL = {
   QB:  [1.0, 0.50, 0.00],
@@ -2297,7 +2331,7 @@ const SLOT_VALUE_CFL = {
 
 function getSlotValue(pos, nthPlayer) {
   var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  var table = isCFL ? SLOT_VALUE_CFL : SLOT_VALUE;
+  var table = isCFL ? SLOT_VALUE_CFL : (leagueHasKicker() ? SLOT_VALUE : SLOT_VALUE_NO_K);
   const vals = table[pos] || [0.5];
   return vals[Math.min(nthPlayer, vals.length - 1)] || 0.01;
 }
@@ -2323,13 +2357,18 @@ function teamPosCounts(teamId) {
 // Global replacement ECR: the ECR of the last player drafted league-wide at that pos
 // (10 teams × starter slots + bench ≈ total drafted per pos)
 const TOTAL_DRAFTED = {QB:15, RB:40, WR:39, TE:16, K:10, DST:10};
+// No-kicker leagues: the 10 kicker picks go back into the skill pool (the 2nd
+// FLEX means roughly one more RB/WR/TE rostered per team), pushing replacement
+// level deeper at RB/WR.
+const TOTAL_DRAFTED_NO_K = {QB:15, RB:44, WR:44, TE:17, K:0, DST:10};
 // 2026 redraft supports 8/10/12-team leagues — scale the 10-team baseline per team.
 function getTotalDraftedNFL() {
   var nT = (LEAGUE_CONFIG && LEAGUE_CONFIG.type === '2026' && LEAGUE_CONFIG.numTeams) || 10;
-  if (nT === 10) return TOTAL_DRAFTED;
+  var base = leagueHasKicker() ? TOTAL_DRAFTED : TOTAL_DRAFTED_NO_K;
+  if (nT === 10) return base;
   var out = {};
-  Object.keys(TOTAL_DRAFTED).forEach(function(pos) {
-    out[pos] = Math.round(TOTAL_DRAFTED[pos] * nT / 10);
+  Object.keys(base).forEach(function(pos) {
+    out[pos] = Math.round(base[pos] * nT / 10);
   });
   return out;
 }
@@ -2635,6 +2674,7 @@ function renderVOR() {
   var _lateRounds = _myRosterSize >= 13;
   var _myDSCount  = teamPosCount(_vorTeamId, 'DST');
   var _myKCount   = teamPosCount(_vorTeamId, 'K');
+  var _hasKVor    = leagueHasKicker();
 
   // ── Roster-structure nudge ──────────────────────────────────────────────
   // Recent data shows roster STRUCTURE (not isolated value) drives outcomes.
@@ -2808,9 +2848,15 @@ function renderVOR() {
   function candidateFilter(p) {
     if (p.drafted || p.isKeeper) return false;
     if (_lateRounds) {
-      if (_myDSCount === 0) return p.pos === 'DST' || p.pos === 'K';
-      if (_myKCount  === 0) return p.pos === 'K'  || p.pos === 'DST';
-      return p.pos === 'K' || p.pos === 'DST';
+      if (!_hasKVor) {
+        // No K slot — DEF is the only forced fill; once it's in, fall through
+        // to normal filtering so the last picks can be bench skill players.
+        if (_myDSCount === 0) return p.pos === 'DST';
+      } else {
+        if (_myDSCount === 0) return p.pos === 'DST' || p.pos === 'K';
+        if (_myKCount  === 0) return p.pos === 'K'  || p.pos === 'DST';
+        return p.pos === 'K' || p.pos === 'DST';
+      }
     }
     // Punted position (Punt TE / Late Round QB): keep it off the panel, but
     // resurface from round 10 if the roster still has none — a starter is
@@ -2837,7 +2883,7 @@ function renderVOR() {
         if (a.pos === 'DST' && b.pos !== 'DST') return -1;
         if (b.pos === 'DST' && a.pos !== 'DST') return 1;
       }
-      if (_lateRounds && _myKCount === 0) {
+      if (_lateRounds && _hasKVor && _myKCount === 0) {
         if (a.pos === 'K' && b.pos !== 'K') return -1;
         if (b.pos === 'K' && a.pos !== 'K') return 1;
       }
@@ -3323,10 +3369,13 @@ function assignRosterSlots(allPlayers) {
       { base: 'RB',   eligible: ['RB'],           count: 2 },
       { base: 'WR',   eligible: ['WR'],           count: 2 },
       { base: 'TE',   eligible: ['TE'],           count: 1 },
-      { base: 'FLEX', eligible: ['RB','WR','TE'], count: 1 },
-      { base: 'K',    eligible: ['K'],            count: 1 },
+      { base: 'FLEX', eligible: ['RB','WR','TE'], count: leagueFlexCount() },
       { base: 'DST',  eligible: ['DST'],          count: 1 },
     ];
+    // Kicker slot only exists when the league rosters one (else it's the 2nd FLEX)
+    if (leagueHasKicker()) {
+      nflDefs.splice(nflDefs.length - 1, 0, { base: 'K', eligible: ['K'], count: 1 });
+    }
     nflDefs.forEach(def => {
       for (var i = 0; i < def.count; i++) {
         var label = def.count > 1 ? def.base + (i + 1) : def.base;
@@ -3584,7 +3633,9 @@ function setStrategy(key) {
 // ══════════════════════════════════════════════
 function buildFilters() {
   var isCFL = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
-  const poses = isCFL ? ['ALL','QB','RB','WR','NAT','DST','K'] : ['ALL','QB','RB','WR','TE','DST','K'];
+  const poses = isCFL ? ['ALL','QB','RB','WR','NAT','DST','K']
+                      : (leagueHasKicker() ? ['ALL','QB','RB','WR','TE','DST','K']
+                                           : ['ALL','QB','RB','WR','TE','DST']);
   document.getElementById('filter-row').innerHTML = poses.map(p =>
     `<button class="flt${p==='ALL'?' active-ALL':''}" data-pos="${p}" onclick="setFilter(this,'${p}')">${p}</button>`
   ).join('');
@@ -3657,10 +3708,13 @@ function fcValueFor(p, fcMap) {
   return null;
 }
 
-// Equal weight for the first 13 non-K/DST players; CFL: best national RB/WR gets 1.5× (fills 2 slots)
+// Equal weight for the first 13 non-K/DST players (14 when the league rosters no
+// kicker, since that pick goes to a skill player); CFL: best national RB/WR gets
+// 1.5× (fills 2 slots)
 function buildWeightedRoster(roster) {
   var eligible = roster.filter(function(p){ return p.pos !== 'K' && p.pos !== 'DST'; });
-  var result = eligible.slice(0, 13).map(function(p){ return {p: p, w: 1.0}; });
+  var cap = leagueHasKicker() ? 13 : 14;
+  var result = eligible.slice(0, cap).map(function(p){ return {p: p, w: 1.0}; });
   if (LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl') {
     var natSlot = result.filter(function(s){ return s.p.isNational && (s.p.pos==='RB'||s.p.pos==='WR'); })
                        .sort(function(a,b){ return (b.p.projPts||0)-(a.p.projPts||0); })[0];
@@ -3799,12 +3853,16 @@ function simulateRegularSeason(numSims) {
         [eq('WR')], [eq('WR')], [eq('WR')],
         [function(p){ return p.isNational && (p.pos === 'RB' || p.pos === 'WR'); }],
         [eq('K')], [eq('DST')] ]
-    : [ [eq('QB')],
-        [eq('RB')], [eq('RB')],
-        [eq('WR')], [eq('WR')],
-        [eq('TE')],
-        [inPos(['RB','WR','TE'])],
-        [eq('K')], [eq('DST')] ];
+    : (function() {
+        var d = [ [eq('QB')],
+                  [eq('RB')], [eq('RB')],
+                  [eq('WR')], [eq('WR')],
+                  [eq('TE')] ];
+        for (var f = 0; f < leagueFlexCount(); f++) d.push([inPos(['RB','WR','TE'])]);
+        if (leagueHasKicker()) d.push([eq('K')]);
+        d.push([eq('DST')]);
+        return d;
+      })();
 
   var gamesPerSeason = isCFLSim ? 18 : 16; // playable games behind projPts (1 NFL bye)
 
@@ -4198,7 +4256,7 @@ async function generateReport(forTeamId) {
     if (wrs[0])  starters.add(wrs[0].name);
     if (wrs[1])  starters.add(wrs[1].name);
     if (tes[0])  starters.add(tes[0].name);
-    if (ks[0])   starters.add(ks[0].name);
+    if (ks[0] && leagueHasKicker()) starters.add(ks[0].name);
     if (dsts[0]) starters.add(dsts[0].name);
 
     // Max FC value in league for scaling bars
@@ -4259,21 +4317,28 @@ async function generateReport(forTeamId) {
 
     var isK = n => myKeepers.some(k => k.name === n);
 
-    // FLEX: best RB/WR/TE not already used as a starter (RB1/RB2/WR1/WR2/TE1)
+    // FLEX (1, or 2 in a kickerless league): best RB/WR/TE not already used as
+    // a starter (RB1/RB2/WR1/WR2/TE1)
     var starterNames = new Set([qbs[0], rbs[0], rbs[1], wrs[0], wrs[1], tes[0]].filter(Boolean).map(p => p.name));
     var flexCandidates = fullRoster.filter(p =>
       (p.pos === 'RB' || p.pos === 'WR' || p.pos === 'TE') && !starterNames.has(p.name)
     ).sort((a, b) => (b.fcValue || 0) - (a.fcValue || 0));
-    var flexPlayer = flexCandidates[0] || null;
-    if (flexPlayer) starters.add(flexPlayer.name);
+    var flexPlayers = flexCandidates.slice(0, leagueFlexCount());
+    flexPlayers.forEach(p => starters.add(p.name));
 
-    // Recompute bench excluding FLEX starter
+    // Recompute bench excluding FLEX starters
     var bench = fullRoster.filter(p => !starters.has(p.name))
                   .sort((a, b) => (b.fcValue || 0) - (a.fcValue || 0));
 
-    var flexCol = flexPlayer
-      ? (flexPlayer.pos === 'RB' ? 'var(--green)' : flexPlayer.pos === 'WR' ? 'var(--blue)' : 'var(--accent)')
-      : 'var(--dim)';
+    function flexColOf(p) {
+      return p ? (p.pos === 'RB' ? 'var(--green)' : p.pos === 'WR' ? 'var(--blue)' : 'var(--accent)') : 'var(--dim)';
+    }
+    var nFlex = leagueFlexCount();
+    var flexRows = '';
+    for (var _fi = 0; _fi < nFlex; _fi++) {
+      var _fp = flexPlayers[_fi] || null;
+      flexRows += fcRow(nFlex > 1 ? 'FLEX' + (_fi + 1) : 'FLEX', _fp, flexColOf(_fp), _fp && isK(_fp.name));
+    }
 
     var slotRows =
       fcRow('QB1',  qbs[0],    'var(--orange)', qbs[0]     && isK(qbs[0].name))  +
@@ -4282,8 +4347,10 @@ async function generateReport(forTeamId) {
       fcRow('WR1',  wrs[0],    'var(--blue)',   wrs[0]     && isK(wrs[0].name))  +
       fcRow('WR2',  wrs[1],    'var(--blue)',   wrs[1]     && isK(wrs[1].name))  +
       fcRow('TE1',  tes[0],    'var(--accent)', tes[0]     && isK(tes[0].name))  +
-      fcRow('FLEX', flexPlayer, flexCol,         flexPlayer && isK(flexPlayer.name)) +
-      fcRow('K',    ks[0],     'var(--gold)',   ks[0]      && isK(ks[0].name),   true) +
+      flexRows +
+      (leagueHasKicker()
+        ? fcRow('K', ks[0], 'var(--gold)', ks[0] && isK(ks[0].name), true)
+        : '') +
       fcRow('DEF',  dsts[0],   'var(--muted)',  dsts[0]    && isK(dsts[0]?.name), true);
 
     var benchRows = bench.length
@@ -4578,6 +4645,7 @@ function autoPickForTeam(rosterId, mode, strategyTilt) {
     var needed = [];
     if (teamDSCount === 0) needed.push('DST');
     if (teamKCount  === 0) needed.push('K');
+    if (!leagueHasKicker()) needed = needed.filter(function(pos){ return pos !== 'K'; });
     if (needed.length > 0) {
       var forced = players.filter(function(p){
         return !p.drafted && !p.isKeeper && needed.indexOf(p.pos) !== -1;
@@ -4786,6 +4854,10 @@ function loadCSVText(text) {
   }
 
   if (parsed.length < 10) { toast('❌ Too few players found — check CSV format'); return 0; }
+
+  // Kickerless league (K slot replaced by a 2nd FLEX): drop kickers from the
+  // draft pool entirely so they never show on the board or in autopilot.
+  if (!leagueHasKicker()) parsed = parsed.filter(function(p){ return p.pos !== 'K'; });
 
   // Auto-assign CFL tiers from PPG breakpoints when no tier column in CSV
   var _isCFLLoad = LEAGUE_CONFIG && LEAGUE_CONFIG.type === 'cfl';
@@ -5207,9 +5279,12 @@ function openHowItWorks() {
   var cflSec = document.getElementById('how-cfl-section');
   var defkNFL = document.getElementById('how-defk-nfl');
   var defkCFL = document.getElementById('how-defk-cfl');
+  var defkNoK = document.getElementById('how-defk-nok');
+  var noKicker = !isCFL && !leagueHasKicker();
   if (cflSec)  cflSec.style.display  = isCFL ? '' : 'none';
-  if (defkNFL) defkNFL.style.display = isCFL ? 'none' : '';
+  if (defkNFL) defkNFL.style.display = (isCFL || noKicker) ? 'none' : '';
   if (defkCFL) defkCFL.style.display = isCFL ? '' : 'none';
+  if (defkNoK) defkNoK.style.display = noKicker ? '' : 'none';
   document.getElementById('vor-modal').style.display = 'flex';
 }
 
@@ -5221,6 +5296,7 @@ function showLobby() {
   loadLobbySessions();
   // Initialize visibility based on selected League Type
   onLeagueTypeChange();
+  onRosterFormatChange();
 }
 
 function hideLobby() {
@@ -5249,6 +5325,11 @@ function getLobbyNumTeams() {
   var n = el ? parseInt(el.value, 10) : 10;
   return (n === 8 || n === 10 || n === 12) ? n : 10;
 }
+// Roster format radio: 'k' = K + 1 FLEX (default), 'flex2' = no K + 2 FLEX
+function getLobbyHasKicker() {
+  var el = document.querySelector('input[name="cfg-rosterfmt"]:checked');
+  return el ? el.value !== 'flex2' : true;
+}
 
 
 function onLeagueTypeChange() {
@@ -5258,6 +5339,9 @@ function onLeagueTypeChange() {
   // League size is configurable only for the 2026 redraft (CFL is fixed at 6, Dynasty at 10)
   var nt = document.getElementById('cfg-numteams-row');
   if (nt) nt.style.display = (type === '2026') ? '' : 'none';
+  // Same for the K / 2nd-FLEX choice — Dynasty and CFL always roster a kicker
+  var rf = document.getElementById('cfg-rosterfmt-row');
+  if (rf) rf.style.display = (type === '2026') ? '' : 'none';
   // Sleeper site ranks are NFL-only — no ADP source choice in CFL mode
   var asrc = document.getElementById('cfg-adpsource-row');
   if (asrc) asrc.style.display = (type === 'cfl') ? 'none' : '';
@@ -5265,6 +5349,11 @@ function onLeagueTypeChange() {
 
 function onDraftTypeChange() {
   // Currently no UI dependency on draft type, but kept for future use
+}
+
+function onRosterFormatChange() {
+  var hint = document.getElementById('cfg-rosterfmt-hint');
+  if (hint) hint.textContent = getLobbyHasKicker() ? 'K' : 'FLEX';
 }
 
 // ══════════════════════════════════════════════
@@ -5363,7 +5452,8 @@ function apply2026SeasonMode(config) {
     teamGutMap[t.rosterId] = seededGutValue(sid, t.rosterId);
   });
 
-  // Refresh the UI bits that depend on teams / draft order
+  // Refresh the UI bits that depend on teams / draft order / roster format
+  buildFilters();
   buildTeamSelect();
   var lbl = document.getElementById('my-team-label-2026');
   if (lbl) lbl.textContent = '★ Team —';
@@ -5464,7 +5554,8 @@ function loadLobbySessions() {
       var dateStr = s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '';
       var typeLabel = '';
       if (s.config && s.config.type === '2026') {
-        typeLabel = '2026 · ' + (s.config.draftType === 'linear' ? 'Linear' : 'Snake') + ' · ' + (s.config.numTeams || 10) + 'tm';
+        typeLabel = '2026 · ' + (s.config.draftType === 'linear' ? 'Linear' : 'Snake') + ' · ' + (s.config.numTeams || 10) + 'tm'
+                  + (s.config.hasKicker === false ? ' · 2FLEX' : '');
       } else if (s.config && s.config.type === 'cfl') {
         typeLabel = 'CFL · ' + (s.config.draftType === 'linear' ? 'Linear' : 'Snake');
       } else if (s.config && s.config.type === 'dynasty') {
@@ -5502,6 +5593,7 @@ function lobbyCreate() {
       draftType: getLobbyDraftType(),
       adpSource: getLobbyAdpSource(),
       numTeams: getLobbyNumTeams(),
+      hasKicker: getLobbyHasKicker(),
       numRounds: 15,
     };
   } else if (leagueType === 'cfl') {
@@ -5704,6 +5796,8 @@ function parseHashConfig() {
       adpSource: parseAdpSourceParam(params.a),
       userPosition: null,
       numTeams: parseNumTeamsParam(params.n),
+      // &k=0 → no kicker, 2nd FLEX. Missing (legacy links) → kicker.
+      hasKicker: params.k !== '0',
       numRounds: 15,
     };
   }
@@ -5744,7 +5838,8 @@ function encodeSessionHash(sessionId, config) {
       + '&t=2026'
       + '&d=' + encodeURIComponent(config.draftType || 'snake')
       + '&a=' + encodeURIComponent(config.adpSource || 'sleeper')
-      + '&n=' + encodeURIComponent(config.numTeams || 10);
+      + '&n=' + encodeURIComponent(config.numTeams || 10)
+      + '&k=' + (config.hasKicker === false ? '0' : '1');
   }
   if (config.type === 'cfl') {
     return sessionId
@@ -6254,6 +6349,7 @@ init();
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">DEF / K rule</div>
         <span id="how-defk-nfl">Autopilot never drafts DEF or K until <strong>Round 14+</strong> in redraft (or 10+ picks made in Dynasty). Human players can draft them any time.</span>
+        <span id="how-defk-nok" style="display:none">This league has <strong>no kicker</strong> — the K slot is a second FLEX (RB/WR/TE), and kickers are off the board entirely. Autopilot never drafts DEF until <strong>Round 14+</strong>. Human players can draft one any time.</span>
         <span id="how-defk-cfl" style="display:none">K and DST compete on VOR like any other position — autopilot can pick them any round. Each team is capped at <strong>1 K and 1 DST</strong>. Once a team has one, they disappear from that team's recommendations.</span>
       </div>
 

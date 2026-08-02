@@ -2,8 +2,12 @@
 
 A single-page fantasy football mock-draft PWA for the 2026 season. Supports
 three league types — Dynasty (live Sleeper league with keepers), 2026 redraft
-(10 teams, snake/linear), and CFL 2026 (6 teams, 13 rounds, NAT slot) — with
-real-time multi-client draft sync over Firebase Realtime Database.
+(8/10/12 teams, snake/linear), and CFL 2026 (6 teams, 13 rounds, NAT slot) —
+with real-time multi-client draft sync over Firebase Realtime Database.
+
+The 2026 redraft lineup is QB · RB×2 · WR×2 · TE · FLEX · K · DEF. Picking
+**No K + 2 FLEX** in the lobby swaps the kicker slot for a second FLEX
+(RB/WR/TE) and removes kickers from the draft pool entirely.
 
 ## Running
 
