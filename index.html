@@ -3161,14 +3161,22 @@ function renderBoard() {
   const showCliffs = rankMode !== 'vor';
   let prevTier = null;
 
-  // Handcuff highlighting: NFL teams where MY roster already owns an RB →
-  // any still-available RB on that team is a handcuff (backup insurance).
+  // Handcuff highlighting: NFL teams where the DRAFTING team already owns an RB
+  // → any still-available RB on that team is a handcuff (backup insurance).
+  // Scoped to effectiveTeamId() — your team once claimed, else the team on the
+  // clock — so in Commissioner mode the 🔗 follows whoever is actually picking
+  // instead of never showing at all. Same team the top-picks panel reads, so
+  // board and recommendations always agree on whose roster they're advising.
+  const hcTeamId    = effectiveTeamId();
+  const hcTeamShort = hcTeamId != null ? ((getTeam(hcTeamId) || {}).shortName || '') : '';
   const myRbTeams = {};
-  players.forEach(p => {
-    if (p.drafted && p.draftedBy === myTeamId && p.pos === 'RB' && p.nfl && p.nfl !== 'FA') {
-      (myRbTeams[p.nfl] = myRbTeams[p.nfl] || []).push(p.name);
-    }
-  });
+  if (hcTeamId != null) {
+    players.forEach(p => {
+      if (p.drafted && p.draftedBy === hcTeamId && p.pos === 'RB' && p.nfl && p.nfl !== 'FA') {
+        (myRbTeams[p.nfl] = myRbTeams[p.nfl] || []).push(p.name);
+      }
+    });
+  }
 
   const rows = filtered.map(p => {
     if (!p.drafted) avail++;
@@ -3198,7 +3206,7 @@ function renderBoard() {
     const riskIcons = ['','✦','◆','●','▲','⬥'];
     const riskBadge = `<span class="risk-badge risk-${riskQ}" title="Risk Q${riskQ} · STD ${(p.std||0).toFixed(1)}">${riskIcons[riskQ]}${riskQ}</span>`;
     const rookieBadge = p.isRookie ? ` <span style="font-size:8px;color:var(--gold);font-weight:700" title="Rookie">R</span>` : '';
-    const handcuffBadge = isHandcuff ? ` <span class="handcuff-badge" title="Handcuff for ${escHtml(myRbTeams[p.nfl].join(', '))} (${escHtml(p.nfl)})">🔗</span>` : '';
+    const handcuffBadge = isHandcuff ? ` <span class="handcuff-badge" title="Handcuff for ${escHtml(myRbTeams[p.nfl].join(', '))} (${escHtml(p.nfl)})${hcTeamShort ? ' — ' + escHtml(hcTeamShort) + "'s RB" : ''}">🔗</span>` : '';
     // Landmine / value badge (Abusing Draft Rankings — Sleeper rank vs FantasyPros ECR)
     const lmBadge = (!p.drafted && p.landmine != null && p.siteRank)
       ? (p.landmine >= 7.5
