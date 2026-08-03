@@ -822,7 +822,7 @@ header {
       <select class="team-select" id="team-sel"></select>
     </span>
     <span class="my-team-2026-only" id="my-team-label-2026" style="display:none;font-size:13px;font-weight:700;color:var(--accent);padding:5px 12px;border:1px solid var(--accent);border-radius:6px;background:rgba(153,50,204,0.10);font-family:'Syne',sans-serif">★ Team —</span>
-    <button class="hdr-btn" onclick="undoPick()">↩ Undo</button>
+    <button class="hdr-btn" id="undo-btn" onclick="undoPick()" title="Undo the last pick — the commissioner can undo any team's pick">↩ Undo</button>
     <div style="display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px">
     <button class="rank-toggle" id="btn-ecr" onclick="setRankMode('ecr')">ECR</button>
     <button class="rank-toggle active" id="btn-adp" onclick="setRankMode('adp')">ADP</button>
@@ -2996,7 +2996,31 @@ function renderAll() {
   renderRoster();
   renderVOR();
   renderAutopilot();
+  renderUndoBtn();
   checkMobTabSwitch();
+}
+
+// Show what the Undo button will actually do: the commissioner can roll back
+// whichever team picked last, everyone else only their own most recent pick.
+function renderUndoBtn() {
+  const btn = document.getElementById('undo-btn');
+  if (!btn) return;
+  const idx = lastFilledPickIndex();
+  if (idx === -1) {
+    btn.textContent = '↩ Undo';
+    btn.title = 'Nothing to undo yet';
+    btn.disabled = true;
+    btn.style.opacity = '0.45';
+    return;
+  }
+  const slot = draftOrder[idx];
+  const allowed = isCommissioner || slot.teamId === myTeamId;
+  btn.disabled = false;
+  btn.style.opacity = allowed ? '' : '0.45';
+  btn.textContent = isCommissioner ? '👑 ↩ Undo' : '↩ Undo';
+  btn.title = allowed
+    ? 'Undo ' + (slot.teamShort || 'the last team') + '\'s pick — ' + slot.playerName + ' (Round ' + slot.round + ')'
+    : 'Only the commissioner can undo ' + (slot.teamShort || 'another team') + '\'s pick';
 }
 
 function renderHeader() {
@@ -3563,21 +3587,71 @@ function autoPick() {
   toast('🤖 ' + best.name + ' (' + label + ')');
 }
 
-function undoPick() {
-  if (pickHistory.length === 0) { toast('Nothing to undo'); return; }
-  const h = pickHistory.pop();
-  const slot = draftOrder[h.slotIdx];
-  slot.playerName = null;
-  slot.isKeeper = false;
-  const p = players.find(x => x.name === h.playerName);
-  if (p) { p.drafted = false; p.draftedBy = null; }
+// Wipe the "selected player" UI back to its empty state (desktop + mobile).
+function clearSelectionUI() {
   selectedPlayer = null;
-  document.getElementById('sel-info').innerHTML = '<span style="color:var(--dim);font-size:12px">No player selected</span>';
-  document.getElementById('draft-btn').disabled = true;
+  const info = document.getElementById('sel-info');
+  if (info) info.innerHTML = '<span style="color:var(--dim);font-size:12px">No player selected</span>';
+  const btn = document.getElementById('draft-btn'); if (btn) btn.disabled = true;
   const _mn = document.getElementById('mob-sel-name'); if(_mn){_mn.textContent='Tap a player to select';_mn.style.color='var(--dim)';}
   const _mb = document.getElementById('mob-draft-btn'); if(_mb) _mb.disabled = true;
+}
+
+// Index of the most recent real (non-keeper) pick in the draft, or -1 if none.
+// Scans draftOrder rather than pickHistory so the commissioner can undo picks
+// made by other clients / autopilot, not just the ones this browser made.
+function lastFilledPickIndex() {
+  for (let i = draftOrder.length - 1; i >= 0; i--) {
+    if (draftOrder[i].playerName && !draftOrder[i].isKeeper) return i;
+  }
+  return -1;
+}
+
+// Empty one draft slot and hand the player back to the pool. Returns the name freed.
+function clearPickSlot(idx) {
+  const slot = draftOrder[idx];
+  if (!slot || !slot.playerName) return null;
+  const name = slot.playerName;
+  slot.playerName = null;
+  slot.isKeeper = false;
+  const p = players.find(x => x.name === name);
+  if (p) { p.drafted = false; p.draftedBy = null; }
+  pickHistory = pickHistory.filter(h => h.slotIdx !== idx);
+  return name;
+}
+
+function undoPick() {
+  const idx = lastFilledPickIndex();
+  if (idx === -1) { toast('Nothing to undo'); return; }
+  const slot = draftOrder[idx];
+
+  // Managers may take back their own pick; only the commissioner can undo anyone's.
+  if (!isCommissioner && slot.teamId !== myTeamId) {
+    toast('⛔ Only the commissioner can undo ' + (slot.teamShort || 'another team') + '\'s pick');
+    return;
+  }
+
+  // Stop autopilot first — otherwise it refills the slot we just emptied.
+  if (autoPilotRunning) {
+    autoPilotRunning = false;
+    const apBtn = document.getElementById('ap-run-btn');
+    if (apBtn) apBtn.textContent = '▶ Run';
+  }
+  // Hand the slot back to a human so no other client's autopilot re-makes the pick.
+  if (isCommissioner && (teamModes[slot.teamId] || 'manual') !== 'manual') {
+    teamModes[slot.teamId] = 'manual';
+    if (fbRef) fbRef.child('teamModes/' + slot.teamId).set('manual');
+    renderAutopilot();
+  }
+
+  const teamShort = slot.teamShort || 'team';
+  const round = slot.round;
+  const name = clearPickSlot(idx);
+  fbRemovePick(idx); // roll the pick back on every connected client
+  clearSelectionUI();
+  hideResultsBtn();  // draft is no longer complete
   renderAll();
-  toast('↩ Undone');
+  toast('↩ Undid ' + name + ' — back to ' + teamShort + ', Round ' + round);
 }
 
 function confirmReset() {
@@ -5258,6 +5332,13 @@ function showResultsBtn() {
   if (mobTab) mobTab.style.display = 'flex';
 }
 
+function hideResultsBtn() {
+  var btn = document.getElementById('results-btn');
+  var mobTab = document.getElementById('mob-results-tab');
+  if (btn) btn.style.display = 'none';
+  if (mobTab) mobTab.style.display = 'none';
+}
+
 // ══════════════════════════════════════════════
 // FIREBASE MULTIPLAYER SYNC
 // ══════════════════════════════════════════════
@@ -5887,6 +5968,10 @@ function attachFirebaseListeners() {
   fbRef.child('picks').on('child_changed', function(snap) {
     applyRemotePick(snap.key, snap.val());
   });
+  // A commissioner undo elsewhere clears the slot here too
+  fbRef.child('picks').on('child_removed', function(snap) {
+    removeRemotePick(snap.key);
+  });
 
   // Sync teamModes from Firebase — ensures autopilot respects manual claims from other clients
   fbRef.child('teamModes').on('child_added', function(snap) {
@@ -5936,6 +6021,18 @@ function applyRemotePick(key, data) {
   }
 }
 
+// Mirror an undo made on another client (or echoed back from our own write).
+function removeRemotePick(key) {
+  var idx  = parseInt(key);
+  var slot = draftOrder[idx];
+  if (!slot || !slot.playerName) return; // already cleared locally
+  var name = clearPickSlot(idx);
+  if (selectedPlayer && selectedPlayer.name === name) clearSelectionUI();
+  console.log('Remote undo applied:', name, 'slot', idx);
+  hideResultsBtn();
+  renderAll();
+}
+
 function updateSyncBadge(ok) {
   var badge = document.getElementById('sync-badge');
   if (!badge) return;
@@ -5958,6 +6055,17 @@ function fbPushPick(slotIdx, playerName) {
   update['meta/pickCount'] = draftOrder.filter(function(s){return s.playerName;}).length;
   fbRef.update(update, function(err) {
     if (err) console.error('fbPushPick error:', err);
+  });
+}
+
+// Remove a pick from Firebase — fires child_removed on every client, including this one.
+function fbRemovePick(slotIdx) {
+  if (!fbRef) return;
+  var update = {};
+  update['picks/' + slotIdx] = null;
+  update['meta/pickCount'] = draftOrder.filter(function(s){return s.playerName;}).length;
+  fbRef.update(update, function(err) {
+    if (err) console.error('fbRemovePick error:', err);
   });
 }
 
