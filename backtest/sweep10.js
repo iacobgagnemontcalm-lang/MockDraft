@@ -76,6 +76,17 @@ const SETS = {
     'urgencyCap 0.15':             cfg({ urgencyCap: 0.15 }),
     'urgencyCap 0.60':             cfg({ urgencyCap: 0.60 }),
   },
+  // Set D found that keeping the shipped dropoff FORM but doubling its weight
+  // was +4.2 +/- 2.9 against sharp bots and neutral in an ADP room. That is
+  // barely significant; confirm the optimum at higher N before shipping it.
+  G: {
+    'shipped dropoffW 0.5':        cfg({}),
+    'dropoffW 0.75':               cfg({ dropoffW: 0.75 }),
+    'dropoffW 1.0':                cfg({ dropoffW: 1.0 }),
+    'dropoffW 1.25':               cfg({ dropoffW: 1.25 }),
+    'dropoffW 1.5':                cfg({ dropoffW: 1.5 }),
+    'dropoffW 2.0':                cfg({ dropoffW: 2.0 }),
+  },
   C: {
     'shipped':                     cfg({}),
     'prop steal 0.10':             cfg({ stealMode: 'prop', stealPropW: 0.10 }),
