@@ -108,6 +108,17 @@ const SETS = {
     'discount 0.60':               cfg({ discount: 0.60 }),
     'no look-ahead':               cfg({ lookahead: false }),
   },
+  // Final validation: the two changes that cleared BOTH rooms, alone and
+  // together, plus a re-check that urgency is still inert under the new
+  // parameters (it was inert under the shipped ones).
+  J: {
+    'shipped':                     cfg({}),
+    'dropoffW 3.0':                cfg({ dropoffW: 3.0 }),
+    'discount 0.60':               cfg({ discount: 0.60 }),
+    'BOTH (proposed)':             cfg({ dropoffW: 3.0, discount: 0.60 }),
+    'BOTH + urgency off':          cfg({ dropoffW: 3.0, discount: 0.60, depthW: 0, cliffW: 0 }),
+    'BOTH + steal off':            cfg({ dropoffW: 3.0, discount: 0.60, stealCap: 0 }),
+  },
   C: {
     'shipped':                     cfg({}),
     'prop steal 0.10':             cfg({ stealMode: 'prop', stealPropW: 0.10 }),
