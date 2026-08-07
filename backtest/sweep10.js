@@ -87,6 +87,27 @@ const SETS = {
     'dropoffW 1.5':                cfg({ dropoffW: 1.5 }),
     'dropoffW 2.0':                cfg({ dropoffW: 2.0 }),
   },
+  // Set G was still climbing at dropoffW=2.0 in both rooms. Find the turnover.
+  H: {
+    'shipped dropoffW 0.5':        cfg({}),
+    'dropoffW 2.0':                cfg({ dropoffW: 2.0 }),
+    'dropoffW 3.0':                cfg({ dropoffW: 3.0 }),
+    'dropoffW 4.0':                cfg({ dropoffW: 4.0 }),
+    'dropoffW 6.0':                cfg({ dropoffW: 6.0 }),
+    'dropoffW 10.0':               cfg({ dropoffW: 10.0 }),
+  },
+  // Set F: the look-ahead helps against ADP-drafting bots (-8.6 without it)
+  // but hurts badly against value-drafting bots (+36.2 without it), because
+  // pickProbAtOffset models opponents as ADP-followers. Lowering the discount
+  // is the robust hedge -- find the weight that is safe in both rooms.
+  I: {
+    'shipped discount 0.65':       cfg({}),
+    'discount 0.40':               cfg({ discount: 0.40 }),
+    'discount 0.50':               cfg({ discount: 0.50 }),
+    'discount 0.55':               cfg({ discount: 0.55 }),
+    'discount 0.60':               cfg({ discount: 0.60 }),
+    'no look-ahead':               cfg({ lookahead: false }),
+  },
   C: {
     'shipped':                     cfg({}),
     'prop steal 0.10':             cfg({ stealMode: 'prop', stealPropW: 0.10 }),
