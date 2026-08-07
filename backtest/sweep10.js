@@ -60,6 +60,22 @@ const SETS = {
     'upside w=0.30':               cfg({ upsideW: 0.30 }),
     'upside w=0.35':               cfg({ upsideW: 0.35 }),
   },
+  // Re-validate the shipped constants. Every one of these was justified in an
+  // index.html comment by a backtest that ran on the broken harness.
+  F: {
+    'shipped':                     cfg({}),
+    'no look-ahead':               cfg({ lookahead: false }),
+    'discount 0.50':               cfg({ discount: 0.50 }),
+    'discount 0.80':               cfg({ discount: 0.80 }),
+    'needStep 0.20':               cfg({ needStep: 0.20 }),
+    'needStep 0.50':               cfg({ needStep: 0.50 }),
+    'need off (0)':                cfg({ needStep: 0 }),
+    'urgency off':                 cfg({ depthW: 0, cliffW: 0 }),
+    'depth off (cliff only)':      cfg({ depthW: 0 }),
+    'cliff off (depth only)':      cfg({ cliffW: 0 }),
+    'urgencyCap 0.15':             cfg({ urgencyCap: 0.15 }),
+    'urgencyCap 0.60':             cfg({ urgencyCap: 0.60 }),
+  },
   C: {
     'shipped':                     cfg({}),
     'prop steal 0.10':             cfg({ stealMode: 'prop', stealPropW: 0.10 }),
