@@ -119,6 +119,14 @@ const SETS = {
     'BOTH + urgency off':          cfg({ dropoffW: 3.0, discount: 0.60, depthW: 0, cliffW: 0 }),
     'BOTH + steal off':            cfg({ dropoffW: 3.0, discount: 0.60, stealCap: 0 }),
   },
+  // Regression guard: BASE_CFG now mirrors what index.html ships. Reverting
+  // either change must show up as a loss, in the same direction set J measured.
+  K: {
+    'shipped (dropoff 3.0, disc 0.60)': cfg({}),
+    'revert dropoffW to 0.5':           cfg({ dropoffW: 0.5 }),
+    'revert discount to 0.65':          cfg({ discount: 0.65 }),
+    'revert both (old app)':            cfg({ dropoffW: 0.5, discount: 0.65 }),
+  },
   C: {
     'shipped':                     cfg({}),
     'prop steal 0.10':             cfg({ stealMode: 'prop', stealPropW: 0.10 }),

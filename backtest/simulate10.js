@@ -200,11 +200,11 @@ const BASE_CFG = {
   stealMode: 'flat',     // 'flat' (shipped) | 'prop' = fraction of max(mvor,0)
   stealPropW: 0.30,
   upsideW: 0,            // bench-upside: reward outcome variance on depth picks
-  discount: 0.65,        // 3-pick look-ahead per-turn discount
+  discount: 0.60,        // 3-pick look-ahead per-turn discount (was 0.65; set I)
   lookahead: true,
   tieBreak: 5,           // |score gap| under which the pre-sort falls back to ECR
   scarcityW: 0.9,        // marginalValue's (1 + goneProb * scarcityW)
-  dropoffW: 0.5,         // marginalValue's rawVOR + dropoff * dropoffW
+  dropoffW: 3.0,         // marginalValue's rawVOR + dropoff * dropoffW (was 0.5; sets G/H)
   // 'fixed2nd' reproduces the shipped marginalValue, which compares EVERY
   // candidate at a position against posAvail[1] — the 2nd-best available at
   // that position, the same player for all of them. That makes dropoff a

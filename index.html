@@ -2611,12 +2611,25 @@ function marginalValue(player, teamId, byPos) {
   // Raw VOR from log curve (computed in computeVOR)
   const rawVOR = player.vor || 0;
 
-  // Dropoff bonus: how far ahead of the next-best at same position
+  // Within-position ECR steepener.
+  // NOTE: posAvail is ECR-sorted, so posAvail[1] is the 2nd-best available AT
+  // THE POSITION — the same reference player for every candidate, not the next
+  // man after this one. dropoff is therefore positive only for the top one or
+  // two at a position and grows steadily more negative further down the list.
+  // That is a second, steeper ECR penalty layered on rawVOR rather than the
+  // "gap to the next man" bonus it looks like — and it is load-bearing:
+  // rewriting it to the literal next-man gap costs 3.8–9.7 pts, and removing it
+  // costs 164 pts against value-drafting opponents (sweep10 set D, N=1200).
   const posAvail = (byPos[pos] || []).filter(p => !p.drafted);
   const sameSlotFallback = posAvail[1] || posAvail[0];
   const dropoff  = sameSlotFallback ? (sameSlotFallback.ecr - player.ecr) : 0;
 
-  const baseVOR = rawVOR + dropoff * 0.5;
+  // Weight swept 0.5→10 in sweep10 sets G/H (N=2500, both room types). The ADP
+  // room peaks at 4.0 with a flat 3–6 plateau and falls off by 10; the sharp
+  // room prefers ever-higher weights and so cannot size this. 3.0 is the
+  // conservative end of the plateau: +5.6 ± 3.1 (ADP) and +11.9 ± 3.6 (vs
+  // value-drafting bots) over the previous 0.5.
+  const baseVOR = rawVOR + dropoff * 3.0;
 
   // Pick probability scarcity multiplier
   const pickProb = computePickProb(player);
@@ -2732,27 +2745,39 @@ function renderVOR() {
     var goneProb = prob !== null ? (1 - prob) : 0.1;
 
     // --- Value anchor: mVOR scaled by RB/WR positional need only ---
-    // needMult is applied only to the positive portion of mVOR — backtest showed
-    // multiplying negative mVOR by >1 inverts the penalty and causes worse picks
-    // (+8.7 pts improvement from clamping). RB/WR need only: extending to QB/TE
-    // caused ~5-6 pt loss by drafting those positions too early.
+    // needMult is applied only to the positive portion of mVOR so that need can
+    // never scale up a below-replacement player. In practice the clamp is
+    // unreachable: no candidate that reaches the top-20 panel has ever had
+    // negative mVOR (0 of 560 chosen picks in sweep10), so the max/min split is
+    // a guard rail rather than an active branch. It stays because it costs
+    // nothing and would matter if the value scale changed.
+    // RB/WR only — the need step itself is inert (0.20 vs 0.50 is ns in both
+    // room types), but removing need altogether costs 5.0 pts in an ADP room.
     var needMult  = 1 + (p.pos === 'RB' ? rbNeed : p.pos === 'WR' ? wrNeed : 0) * 0.35;
     var baseValue = Math.max(mvor, 0) * needMult + Math.min(mvor, 0);
 
     // --- ECR steal: value signal gated by gone probability ---
-    // Backtest confirmed: removing steal costs ~3.6 pts — keep it.
+    // Re-measured on sweep10 set A (N=1200): removing steal is +0.2 ± 0.7 in an
+    // ADP room (i.e. nothing) but −2.7 ± 1.5 against value-drafting opponents,
+    // where the ECR-vs-ADP gap is real information. Kept for that case. Note the
+    // bonus is a flat 0–4 pts while mVOR spans ~470 (rd 1) to ~0.4 (rd 14), so
+    // it is ~0.1% of an early decision and ~40% of a late one; making it
+    // proportional to mVOR instead tested neutral-to-worse in both rooms.
     var ecrGap = (p.adp && p.ecr && p.adp < 500) ? Math.max(0, p.adp - p.ecr) : 0;
     var stealWeight = (p.pos === 'QB' || p.pos === 'TE') ? 0.4 : 1.0;
     var stealBonus  = Math.min(ecrGap / 5, 4) * Math.max(goneProb, 0.1) * stealWeight;
 
     // --- Urgency: depth + cliff, cap=0.3 ---
-    // Backtest (simulate7, 400 sims, real 2026 ADP):
-    //   depth+steal, cap=0.8             → +16.4 pts  (previous)
-    //   depth+steal, cap=0.5             → +18.5 pts
-    //   depth+steal, cap=0.3             → +15.7 pts
-    //   depth+cliff+steal, cap=0.3       → +28.1 pts  ← best
-    //   all signals, cap=0.3             → +27.2 pts  (run/demand not worth it)
-    // Cliff came back at low cap — it over-fired at 0.8, fine at 0.3.
+    // The figures previously cited here (+16.4 / +18.5 / +28.1 pts, simulate7)
+    // are void: simulate3–9 parse an adp_rankings.csv schema that no longer
+    // exists, so they draft from an empty pool and score every arm identically.
+    // Re-measured on the repaired harness (sweep10 set F, N=1200), this whole
+    // term is statistically inert: turning depth+cliff off entirely is
+    // +0.30 ± 4.05 (ADP room) and +1.72 ± 5.45 (vs value-drafting bots), and
+    // every weight/cap variant tested ns in both rooms.
+    // It is kept because inert is not harmful and the ▼ last-tier badge it
+    // drives is genuinely useful for explaining WHY a pick is urgent — but do
+    // not treat these weights as tuned, and do not cite a backtest for them.
     var eliteLeft    = _posElite[p.pos] != null ? _posElite[p.pos] : 10;
     var depthUrgency = (p.tier != null && p.tier <= 3)
       ? (eliteLeft <= 2 ? 1.0 : eliteLeft <= 4 ? 0.6 : eliteLeft <= 6 ? 0.3 : 0.0) : 0.0;
@@ -2839,8 +2864,14 @@ function renderVOR() {
     var bestC  = cands3.length ? cands3.sort(function(a,b){ return iackScoreWith(b,n2[0],n2[1]) - iackScoreWith(a,n2[0],n2[1]); })[0] : null;
     var scoreC = bestC ? iackScoreWith(bestC, n2[0], n2[1]) : 0;
 
-    // Discount: 0.65 per turn (0.65² ≈ 0.42 for the 3rd pick)
-    return base + scoreB * 0.65 + scoreC * 0.42;
+    // Discount: 0.60 per turn (0.60² = 0.36 for the 3rd pick).
+    // The look-ahead assumes opponents draft near ADP, since pickProbAtOffset
+    // is an ADP sigmoid. Against a room drafting on value instead, the 3-pick
+    // projection is confidently wrong: dropping the look-ahead entirely is
+    // +40.7 pts there but −6.2 pts in an ADP room. 0.60 is the hedge — no
+    // measurable cost in an ADP room (−0.8 ± 1.1, ns) and +3.3 ± 1.4 against
+    // value-drafting bots (sweep10 set I, N=2500).
+    return base + scoreB * 0.60 + scoreC * 0.36;
   }
 
   // Filter candidates for the top picks panel
@@ -6347,9 +6378,9 @@ init();
           iackScore = max(VOR,0)×needMult + min(VOR,0)<br>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + (cliff×0.30 + depth×0.22) × |VOR| × 0.3<br>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + ECR steal bonus<br>
-          3-pick value = iack(pick1) + 0.65×iack(pick2) + 0.42×iack(pick3)
+          3-pick value = iack(pick1) + 0.60×iack(pick2) + 0.36×iack(pick3)
         </div>
-        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Every signal was validated against 500+ simulated drafts using real ADP data.</div>
+        <div style="margin-top:8px;font-size:11px;color:var(--dim)">Weights are tuned against 2,500+ simulated drafts per variant on real ECR and ADP data, scored on realized points against two opponent models. The value and look-ahead terms carry the measurable edge; the tier-cliff and depth-scarcity nudges are within noise and are shown mainly to explain <em>why</em> a pick is urgent.</div>
       </div>
 
       <div>
@@ -6402,9 +6433,9 @@ init();
           &nbsp;1. Score <em>A</em> now with your current roster state<br>
           &nbsp;2. Find the best pick <em>B</em> likely available next turn — scored with <em>updated</em> needs (if you took an RB, your WR need is now higher)<br>
           &nbsp;3. Find the best pick <em>C</em> likely available the turn after — scored with needs after <em>A+B</em><br>
-          &nbsp;Total = iack(A) + <span style="color:var(--gold)">0.65</span>×iack(B) + <span style="color:var(--gold)">0.42</span>×iack(C)
+          &nbsp;Total = iack(A) + <span style="color:var(--gold)">0.60</span>×iack(B) + <span style="color:var(--gold)">0.36</span>×iack(C)
         </div>
-        The discount (0.65 per turn) reflects that future picks are less certain. The <strong>then → [player] +X.X</strong> line on each card shows the projected best pick for your next turn if you take that card now.
+        The discount (0.60 per turn) reflects that future picks are less certain — and that the projection assumes the rest of the room drafts near ADP, which is exactly where it goes wrong against value-drafters. The <strong>then → [player] +X.X</strong> line on each card shows the projected best pick for your next turn if you take that card now.
       </div>
 
       <div>
