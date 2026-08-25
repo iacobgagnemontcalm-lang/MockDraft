@@ -1,268 +1,271 @@
 Rank,Player (Bye),POS,AVG
 1,Jahmyr Gibbs   DET (6),RB,1.5
-2,Bijan Robinson   ATL (11),RB,2.0
+2,Bijan Robinson   ATL (11),RB,2.1
 3,Puka Nacua   LAR (11),WR,3.1
 4,Ja'Marr Chase   CIN (6),WR,3.8
 5,Jaxon Smith-Njigba   SEA (11),WR,5.4
-6,Amon-Ra St. Brown   DET (6),WR,6.3
+6,Amon-Ra St. Brown   DET (6),WR,6.4
 7,Christian McCaffrey   SF (8),RB,6.6
-8,Jonathan Taylor   IND (13),RB,7.4
-9,Drake London   ATL (11),WR,9.9
+8,Jonathan Taylor   IND (13),RB,7.5
+9,Drake London   ATL (11),WR,10.0
 10,De'Von Achane   MIA (6),RB,10.4
 11,CeeDee Lamb   DAL (14),WR,10.7
-12,Justin Jefferson   MIN (6),WR,11.6
+12,Justin Jefferson   MIN (6),WR,11.7
 13,James Cook III   BUF (7),RB,12.7
-14,Chase Brown   CIN (6),RB,13.4
-15,Rashee Rice   KC (5),WR,14.6
-16,Ashton Jeanty   LV (13),RB,15.0
-17,Derrick Henry   BAL (13),RB,17.7
-18,A.J. Brown   NE (11),WR,18.1
-19,Saquon Barkley   PHI (10),RB,19.7
-20,Chris Olave   NO (8),WR,20.1
-21,George Pickens   DAL (14),WR,20.3
+14,Chase Brown   CIN (6),RB,13.3
+15,Rashee Rice   KC (5),WR,14.8
+16,Ashton Jeanty   LV (13),RB,15.1
+17,Derrick Henry   BAL (13),RB,17.6
+18,A.J. Brown   NE (11),WR,18.2
+19,Chris Olave   NO (8),WR,19.5
+20,Saquon Barkley   PHI (10),RB,19.5
+21,George Pickens   DAL (14),WR,20.6
 22,Nico Collins   HOU (8),WR,21.0
-23,Kenneth Walker III   KC (5),RB,22.1
-24,Omarion Hampton   LAC (7),RB,23.3
-25,Zay Flowers   BAL (13),WR,25.6
-26,Garrett Wilson   NYJ (13),WR,25.8
+23,Kenneth Walker III   KC (5),RB,21.8
+24,Omarion Hampton   LAC (7),RB,23.4
+25,Garrett Wilson   NYJ (13),WR,25.7
+26,Zay Flowers   BAL (13),WR,26.1
 27,Malik Nabers   NYG (8),WR,27.3
-28,Jeremiyah Love   ARI (14),RB,27.9
-29,Trey McBride   ARI (14),TE,28.9
-30,DeVonta Smith   PHI (10),WR,29.6
-31,Josh Jacobs   GB (11),RB,30.8
+28,Jeremiyah Love   ARI (14),RB,27.7
+29,Trey McBride   ARI (14),TE,29.0
+30,DeVonta Smith   PHI (10),WR,29.8
+31,Josh Jacobs   GB (11),RB,30.6
 32,Kyren Williams   LAR (11),RB,31.6
-33,Tetairoa McMillan   CAR (5),WR,32.6
-34,Josh Allen   BUF (7),QB,33.8
-35,Breece Hall   NYJ (13),RB,35.0
-36,Emeka Egbuka   TB (10),WR,35.0
-37,Brock Bowers   LV (13),TE,35.3
-38,Tee Higgins   CIN (6),WR,36.3
-39,Cam Skattebo   NYG (8),RB,36.6
-40,Javonte Williams   DAL (14),RB,36.8
-41,Ladd McConkey   LAC (7),WR,37.7
-42,Travis Etienne Jr.   NO (8),RB,40.1
-43,Davante Adams   LAR (11),WR,41.9
+33,Tetairoa McMillan   CAR (5),WR,32.2
+34,Josh Allen   BUF (7),QB,34.2
+35,Emeka Egbuka   TB (10),WR,34.8
+36,Breece Hall   NYJ (13),RB,35.3
+37,Brock Bowers   LV (13),TE,35.4
+38,Javonte Williams   DAL (14),RB,36.5
+39,Tee Higgins   CIN (6),WR,36.8
+40,Cam Skattebo   NYG (8),RB,37.1
+41,Ladd McConkey   LAC (7),WR,37.8
+42,Travis Etienne Jr.   NO (8),RB,39.1
+43,Davante Adams   LAR (11),WR,42.0
 44,Jameson Williams   DET (6),WR,44.2
-45,Bucky Irving   TB (10),RB,45.2
-46,D'Andre Swift   CHI (10),RB,45.8
-47,Jaylen Waddle   DEN (10),WR,45.9
-48,Terry McLaurin   WAS (7),WR,46.8
-49,DJ Moore   BUF (7),WR,48.9
-50,Quinshon Judkins   CLE (11),RB,50.9
-51,Drake Maye   NE (11),QB,51.6
-52,Rome Odunze   CHI (10),WR,51.9
-53,Bhayshul Tuten   JAX (7),RB,52.7
-54,Mike Evans   SF (8),WR,53.7
-55,Colston Loveland   CHI (10),TE,56.8
-56,Lamar Jackson   BAL (13),QB,57.0
-57,Joe Burrow   CIN (6),QB,57.6
-58,David Montgomery   HOU (8),RB,58.2
+45,Bucky Irving   TB (10),RB,44.7
+46,D'Andre Swift   CHI (10),RB,45.7
+47,Jaylen Waddle   DEN (10),WR,46.0
+48,Terry McLaurin   WAS (7),WR,46.9
+49,DJ Moore   BUF (7),WR,48.5
+50,Quinshon Judkins   CLE (11),RB,50.4
+51,Drake Maye   NE (11),QB,51.8
+52,Bhayshul Tuten   JAX (7),RB,52.2
+53,Rome Odunze   CHI (10),WR,52.6
+54,Mike Evans   SF (8),WR,54.3
+55,Lamar Jackson   BAL (13),QB,56.9
+56,Colston Loveland   CHI (10),TE,57.0
+57,Joe Burrow   CIN (6),QB,57.9
+58,Luther Burden III   CHI (10),WR,58.3
 59,Jaylen Warren   PIT (9),RB,58.4
-60,Luther Burden III   CHI (10),WR,58.5
+60,David Montgomery   HOU (8),RB,58.4
 61,Christian Watson   GB (11),WR,58.8
-62,Courtland Sutton   DEN (10),WR,60.2
+62,Courtland Sutton   DEN (10),WR,59.6
 63,TreVeyon Henderson   NE (11),RB,61.5
-64,Alec Pierce   IND (13),WR,64.5
-65,Parker Washington   JAX (7),WR,64.6
-66,DK Metcalf   PIT (9),WR,64.8
-67,Tyler Warren   IND (13),TE,65.1
-68,Dak Prescott   DAL (14),QB,65.3
-69,Marvin Harrison Jr.   ARI (14),WR,65.9
-70,Rhamondre Stevenson   NE (11),RB,67.8
-71,Tony Pollard   TEN (9),RB,68.9
-72,Brian Thomas Jr.   JAX (7),WR,72.2
-73,Jayden Daniels   WAS (7),QB,72.2
-74,Rico Dowdle   PIT (9),RB,74.6
+64,DK Metcalf   PIT (9),WR,64.5
+65,Parker Washington   JAX (7),WR,64.8
+66,Tyler Warren   IND (13),TE,65.5
+67,Dak Prescott   DAL (14),QB,65.6
+68,Marvin Harrison Jr.   ARI (14),WR,65.8
+69,Rhamondre Stevenson   NE (11),RB,66.4
+70,Alec Pierce   IND (13),WR,66.7
+71,Tony Pollard   TEN (9),RB,69.3
+72,Jayden Daniels   WAS (7),QB,72.2
+73,Brian Thomas Jr.   JAX (7),WR,72.5
+74,Rico Dowdle   PIT (9),RB,74.5
 75,Michael Pittman Jr.   PIT (9),WR,74.8
-76,Kyle Pitts Sr.   ATL (11),TE,75.9
+76,Kyle Pitts Sr.   ATL (11),TE,75.5
 77,Michael Wilson   ARI (14),WR,76.0
-78,Carnell Tate   TEN (9),WR,76.1
-79,Matthew Stafford   LAR (11),QB,77.3
-80,Jadarian Price   SEA (11),RB,78.0
-81,Harold Fannin Jr.   CLE (11),TE,78.5
-82,Chuba Hubbard   CAR (5),RB,78.8
-83,Jalen Hurts   PHI (10),QB,79.0
-84,Chris Godwin Jr.   TB (10),WR,80.2
-85,Seattle Seahawks   SEA (11),DEF,82.7
-86,Josh Downs   IND (13),WR,84.8
-87,Wan'Dale Robinson   TEN (9),WR,85.9
-88,RJ Harvey   DEN (10),RB,87.2
-89,Brock Purdy   SF (8),QB,87.8
-90,Denver Broncos   DEN (10),DEF,88.0
-91,Jakobi Meyers   JAX (7),WR,88.2
-92,Caleb Williams   CHI (10),QB,89.8
-93,J.K. Dobbins   DEN (10),RB,90.7
-94,Stefon Diggs   WAS (7),WR,91.4
-95,Kenny Gainwell   TB (10),RB,91.6
-96,Trevor Lawrence   JAX (7),QB,91.9
-97,Jayden Reed   GB (11),WR,94.3
-98,Quentin Johnston   LAC (7),WR,95.4
-99,Keon Coleman   BUF (7),WR,96.2
-100,Houston Texans   HOU (8),DEF,97.4
-101,Jordan Addison   MIN (6),WR,97.5
+78,Jadarian Price   SEA (11),RB,76.5
+79,Matthew Stafford   LAR (11),QB,76.9
+80,Carnell Tate   TEN (9),WR,77.3
+81,Jalen Hurts   PHI (10),QB,78.8
+82,Harold Fannin Jr.   CLE (11),TE,78.9
+83,Chuba Hubbard   CAR (5),RB,79.0
+84,Chris Godwin Jr.   TB (10),WR,80.0
+85,Seattle Seahawks   SEA (11),DEF,83.2
+86,Wan'Dale Robinson   TEN (9),WR,85.9
+87,Josh Downs   IND (13),WR,85.9
+88,Jakobi Meyers   JAX (7),WR,87.7
+89,Brock Purdy   SF (8),QB,88.0
+90,Denver Broncos   DEN (10),DEF,88.1
+91,RJ Harvey   DEN (10),RB,88.1
+92,J.K. Dobbins   DEN (10),RB,88.5
+93,Caleb Williams   CHI (10),QB,90.6
+94,Trevor Lawrence   JAX (7),QB,91.2
+95,Stefon Diggs   WAS (7),WR,91.2
+96,Kenny Gainwell   TB (10),RB,91.5
+97,Jayden Reed   GB (11),WR,95.0
+98,Quentin Johnston   LAC (7),WR,96.3
+99,Jordan Addison   MIN (6),WR,97.4
+100,Jonathon Brooks   CAR (5),RB,97.5
+101,Houston Texans   HOU (8),DEF,98.4
 102,Jared Goff   DET (6),QB,99.8
-103,Sam LaPorta   DET (6),TE,99.8
-104,Jonathon Brooks   CAR (5),RB,99.8
-105,Tucker Kraft   GB (11),TE,100.5
-106,Khalil Shakir   BUF (7),WR,100.9
-107,Aaron Jones Sr.   MIN (6),RB,102.1
-108,Patrick Mahomes II   KC (5),QB,102.5
-109,Dallas Goedert   PHI (10),TE,105.0
-110,Justin Herbert   LAC (7),QB,105.8
-111,Matthew Golden   GB (11),WR,106.0
-112,Xavier Worthy   KC (5),WR,106.3
-113,Travis Kelce   KC (5),TE,107.0
-114,Minnesota Vikings   MIN (6),DEF,108.4
-115,Los Angeles Rams   LAR (11),DEF,108.8
-116,Kyle Monangai   CHI (10),RB,110.2
-117,Rachaad White   WAS (7),RB,110.3
-118,Deebo Samuel Sr.   SF (8),WR,110.8
-119,Bo Nix   DEN (10),QB,112.4
-120,Romeo Doubs   NE (11),WR,114.0
-121,Makai Lemon   PHI (10),WR,115.9
-122,Jacory Croskey-Merritt   WAS (7),RB,116.6
-123,Jaxson Dart   NYG (8),QB,117.3
-124,George Kittle   SF (8),TE,117.5
-125,Jordan Mason   MIN (6),RB,118.2
-126,Blake Corum   LAR (11),RB,120.9
-127,KC Concepcion   CLE (11),WR,121.0
-128,Jalen Coker   CAR (5),WR,121.3
-129,Jerry Jeudy   CLE (11),WR,125.6
-130,Jordyn Tyson   NO (8),WR,126.9
-131,Mark Andrews   BAL (13),TE,127.4
-132,New England Patriots   NE (11),DEF,128.3
-133,Baker Mayfield   TB (10),QB,128.7
-134,Rashid Shaheed   SEA (11),WR,128.9
-135,Jayden Higgins   HOU (8),WR,129.4
-136,Brandon Aubrey   DAL (14),PK,129.7
-137,Detroit Lions   DET (6),DEF,130.3
-138,Tyjae Spears   TEN (9),RB,131.0
-139,Keenan Allen   IND (13),WR,131.3
-140,Tre Tucker   LV (13),WR,132.3
-141,Pittsburgh Steelers   PIT (9),DEF,132.9
-142,Jake Ferguson   DAL (14),TE,133.0
-143,Kyler Murray   MIN (6),QB,133.2
-144,Tyler Shough   NO (8),QB,134.2
-145,Zach Charbonnet   SEA (11),RB,135.8
-146,David Njoku   LAC (7),TE,136.0
-147,Jalen McMillan   TB (10),WR,136.1
-148,Isaiah Likely   NYG (8),TE,136.7
-149,De'Zhaun Stribling   SF (8),WR,137.4
-150,Philadelphia Eagles   PHI (10),DEF,138.8
-151,Jason Myers   SEA (11),PK,138.9
-152,Denzel Boston   CLE (11),WR,139.5
-153,Ka'imi Fairbairn   HOU (8),PK,141.0
-154,Sam Darnold   SEA (11),QB,142.0
-155,Los Angeles Chargers   LAC (7),DEF,142.1
-156,Juwan Johnson   NO (8),TE,142.3
-157,Cameron Dicker   LAC (7),PK,142.6
-158,Woody Marks   HOU (8),RB,142.7
-159,Calvin Ridley   TEN (9),WR,143.7
-160,Jordan James   SF (8),RB,143.8
-161,Alvin Kamara   NO (8),RB,144.3
-162,Emari Demercado   KC (5),RB,144.4
-163,Jordan Love   GB (11),QB,146.2
-164,Oronde Gadsden II   LAC (7),TE,146.7
-165,Jake Bates   DET (6),PK,147.4
-166,Malik Washington   MIA (6),WR,148.5
-167,Mike Washington Jr.   LV (13),RB,148.5
-168,Dalton Kincaid   BUF (7),TE,148.6
-169,Jauan Jennings   MIN (6),WR,148.9
-170,Harrison Mevis   LAR (11),PK,149.2
+103,Tucker Kraft   GB (11),TE,100.4
+104,Dallas Goedert   PHI (10),TE,101.0
+105,Aaron Jones Sr.   MIN (6),RB,101.8
+106,Khalil Shakir   BUF (7),WR,101.8
+107,Keon Coleman   BUF (7),WR,102.1
+108,Patrick Mahomes II   KC (5),QB,102.7
+109,Xavier Worthy   KC (5),WR,105.6
+110,Justin Herbert   LAC (7),QB,105.9
+111,Matthew Golden   GB (11),WR,106.2
+112,Travis Kelce   KC (5),TE,106.7
+113,Sam LaPorta   DET (6),TE,106.7
+114,Kyle Monangai   CHI (10),RB,108.7
+115,Los Angeles Rams   LAR (11),DEF,109.1
+116,Minnesota Vikings   MIN (6),DEF,109.4
+117,Deebo Samuel Sr.   SF (8),WR,109.7
+118,Rachaad White   WAS (7),RB,111.2
+119,Bo Nix   DEN (10),QB,111.9
+120,Romeo Doubs   NE (11),WR,114.3
+121,Jacory Croskey-Merritt   WAS (7),RB,115.6
+122,Makai Lemon   PHI (10),WR,115.6
+123,Jaxson Dart   NYG (8),QB,116.4
+124,George Kittle   SF (8),TE,116.7
+125,Jordan Mason   MIN (6),RB,117.4
+126,KC Concepcion   CLE (11),WR,120.9
+127,Blake Corum   LAR (11),RB,121.4
+128,Jalen Coker   CAR (5),WR,121.6
+129,Jerry Jeudy   CLE (11),WR,126.1
+130,Mark Andrews   BAL (13),TE,127.8
+131,Detroit Lions   DET (6),DEF,128.6
+132,Rashid Shaheed   SEA (11),WR,129.0
+133,Baker Mayfield   TB (10),QB,129.2
+134,Brandon Aubrey   DAL (14),PK,129.4
+135,Tyjae Spears   TEN (9),RB,130.1
+136,New England Patriots   NE (11),DEF,130.2
+137,Jayden Higgins   HOU (8),WR,130.3
+138,Keenan Allen   IND (13),WR,131.8
+139,Tre Tucker   LV (13),WR,132.0
+140,Jake Ferguson   DAL (14),TE,132.7
+141,Pittsburgh Steelers   PIT (9),DEF,133.0
+142,Kyler Murray   MIN (6),QB,133.3
+143,Tyler Shough   NO (8),QB,134.0
+144,Zach Charbonnet   SEA (11),RB,134.2
+145,De'Zhaun Stribling   SF (8),WR,135.7
+146,Jalen McMillan   TB (10),WR,135.8
+147,David Njoku   LAC (7),TE,136.0
+148,Isaiah Likely   NYG (8),TE,136.6
+149,Jason Myers   SEA (11),PK,138.6
+150,Denzel Boston   CLE (11),WR,138.6
+151,Jordan James   SF (8),RB,139.0
+152,Jordyn Tyson   NO (8),WR,139.8
+153,Philadelphia Eagles   PHI (10),DEF,139.9
+154,Ka'imi Fairbairn   HOU (8),PK,140.0
+155,Los Angeles Chargers   LAC (7),DEF,140.9
+156,Woody Marks   HOU (8),RB,140.9
+157,San Francisco 49ers   SF (8),DEF,142.1
+158,Sam Darnold   SEA (11),QB,142.4
+159,Cameron Dicker   LAC (7),PK,142.6
+160,Calvin Ridley   TEN (9),WR,142.9
+161,Juwan Johnson   NO (8),TE,143.5
+162,Alvin Kamara   NO (8),RB,145.3
+163,Jordan Love   GB (11),QB,146.8
+164,Emari Demercado   KC (5),RB,146.9
+165,Jake Bates   DET (6),PK,147.7
+166,Jauan Jennings   MIN (6),WR,148.2
+167,Mike Washington Jr.   LV (13),RB,148.2
+168,Harrison Mevis   LAR (11),PK,148.4
+169,Malik Washington   MIA (6),WR,148.7
+170,Dalton Kincaid   BUF (7),TE,148.9
 171,Will Levis   TEN (9),QB,149.6
-172,Cooper Kupp   SEA (11),WR,150.5
-173,Cyrus Allen   KC (5),WR,150.6
-174,Rashod Bateman   BAL (13),WR,150.8
-175,Pat Bryant   DEN (10),WR,151.1
-176,Chase McLaughlin   TB (10),PK,152.1
-177,Malik Davis   DAL (14),RB,152.1
-178,San Francisco 49ers   SF (8),DEF,152.2
-179,Trey Smack   GB (11),PK,153.1
-180,Green Bay Packers   GB (11),DEF,153.6
-181,Joey Slye   TEN (9),PK,153.7
-182,Tyrone Tracy Jr.   NYG (8),RB,153.8
-183,Cam Little   JAX (7),PK,153.9
-184,Chig Okonkwo   WAS (7),TE,154.4
-185,Tyler Allgeier   ARI (14),RB,154.4
-186,Isiah Pacheco   DET (6),RB,154.8
-187,Tyler Loop   BAL (13),PK,154.9
-188,Jalen Nailor   LV (13),WR,155.1
-189,Jonah Coleman   DEN (10),RB,155.4
-190,Hunter Henry   NE (11),TE,155.6
-191,Malachi Fields   NYG (8),WR,156.0
-192,Chris Rodriguez Jr.   JAX (7),RB,156.0
-193,MarShawn Lloyd   GB (11),RB,156.2
-194,Jacksonville Jaguars   JAX (7),DEF,156.3
-195,Chris Boswell   PIT (9),PK,156.4
-196,Brandon Aiyuk   SF (8),WR,156.8
-197,AJ Barner   SEA (11),TE,156.8
-198,Dylan Sampson   CLE (11),RB,156.9
-199,Braelon Allen   NYJ (13),RB,156.9
-200,Tyler Bass   BUF (7),PK,157.1
-201,Tank Dell   HOU (8),WR,157.3
-202,C.J. Stroud   HOU (8),QB,157.6
-203,Ja'Kobi Lane   BAL (13),WR,157.9
-204,Tank Bigsby   PHI (10),RB,157.9
-205,Ray Davis   BUF (7),RB,158.3
-206,Ryan Flournoy   DAL (14),WR,159.0
-207,Cleveland Browns   CLE (11),DEF,159.2
-208,Wil Lutz   DEN (10),PK,159.4
-209,Kenyon Sadiq   NYJ (13),TE,159.6
-210,Keaton Mitchell   LAC (7),RB,159.6
-211,Buffalo Bills   BUF (7),DEF,159.9
-212,Kaelon Black   SF (8),RB,160.4
-213,Daniel Jones   IND (13),QB,160.5
-214,Harrison Butker   KC (5),PK,160.9
-215,Antonio Williams   WAS (7),WR,161.0
-216,James Conner   ARI (14),RB,161.1
-217,Kansas City Chiefs   KC (5),DEF,161.3
-218,Blake Grupe   IND (13),PK,161.8
-219,Dalton Schultz   HOU (8),TE,161.9
-220,Fernando Mendoza   LV (13),QB,162.0
-221,Will Reichard   MIN (6),PK,162.2
-222,Adonai Mitchell   NYJ (13),WR,162.4
-223,Malik Willis   MIA (6),QB,162.6
-224,Emmett Johnson   KC (5),RB,162.8
-225,Terrance Ferguson   LAR (11),TE,163.1
-226,Jaylin Noel   HOU (8),WR,163.3
-227,Brian Robinson Jr.   ATL (11),RB,163.5
-228,Najee Harris   NYG (8),RB,163.6
-229,Devaughn Vele   NO (8),WR,163.8
-230,Bryce Young   CAR (5),QB,163.8
-231,Baltimore Ravens   BAL (13),DEF,163.9
-232,Brenton Strange   JAX (7),TE,164.6
-233,Cairo Santos   CHI (10),PK,164.7
-234,T.J. Hockenson   MIN (6),TE,165.2
-235,Nick Folk   ATL (11),PK,165.3
-236,Omar Cooper Jr.   NYJ (13),WR,166.3
-237,Dallas Cowboys   DAL (14),DEF,166.6
-238,Germie Bernard   PIT (9),WR,167.2
-239,Dontayvion Wicks   PHI (10),WR,167.3
-240,Travis Hunter   JAX (7),WR,167.6
-241,Isaac TeSlaa   DET (6),WR,167.7
-242,Xavier Hutchinson   HOU (8),WR,167.8
-243,Eddy Pineiro   SF (8),PK,168.0
-244,Kayshon Boutte   NE (11),WR,168.3
-245,Aaron Rodgers   PIT (9),QB,168.3
-246,Jaydon Blue   DAL (14),RB,168.9
-247,Jacoby Brissett   ARI (14),QB,169.3
-248,New York Giants   NYG (8),DEF,169.4
-249,Evan McPherson   CIN (6),PK,169.5
-250,Chicago Bears   CHI (10),DEF,170.0
-251,Justice Hill   BAL (13),RB,170.1
-252,Cam Ward   TEN (9),QB,170.2
-253,Andy Borregales   NE (11),PK,171.6
-254,Tre' Harris   LAC (7),WR,171.9
-255,Tennessee Titans   TEN (9),DEF,172.1
-256,Kaden Wetjen   PIT (9),WR,172.3
-257,New Orleans Saints   NO (8),DEF,173.7
-258,Troy Franklin   DEN (10),WR,175.0
-259,Caleb Douglas   MIA (6),WR,176.8
-260,Xavier Legette   CAR (5),WR,177.4
-261,Atlanta Falcons   ATL (11),DEF,178.7
-262,Cincinnati Bengals   CIN (6),DEF,179.0
-263,Ty Johnson   BUF (7),RB,181.9
-264,Greg Dulcich   MIA (6),TE,182.9
-265,Pat Freiermuth   PIT (9),TE,183.0
-266,Darius Slayton   NYG (8),WR,183.2
-267,Washington Commanders   WAS (7),DEF,193.0
+172,Cyrus Allen   KC (5),WR,150.2
+173,Cooper Kupp   SEA (11),WR,150.6
+174,Rashod Bateman   BAL (13),WR,151.6
+175,Chase McLaughlin   TB (10),PK,152.7
+176,Kimani Vidal   LAC (7),RB,153.2
+177,Oronde Gadsden II   LAC (7),TE,153.3
+178,Tyler Allgeier   ARI (14),RB,153.3
+179,Jonah Coleman   DEN (10),RB,153.4
+180,Hunter Henry   NE (11),TE,153.4
+181,Isiah Pacheco   DET (6),RB,153.9
+182,Cam Little   JAX (7),PK,154.0
+183,Joey Slye   TEN (9),PK,154.3
+184,MarShawn Lloyd   GB (11),RB,154.6
+185,Tyler Loop   BAL (13),PK,154.6
+186,Tyrone Tracy Jr.   NYG (8),RB,154.6
+187,Jalen Nailor   LV (13),WR,155.4
+188,Green Bay Packers   GB (11),DEF,155.7
+189,Tampa Bay Buccaneers   TB (10),DEF,155.8
+190,Chig Okonkwo   WAS (7),TE,156.3
+191,Tank Dell   HOU (8),WR,156.5
+192,Pat Bryant   DEN (10),WR,156.6
+193,AJ Barner   SEA (11),TE,156.7
+194,Malachi Fields   NYG (8),WR,156.9
+195,Chris Boswell   PIT (9),PK,157.0
+196,Ja'Kobi Lane   BAL (13),WR,157.1
+197,Chris Rodriguez Jr.   JAX (7),RB,157.2
+198,Jacksonville Jaguars   JAX (7),DEF,157.4
+199,Dylan Sampson   CLE (11),RB,157.7
+200,Keaton Mitchell   LAC (7),RB,157.7
+201,Tyler Bass   BUF (7),PK,158.0
+202,C.J. Stroud   HOU (8),QB,158.1
+203,Cleveland Browns   CLE (11),DEF,158.6
+204,Braelon Allen   NYJ (13),RB,159.2
+205,Tank Bigsby   PHI (10),RB,159.6
+206,Ryan Flournoy   DAL (14),WR,159.7
+207,Kenyon Sadiq   NYJ (13),TE,160.0
+208,Terrance Ferguson   LAR (11),TE,160.2
+209,Ray Davis   BUF (7),RB,160.4
+210,Wil Lutz   DEN (10),PK,160.5
+211,Buffalo Bills   BUF (7),DEF,160.6
+212,Daniel Jones   IND (13),QB,160.7
+213,Antonio Williams   WAS (7),WR,161.0
+214,Blake Grupe   IND (13),PK,161.0
+215,Malik Davis   DAL (14),RB,161.3
+216,Trey Smack   GB (11),PK,161.7
+217,Bryce Young   CAR (5),QB,161.9
+218,Harrison Butker   KC (5),PK,162.2
+219,Will Reichard   MIN (6),PK,162.2
+220,Brenton Strange   JAX (7),TE,162.7
+221,Devaughn Vele   NO (8),WR,162.7
+222,Jaylin Noel   HOU (8),WR,162.8
+223,Isaac TeSlaa   DET (6),WR,162.8
+224,Malik Willis   MIA (6),QB,162.8
+225,Emmett Johnson   KC (5),RB,163.0
+226,Dalton Schultz   HOU (8),TE,163.0
+227,Kaelon Black   SF (8),RB,163.2
+228,Adonai Mitchell   NYJ (13),WR,163.4
+229,Najee Harris   NYG (8),RB,163.6
+230,Fernando Mendoza   LV (13),QB,164.0
+231,Brian Robinson Jr.   ATL (11),RB,164.1
+232,Baltimore Ravens   BAL (13),DEF,165.3
+233,Omar Cooper Jr.   NYJ (13),WR,165.5
+234,Cairo Santos   CHI (10),PK,166.1
+235,Kayshon Boutte   HOU (8),WR,166.5
+236,Dontayvion Wicks   PHI (10),WR,166.7
+237,T.J. Hockenson   MIN (6),TE,166.8
+238,Eddy Pineiro   SF (8),PK,167.2
+239,Dallas Cowboys   DAL (14),DEF,167.3
+240,Jaydon Blue   DAL (14),RB,167.6
+241,Bub Means   NO (8),WR,167.8
+242,Germie Bernard   PIT (9),WR,167.9
+243,Tre' Harris   LAC (7),WR,168.1
+244,Andy Borregales   NE (11),PK,168.3
+245,Cam Ward   TEN (9),QB,168.4
+246,Justice Hill   BAL (13),RB,168.4
+247,Jacoby Brissett   ARI (14),QB,168.6
+248,James Conner   ARI (14),RB,169.1
+249,New York Giants   NYG (8),DEF,169.1
+250,Aaron Rodgers   PIT (9),QB,169.2
+251,Travis Hunter   JAX (7),WR,169.4
+252,Chicago Bears   CHI (10),DEF,170.8
+253,Evan McPherson   CIN (6),PK,170.8
+254,Tennessee Titans   TEN (9),DEF,171.1
+255,Nick Folk   ATL (11),PK,171.5
+256,Kaden Wetjen   PIT (9),WR,172.2
+257,Xavier Hutchinson   HOU (8),WR,172.5
+258,New Orleans Saints   NO (8),DEF,172.7
+259,Caleb Douglas   MIA (6),WR,172.8
+260,Xavier Legette   CAR (5),WR,176.6
+261,Troy Franklin   DEN (10),WR,177.2
+262,Atlanta Falcons   ATL (11),DEF,178.4
+263,Darius Slayton   NYG (8),WR,178.9
+264,Ty Johnson   BUF (7),RB,179.2
+265,Geno Smith   NYJ (13),QB,180.2
+266,Cincinnati Bengals   CIN (6),DEF,181.5
+267,Dominic Zvada   NYG (8),PK,181.6
+268,Greg Dulcich   MIA (6),TE,183.0
+269,Pat Freiermuth   PIT (9),TE,185.0
+270,Washington Commanders   WAS (7),DEF,189.4
