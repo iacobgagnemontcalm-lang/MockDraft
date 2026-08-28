@@ -28,7 +28,8 @@ CSVs and registers a service worker, both of which require http(s).)
 | `index.html` | The entire app (markup, styles, logic) |
 | `sw.js` | Service worker — offline caching for app shell + CDN assets |
 | `manifest.json` | PWA manifest |
-| `rankings.csv` / `adp_rankings.csv` | NFL ECR + ADP data (FantasyPros export format) |
+| `rankings.csv` | NFL expert consensus rankings + tiers (FantasyPros) |
+| `adp_rankings.csv` | Consensus ADP, averaged across the FFC / ESPN / Yahoo feeds |
 | `sleeper_rankings.csv` / `espn_rankings.csv` / `yahoo_rankings.csv` | Each platform's live daily ADP draft order + Landmine scores |
 | `cfl_rankings.csv` / `cfl_adp_rankings.csv` | CFL equivalents (maintained by hand) |
 | `keepers.xlsx` | Dynasty keepers + pick ownership sheet |
@@ -37,8 +38,10 @@ CSVs and registers a service worker, both of which require http(s).)
 
 ## Data sources
 
-- **FantasyPros CSV** (bundled or imported via 📂 Rankings) — ECR, ADP, tiers, std-dev
-- **Sleeper / ESPN / Yahoo public APIs** — each platform's own live ADP, refreshed daily
+- **FantasyPros** (bundled, or imported via 📂 Rankings) — ECR, tiers, std-dev
+- **FantasyFootballCalculator API** — 12-team PPR mock-draft ADP
+- **Sleeper / ESPN / Yahoo public APIs** — each platform's own live ADP, refreshed daily,
+  and (for ESPN and Yahoo) blended into the consensus in `adp_rankings.csv`
 - **"Abusing Draft Rankings" Google Sheet** — Landmine scores (hand-authored, updated ~weekly by its author)
 - **Sleeper API** — league/rosters/draft order (Dynasty), weekly projections
 - **FantasyCalc API** — trade values for the draft report card
@@ -56,6 +59,12 @@ so they move every day. Only the hand-authored `LANDMINE` column depends on
 the community sheet, which its author republishes about once a week — if a
 platform's API is unreachable that day, its CSV falls back to the sheet's
 ranks rather than going stale-blank.
+
+`adp_rankings.csv` is a blend, not a scrape: FantasyPros stopped serving its
+ADP table server-side (the page is client-rendered and their JSON API needs a
+key), so each player's `AVG` is the mean of whichever of the three public
+feeds list him. Names and defenses are canonicalized to `rankings.csv`
+spelling first, so one player never appears twice.
 
 ## Draft logic
 
