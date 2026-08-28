@@ -4,7 +4,8 @@
 Regenerates the bundled NFL ranking CSVs from their live sources:
 
   rankings.csv                    FantasyPros PPR consensus cheatsheet (ECR + tiers)
-  adp_rankings.csv                FantasyPros PPR overall ADP
+  adp_rankings.csv                consensus PPR ADP, averaged across the
+                                  FFC / ESPN / Yahoo public feeds
   {sleeper,espn,yahoo}_rankings.csv  one file per platform: that platform's own
                                   live daily ADP (Sleeper / ESPN / Yahoo public
                                   APIs) for the draft order, plus the Landmine
@@ -39,7 +40,6 @@ UA = {
 }
 
 ECR_URL = "https://www.fantasypros.com/nfl/rankings/ppr-cheatsheets.php"
-ADP_URL = "https://www.fantasypros.com/nfl/adp/ppr-overall.php"
 SHEET_ID = "1HTixsrRtIIpnUafVkOIhET83vCFjKXSUGiG24-5jTHY"
 SHEET_XLSX_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
@@ -92,48 +92,6 @@ def update_ecr():
     return len(rows)
 
 
-def adp_from_fantasypros():
-    """ADP rows from the FantasyPros PPR overall ADP table."""
-    resp = requests.get(ADP_URL, headers=UA, timeout=60)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-    table = soup.select_one("table#data") or soup.find("table")
-    if table is None:
-        snippet = re.sub(r"\s+", " ", resp.text[:200])
-        raise RuntimeError(f"no ADP table found (HTTP {resp.status_code}, body starts: {snippet!r})")
-
-    headers = [th.get_text(strip=True).upper() for th in table.select("thead th")]
-    try:
-        i_pos = headers.index("POS")
-        i_avg = headers.index("AVG")
-    except ValueError:
-        raise RuntimeError(f"unexpected ADP table headers: {headers}")
-
-    rows = []
-    for tr in table.select("tbody tr"):
-        tds = tr.find_all("td")
-        if len(tds) <= max(i_pos, i_avg):
-            continue
-        link = tr.select_one("a.player-name") or tr.select_one("td a[href*='/players/']")
-        if link is None:
-            continue
-        name = link.get_text(strip=True)
-        cell_text = tds[1].get_text(" ", strip=True)
-        # Reproduce the bundled format's "Name   TEAM (BYE)" suffix, which
-        # index.html's loadADPCSVText strips when matching names.
-        suffix = ""
-        m = re.search(r"([A-Z]{2,3})?\s*\((\d+)\)\s*$", cell_text)
-        if m:
-            suffix = "   " + ((m.group(1) + " ") if m.group(1) else "") + f"({m.group(2)})"
-        try:
-            avg = float(tds[i_avg].get_text(strip=True).replace(",", ""))
-        except ValueError:
-            continue
-        rank = tds[0].get_text(strip=True)
-        rows.append([rank, name, suffix, tds[i_pos].get_text(strip=True), avg])
-    return rows
-
-
 # FFC names defenses by city ("Seattle Defense"); rankings.csv uses full team
 # names ("Seattle Seahawks"). index.html matches ADP rows to players by exact
 # name, so translate.
@@ -159,24 +117,25 @@ FFC_DST_NAMES = {
 
 def adp_from_ffc():
     """ADP rows from Fantasy Football Calculator's public JSON API."""
-    url = "https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=10"
+    url = f"https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=12&year={SEASON}"
     data = requests.get(url, headers=UA, timeout=60).json()
-    players = data.get("players") or []
-    players.sort(key=lambda p: p.get("adp", 9999))
     rows = []
-    for i, p in enumerate(players, 1):
-        name = p.get("name", "").strip()
+    for p in data.get("players") or []:
+        name = (p.get("name") or "").strip()
         if not name:
             continue
         m = re.fullmatch(r"(.+?)\s+Defense", name)
         if m:
             name = FFC_DST_NAMES.get(m.group(1), name)
-        suffix = ""
-        if p.get("team"):
-            bye = f" ({p['bye']})" if p.get("bye") else ""
-            suffix = f"   {p['team']}{bye}"
-        rows.append([i, name, suffix, p.get("position", ""), p.get("adp", "")])
-    return rows
+        try:
+            adp = float(p.get("adp"))
+        except (TypeError, ValueError):
+            continue
+        if adp <= 0:
+            continue
+        rows.append({"name": name, "team": p.get("team") or "",
+                     "pos": p.get("position") or "", "adp": adp})
+    return rows, "FantasyFootballCalculator"
 
 
 def _norm_name(n):
@@ -185,40 +144,6 @@ def _norm_name(n):
     n = n.lower().replace(".", "").replace("'", "")
     n = re.sub(r"\s+(jr|sr|ii|iii|iv|v)$", "", n.strip())
     return re.sub(r"\s+", " ", n)
-
-
-def canonicalize_adp_names(rows):
-    """Rewrite ADP names to the exact spelling used in rankings.csv, since the
-    app matches ADP rows by exact (case-insensitive) name. Fixes suffix and
-    accent drift like "Patrick Mahomes" vs "Patrick Mahomes II"."""
-    canon = {}
-    with open(f"{REPO_ROOT}/rankings.csv") as f:
-        for row in csv.DictReader(f):
-            canon.setdefault(_norm_name(row["PLAYER NAME"]), row["PLAYER NAME"])
-    for r in rows:
-        exact = canon.get(_norm_name(r[1]))
-        if exact:
-            r[1] = exact
-    return rows
-
-
-def update_adp():
-    """adp_rankings.csv — FantasyPros ADP, falling back to FFC's API."""
-    try:
-        rows = adp_from_fantasypros()
-        source = "FantasyPros"
-    except Exception as e:
-        print(f"note: FantasyPros ADP failed ({e}) — falling back to FFC API", file=sys.stderr)
-        rows = adp_from_ffc()
-        source = "FantasyFootballCalculator"
-
-    if len(rows) < MIN_ADP_PLAYERS:
-        raise RuntimeError(f"only {len(rows)} ADP rows parsed ({source}) — refusing to overwrite")
-    rows = canonicalize_adp_names(rows)
-    out = [[r[0], r[1] + r[2], r[3], r[4]] for r in rows]
-    write_csv(f"{REPO_ROOT}/adp_rankings.csv", ["Rank", "Player (Bye)", "POS", "AVG"], out)
-    print(f"     ADP source: {source}")
-    return len(out)
 
 
 # ── Platform draft order ───────────────────────────────────────────────────
@@ -452,6 +377,95 @@ def yahoo_adp():
 LIVE_ADP = {"sleeper": sleeper_adp, "espn": espn_adp, "yahoo": yahoo_adp}
 
 
+def _rankings_index():
+    """{norm name: (exact name, TEAM, BYE, POS)} from rankings.csv."""
+    idx = {}
+    with open(f"{REPO_ROOT}/rankings.csv") as f:
+        for row in csv.DictReader(f):
+            idx.setdefault(_norm_name(row["PLAYER NAME"]), (
+                row["PLAYER NAME"], row["TEAM"],
+                row["BYE WEEK"], re.sub(r"\d+$", "", row["POS"]),
+            ))
+    return idx
+
+
+def _live_name(rec):
+    """Canonical name for a live feed row — defenses resolve via their team.
+
+    Each platform names a defense differently ("Texans", "Rams", "HOU");
+    rankings.csv and index.html use the full team name.
+    """
+    if (rec.get("pos") or "").upper() in ("DST", "DEF", "D/ST"):
+        full = DST_BY_ABBR.get((rec.get("team") or "").upper())
+        if full:
+            return full
+    return rec["name"]
+
+
+def update_adp():
+    """adp_rankings.csv — consensus ADP averaged over every live source.
+
+    FantasyPros used to serve this table server-side, but the ADP page is now
+    rendered client-side (the only table left in the HTML is the "experts"
+    credits table, which is what the old scraper was silently picking up) and
+    their JSON API rejects unkeyed requests. Their cheatsheet `ecrData` blob
+    carries expert rank and ownership but no ADP either.
+
+    So the consensus is built here instead, by averaging each player's pick
+    across the public feeds that do work: FantasyFootballCalculator's mock
+    drafts plus ESPN's and Yahoo's real-draft ADP. A player is included on
+    the strength of any one source; where several have him they are averaged,
+    which is what makes it a consensus rather than a single room's habits.
+    """
+    idx = _rankings_index()
+    picks, seen = {}, {}
+    used, failed = [], []
+
+    for source, fn in (("FFC", adp_from_ffc), ("ESPN", espn_adp), ("Yahoo", yahoo_adp)):
+        try:
+            rows, label = fn()
+            if len(rows) < MIN_ADP_PLAYERS:
+                raise RuntimeError(f"only {len(rows)} rows")
+        except Exception as e:
+            failed.append(f"{source} ({e})")
+            continue
+        for r in rows:
+            key = _norm_name(_live_name(r))
+            picks.setdefault(key, []).append(r["adp"])
+            seen.setdefault(key, r)
+        used.append(f"{label} ({len(rows)})")
+
+    if not picks:
+        raise RuntimeError(f"every ADP source failed: {'; '.join(failed)}")
+
+    blended = []
+    for key, vals in picks.items():
+        exact, team, bye, pos = idx.get(key, (None, "", "", ""))
+        rec = seen[key]
+        name = exact or _live_name(rec)
+        # Reproduce the bundled "Name   TEAM (BYE)" suffix, which
+        # index.html's loadADPCSVText strips when matching names.
+        team = team or (rec.get("team") or "").upper()
+        suffix = f"   {team}" + (f" ({bye})" if bye else "") if team else ""
+        blended.append((sum(vals) / len(vals), name + suffix, pos or rec.get("pos") or ""))
+
+    blended.sort(key=lambda b: b[0])
+    if len(blended) < MIN_ADP_PLAYERS:
+        raise RuntimeError(f"only {len(blended)} blended ADP rows — refusing to overwrite")
+
+    write_csv(
+        f"{REPO_ROOT}/adp_rankings.csv",
+        ["Rank", "Player (Bye)", "POS", "AVG"],
+        [[i, name, pos, round(adp, 1)] for i, (adp, name, pos) in enumerate(blended, 1)],
+    )
+    print(f"     ADP sources: {', '.join(used) or 'none'}")
+    if failed:
+        print(f"     ADP sources unavailable: {'; '.join(failed)}", file=sys.stderr)
+    return len(blended)
+
+
+
+
 def read_sheet(canon):
     """{platform: [row dicts]} from the weekly Abusing Draft Rankings sheet."""
     resp = requests.get(SHEET_XLSX_URL, headers=UA, timeout=120)
@@ -526,17 +540,10 @@ def merge_live(sheet_rows, live_rows, canon):
 
     merged = []
     for i, live in enumerate(live_rows, 1):
-        pos = (live.get("pos") or "").upper()
-        if pos in ("DST", "DEF", "D/ST"):
-            # Each platform names defenses differently ("Texans", "Rams",
-            # "HOU"); rankings.csv uses the full team name.
-            full = DST_BY_ABBR.get((live.get("team") or "").upper())
-            if full:
-                live = {**live, "name": full}
-        key = _norm_name(live["name"])
+        key = _norm_name(_live_name(live))
         sheet = by_name.get(key, {})
         merged.append({
-            "name": canon.get(key, sheet.get("name") or live["name"]),
+            "name": canon.get(key, sheet.get("name") or _live_name(live)),
             "team": sheet.get("team") or live["team"],
             "pos": sheet.get("pos") or live["pos"],
             "bye": sheet.get("bye", ""),
@@ -593,7 +600,7 @@ def main():
     results = {}
     for label, fn in [
         ("rankings.csv (FantasyPros ECR)", update_ecr),
-        ("adp_rankings.csv (FantasyPros ADP)", update_adp),
+        ("adp_rankings.csv (consensus ADP)", update_adp),
         ("site rank CSVs (live platform ADP)", update_site_ranks),
     ]:
         try:
