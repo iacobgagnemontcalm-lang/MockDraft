@@ -6,12 +6,14 @@ Regenerates the bundled NFL ranking CSVs from their live sources:
   rankings.csv                    FantasyPros PPR consensus cheatsheet (ECR + tiers)
   adp_rankings.csv                consensus PPR ADP, averaged across the
                                   FFC / ESPN / Yahoo public feeds
-  {sleeper,espn,yahoo}_rankings.csv  one file per platform: that platform's own
-                                  live daily ADP (Sleeper / ESPN / Yahoo public
-                                  APIs) for the draft order, plus the Landmine
-                                  score from the "Abusing Fantasy Draft
-                                  Rankings" sheet, which is the only place that
-                                  hand-authored score exists
+  {sleeper,espn,yahoo}_rankings.csv  one file per platform: its draft order,
+                                  plus the Landmine score from the "Abusing
+                                  Fantasy Draft Rankings" sheet, which is the
+                                  only place that hand-authored score exists.
+                                  ESPN and Yahoo take their order from their
+                                  own live daily ADP; Sleeper takes it from the
+                                  sheet, which publishes a real Sleeper ADP
+                                  (see SHEET_ONLY)
 
 Each source is fetched independently — if one fails, its CSV is left
 untouched (stale but valid) and the others still update. The script exits
@@ -177,6 +179,23 @@ SEASON = (lambda d: d.year if d.month >= 3 else d.year - 1)(
 # the sheet's ranks rather than publishing a half-empty draft order.
 MIN_LIVE_ADP = 150
 
+# Platforms whose SITE RANK comes from the weekly sheet instead of a live feed.
+#
+# Sleeper publishes no ADP anywhere public — their GraphQL schema has no
+# `adp_data` field — so the live path can only fall back to `search_rank`,
+# which orders Sleeper's entire player database by how often a name is
+# searched, not by where it is drafted. In practice that puts Todd Gurley at
+# 34, Tom Brady at 100 and IDP linemen inside the top 110, and 15% of its top
+# 200 are players rankings.csv does not carry at all. Because SITE RANK is a
+# dense 1..N renumbering, each of those ghosts pushes every real player below
+# it down a slot: median displacement against the sheet's order was 19 places,
+# and past 150 it exceeded 100 (Cooper Kupp 194 -> 327).
+#
+# The sheet's Sleeper column is a real ADP collected from Sleeper rooms, so a
+# weekly true ADP beats a daily popularity proxy. ESPN and Yahoo serve genuine
+# averageDraftPosition / average_pick and stay on their live feeds.
+SHEET_ONLY = {"sleeper"}
+
 # How many players to publish per platform. Sleeper ranks every rostered
 # player and ESPN serves whatever limit it is given; past a few hundred the
 # rows are undrafted noise.
@@ -215,6 +234,9 @@ def sleeper_adp():
     `adp_data` field — so this uses `search_rank`, the order Sleeper's own
     draft board lists players in. It is the same thing SITE RANK means for the
     other two platforms, and it moves as Sleeper re-rates players.
+
+    Sleeper is in SHEET_ONLY, so this only runs as a fallback for a day the
+    sheet is unreachable — see there for why its order is not trusted.
     """
     players = requests.get(
         "https://api.sleeper.app/v1/players/nfl", headers=UA, timeout=120
@@ -556,7 +578,11 @@ def merge_live(sheet_rows, live_rows, canon):
 
 
 def update_site_ranks():
-    """{sleeper,espn,yahoo}_rankings.csv — live daily ADP + the sheet's Landmine."""
+    """{sleeper,espn,yahoo}_rankings.csv — draft order + the sheet's Landmine.
+
+    ESPN and Yahoo are ordered by their live ADP; SHEET_ONLY platforms keep the
+    sheet's own order and only fall through to a live feed if the sheet failed.
+    """
     # Canonical spellings from rankings.csv — the app matches by exact name
     canon = {}
     with open(f"{REPO_ROOT}/rankings.csv") as f:
@@ -566,13 +592,20 @@ def update_site_ranks():
     try:
         tables = read_sheet(canon)
     except Exception as e:
-        print(f"     note: Landmine sheet unavailable ({e}) — live ranks only",
+        print(f"     note: sheet unavailable ({e}) — live ranks only, no Landmine",
               file=sys.stderr)
         tables = {name: [] for name in SITE_TABS.values()}
 
     total, failures = 0, []
     for out_name in SITE_TABS.values():
         sheet_rows = tables.get(out_name) or []
+        # SHEET_ONLY platforms take the sheet's order whenever it parsed; their
+        # live feed is only reached below when the sheet itself is unavailable.
+        if out_name in SHEET_ONLY and sheet_rows:
+            write_site_csv(out_name, sheet_rows)
+            total += len(sheet_rows)
+            print(f"     {out_name}_rankings.csv: {len(sheet_rows)} players (weekly sheet)")
+            continue
         try:
             live_rows, source = LIVE_ADP[out_name]()
             if len(live_rows) < MIN_LIVE_ADP:

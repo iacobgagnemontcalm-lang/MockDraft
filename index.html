@@ -1988,10 +1988,12 @@ let _availAdpSorted = null;
 function invalidateBoardCaches() { _availAdpSorted = null; }
 
 // ── ADP source (config.adpSource) ──────────────────────────────────────────
-// 'sleeper' | 'espn' | 'yahoo' — that platform's own draft rank (from the
-//     "Abusing Draft Rankings" sheet) drives the ADP column, board sort and
-//     availability odds: it's the order that platform's rooms actually draft in.
-//     Players beyond the sheet's top 200 fall back to market ADP.
+// 'sleeper' | 'espn' | 'yahoo' — that platform's own draft rank drives the ADP
+//     column, board sort and availability odds: it's the order that platform's
+//     rooms actually draft in. ESPN and Yahoo come from their live daily ADP
+//     feeds (~400 players); Sleeper comes from the weekly "Abusing Draft
+//     Rankings" sheet, which publishes a real Sleeper ADP for its top 200.
+//     Players past the end of a platform's list fall back to market ADP.
 // 'market' — classic market ADP (FantasyPros/FFC), badges still from Sleeper
 // 'blend'  — legacy: the EARLIER of market ADP and Sleeper's rank
 var SITE_SOURCES = { sleeper: 'Sleeper', espn: 'ESPN', yahoo: 'Yahoo' };

@@ -30,7 +30,7 @@ CSVs and registers a service worker, both of which require http(s).)
 | `manifest.json` | PWA manifest |
 | `rankings.csv` | NFL expert consensus rankings + tiers (FantasyPros) |
 | `adp_rankings.csv` | Consensus ADP, averaged across the FFC / ESPN / Yahoo feeds |
-| `sleeper_rankings.csv` / `espn_rankings.csv` / `yahoo_rankings.csv` | Each platform's live daily ADP draft order + Landmine scores |
+| `sleeper_rankings.csv` / `espn_rankings.csv` / `yahoo_rankings.csv` | Each platform's draft order (ESPN/Yahoo live daily, Sleeper from the weekly sheet) + Landmine scores |
 | `cfl_rankings.csv` / `cfl_adp_rankings.csv` | CFL equivalents (maintained by hand) |
 | `keepers.xlsx` | Dynasty keepers + pick ownership sheet |
 | `scripts/update_rankings.py` | Refreshes the three NFL CSVs from their live sources |
@@ -40,9 +40,11 @@ CSVs and registers a service worker, both of which require http(s).)
 
 - **FantasyPros** (bundled, or imported via 📂 Rankings) — ECR, tiers, std-dev
 - **FantasyFootballCalculator API** — 12-team PPR mock-draft ADP
-- **Sleeper / ESPN / Yahoo public APIs** — each platform's own live ADP, refreshed daily,
-  and (for ESPN and Yahoo) blended into the consensus in `adp_rankings.csv`
-- **"Abusing Draft Rankings" Google Sheet** — Landmine scores (hand-authored, updated ~weekly by its author)
+- **ESPN / Yahoo public APIs** — each platform's own live ADP, refreshed daily,
+  and blended into the consensus in `adp_rankings.csv`
+- **"Abusing Draft Rankings" Google Sheet** — Landmine scores for all three platforms, plus
+  Sleeper's draft order (hand-authored, updated ~weekly by its author). Sleeper publishes no
+  public ADP of its own, so the sheet is the only real Sleeper ADP available
 - **Sleeper API** — league/rosters/draft order (Dynasty), weekly projections
 - **FantasyCalc API** — trade values for the draft report card
 
