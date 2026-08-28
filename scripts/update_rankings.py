@@ -252,6 +252,11 @@ SEASON = (lambda d: d.year if d.month >= 3 else d.year - 1)(
 # the sheet's ranks rather than publishing a half-empty draft order.
 MIN_LIVE_ADP = 150
 
+# How many players to publish per platform. Sleeper ranks every rostered
+# player and ESPN serves whatever limit it is given; past a few hundred the
+# rows are undrafted noise.
+SITE_POOL = 400
+
 ESPN_POS = {1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "DST"}
 
 # Sleeper lists defenses under a team abbreviation with no full_name, but
@@ -279,67 +284,34 @@ ESPN_TEAMS = {
 
 
 def sleeper_adp():
-    """Sleeper's live draft order.
+    """Sleeper's live draft order, from the public players endpoint.
 
-    Sleeper publishes no documented ADP endpoint, so this tries their GraphQL
-    ADP feed first and falls back to `search_rank` from the public players
-    endpoint — the order Sleeper's own draft board lists players in.
+    Sleeper exposes no ADP anywhere public — their GraphQL schema has no
+    `adp_data` field — so this uses `search_rank`, the order Sleeper's own
+    draft board lists players in. It is the same thing SITE RANK means for the
+    other two platforms, and it moves as Sleeper re-rates players.
     """
     players = requests.get(
         "https://api.sleeper.app/v1/players/nfl", headers=UA, timeout=120
     ).json()
 
-    def record(pid, val):
-        p = players.get(pid) or {}
+    out = []
+    for p in players.values():
+        rank = p.get("search_rank")
+        if not isinstance(rank, (int, float)) or rank >= 9999:
+            continue
         name = (p.get("full_name") or "").strip()
         if not name and p.get("position") == "DEF":
             abbr = (p.get("team") or "").strip().upper()
             name = DST_BY_ABBR.get(abbr, abbr)
         if not name:
-            return None
-        return {
+            continue
+        out.append({
             "name": name,
             "team": p.get("team") or "",
             "pos": p.get("position") or "",
-            "adp": val,
-        }
-
-    try:
-        resp = requests.post(
-            "https://sleeper.com/graphql",
-            headers={**UA, "Content-Type": "application/json"},
-            json={
-                "query": "query adp { adp_data(sport: \"nfl\", season: \"%d\", "
-                         "adp_type: \"redraft_ppr\") { player_id adp } }" % SEASON
-            },
-            timeout=60,
-        )
-        resp.raise_for_status()
-        rows = (resp.json().get("data") or {}).get("adp_data") or []
-        out = []
-        for r in rows:
-            try:
-                adp = float(r["adp"])
-            except (KeyError, TypeError, ValueError):
-                continue
-            rec = record(str(r.get("player_id")), adp)
-            if rec:
-                out.append(rec)
-        if len(out) >= MIN_LIVE_ADP:
-            return out, "Sleeper ADP"
-        raise RuntimeError(f"only {len(out)} rows in GraphQL ADP")
-    except Exception as e:
-        print(f"     note: Sleeper ADP feed unusable ({e}) — using search_rank",
-              file=sys.stderr)
-
-    out = []
-    for pid, p in players.items():
-        rank = p.get("search_rank")
-        if not isinstance(rank, (int, float)) or rank >= 9999:
-            continue
-        rec = record(pid, float(rank))
-        if rec:
-            out.append(rec)
+            "adp": float(rank),
+        })
     return out, "Sleeper search_rank"
 
 
@@ -355,7 +327,7 @@ def espn_adp():
             "Accept": "application/json",
             "x-fantasy-filter": json.dumps({
                 "players": {
-                    "limit": 1000,
+                    "limit": SITE_POOL,
                     "sortDraftRanks": {
                         "sortPriority": 100, "sortAsc": True, "value": "PPR",
                     },
@@ -457,7 +429,7 @@ def yahoo_adp():
     """Yahoo's live ADP from the read-only public API their draft app uses."""
     base = "https://pub-api-ro.fantasysports.yahoo.com/fantasy/v2/game/nfl/players"
     found = {}
-    for start in range(0, 600, 25):
+    for start in range(0, 3 * SITE_POOL, 25):
         path = (f"{base};position=ALL;start={start};count=25;sort=rank_season;"
                 f"search=;out=draft_analysis;ranks=season/draft_analysis")
         resp = requests.get(path, params={"format": "json_f"},
@@ -465,10 +437,14 @@ def yahoo_adp():
         if resp.status_code == 404:
             break
         resp.raise_for_status()
-        before = len(found)
-        _walk_yahoo(resp.json(), found)
-        if len(found) == before:
-            break  # page held no new players — end of the list
+        body = resp.text
+        _walk_yahoo(json.loads(body), found)
+        # Deep players often have no usable average_pick, so a page that adds
+        # nothing is normal — only a page with no players at all ends the list.
+        if '"full"' not in body:
+            break
+        if len(found) >= SITE_POOL:
+            break
     return list(found.values()), "Yahoo average_pick"
 
 
@@ -545,7 +521,7 @@ def merge_live(sheet_rows, live_rows, canon):
     across by name from the sheet, which is the only place they exist.
     """
     by_name = {_norm_name(r["name"]): r for r in sheet_rows}
-    live_rows = sorted(live_rows, key=lambda r: r["adp"])
+    live_rows = sorted(live_rows, key=lambda r: r["adp"])[:SITE_POOL]
 
     merged = []
     for i, live in enumerate(live_rows, 1):
