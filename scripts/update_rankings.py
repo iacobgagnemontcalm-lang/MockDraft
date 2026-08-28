@@ -350,8 +350,6 @@ def espn_adp():
         if not isinstance(adp, (int, float)) or adp <= 0:
             continue
         pos = ESPN_POS.get(p.get("defaultPositionId"), "")
-        if pos == "DST":
-            name = re.sub(r"\s+D/ST$", "", name)
         out.append({
             "name": name,
             "team": ESPN_TEAMS.get(p.get("proTeamId"), ""),
@@ -528,6 +526,13 @@ def merge_live(sheet_rows, live_rows, canon):
 
     merged = []
     for i, live in enumerate(live_rows, 1):
+        pos = (live.get("pos") or "").upper()
+        if pos in ("DST", "DEF", "D/ST"):
+            # Each platform names defenses differently ("Texans", "Rams",
+            # "HOU"); rankings.csv uses the full team name.
+            full = DST_BY_ABBR.get((live.get("team") or "").upper())
+            if full:
+                live = {**live, "name": full}
         key = _norm_name(live["name"])
         sheet = by_name.get(key, {})
         merged.append({
