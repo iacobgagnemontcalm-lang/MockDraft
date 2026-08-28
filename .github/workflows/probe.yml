@@ -1,5 +1,8 @@
 name: probe
-on: { workflow_dispatch: }
+on:
+  push:
+    branches: [claude/daily-adp-updates-q2l4bk]
+    paths: ['scripts/probe.py']
 jobs:
   probe:
     runs-on: ubuntu-latest
