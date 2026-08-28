@@ -1169,6 +1169,78 @@ const ROOKIES_2026 = new Set([
   'Kenyon Sadiq','Sam Roush','Eli Raridon','Seydou Traore','Riley Nowakowski',
 ]);
 
+// ══════════════════════════════════════════════
+// PICKS SHEET PARSER
+//
+// The Picks sheet has one column per team (header = Sleeper display
+// name) listing every pick that team currently OWNS:
+//   "2026 3rd Rd"            → the column team's own 3rd rounder
+//   "2026 3rd Rd (PhilB10)"  → Phil's 3rd rounder, acquired in a trade
+//
+// Slot order inside a round follows the ORIGINAL owner's base slot,
+// so a traded pick keeps the position it started at.
+//
+// When two columns claim the same original pick, the annotated entry
+// wins: "(X)" records an actual trade, while a bare row is only the
+// default assumption — usually a line the seller forgot to delete.
+// Conflicts are returned so the caller can log them.
+// ══════════════════════════════════════════════
+const BASE_SLOT = {Web:1,Iack:2,Phil:3,Ben:4,Hugo:5,Fred:6,Jerome:7,Kev:8,JF:9,Thomas:10};
+
+function parsePicksSheet(ws) {
+  var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+  if (rows.length < 2) return { order: [], conflicts: [] };
+
+  var headers = (rows[0] || []).map(h => h ? String(h).trim() : '');
+  var byRound  = {};   // round -> { originalShort: {owner, traded} }
+  var conflicts = [];
+
+  headers.forEach((hdr, colIdx) => {
+    var owner = SHORT_NAMES[hdr] || hdr;
+    if (!owner) return;
+    for (var rowIdx = 1; rowIdx < rows.length; rowIdx++) {
+      var cell = rows[rowIdx][colIdx];
+      if (!cell) continue;
+      var mRound = String(cell).match(/(\d+)(?:st|nd|rd|th)\s*Rd/i);
+      if (!mRound) continue;
+      var rnd    = parseInt(mRound[1]);
+      var mOrig  = String(cell).match(/\((.+?)\)/);
+      var original = mOrig ? (SHORT_NAMES[mOrig[1].trim()] || mOrig[1].trim()) : owner;
+
+      if (!byRound[rnd]) byRound[rnd] = {};
+      var prev = byRound[rnd][original];
+      if (prev) {
+        if (prev.owner === owner) continue;              // same team listed twice
+        var newWins = !!mOrig && !prev.traded;           // annotated beats bare
+        conflicts.push({
+          round: rnd, original: original,
+          kept:    newWins ? owner : prev.owner,
+          dropped: newWins ? prev.owner : owner,
+        });
+        if (newWins) byRound[rnd][original] = { owner: owner, traded: true };
+        continue;
+      }
+      byRound[rnd][original] = { owner: owner, traded: !!mOrig };
+    }
+  });
+
+  var order = [];
+  Object.keys(byRound).map(Number).sort((a, b) => a - b).forEach(rnd => {
+    Object.keys(byRound[rnd])
+      .map(orig => ({ slot: BASE_SLOT[orig] || 99, original: orig, teamShort: byRound[rnd][orig].owner }))
+      .sort((a, b) => a.slot - b.slot)
+      .forEach((e, i) => order.push({ round: rnd, slot: i + 1, teamShort: e.teamShort, original: e.original }));
+  });
+  return { order: order, conflicts: conflicts };
+}
+
+// Logs any double-claimed picks so the sheet can be cleaned up.
+function logPickConflicts(conflicts) {
+  if (!conflicts || !conflicts.length) return;
+  console.warn('Picks sheet: ' + conflicts.length + ' pick(s) claimed by two teams — kept the entry that names the original owner:\n  ' +
+    conflicts.map(c => 'Rd' + c.round + ' ' + c.original + "'s pick → " + c.kept + ' (dropped ' + c.dropped + ')').join('\n  '));
+}
+
 // Reads Keeper sheet → updates KEEPERS_BY_SHORT
 // Reads Picks sheet  → updates KNOWN_ORDER
 // Falls back to hardcoded values if file missing.
@@ -1207,9 +1279,28 @@ async function loadKeepersXLSX() {
       console.warn('No "Keeper" sheet found in keepers.xlsx');
     }
 
-    // ── Picks sheet: intentionally not parsed here ──
-    // Pick ORDER comes from Sleeper API or the hardcoded KNOWN_ORDER fallback.
-    // The Picks sheet shows who OWNS each pick (after trades) but not slot order.
+    // ── Picks sheet: who owns each pick, in original-slot order ──
+    // This becomes KNOWN_ORDER, the order used until Sleeper's draft has
+    // real picks in it (/draft/<id>/picks stays empty before the draft starts).
+    const picksWS = wb.Sheets['Picks'];
+    if (picksWS) {
+      const parsed = parsePicksSheet(picksWS);
+      logPickConflicts(parsed.conflicts);
+
+      const perRound = {};
+      parsed.order.forEach(p => { perRound[p.round] = (perRound[p.round] || 0) + 1; });
+      const uneven = Object.keys(perRound).filter(r => perRound[r] !== 10);
+
+      if (parsed.order.length >= 10 && uneven.length === 0) {
+        KNOWN_ORDER = parsed.order.map(p => p.teamShort);
+        console.log('✓ Pick order loaded from keepers.xlsx Picks sheet: ' + KNOWN_ORDER.length + ' picks');
+      } else {
+        console.warn('Picks sheet not applied — every round needs exactly 10 picks, got ' +
+          JSON.stringify(perRound) + '. Using hardcoded KNOWN_ORDER.');
+      }
+    } else {
+      console.warn('No "Picks" sheet found in keepers.xlsx — using hardcoded KNOWN_ORDER');
+    }
   } catch(e) {
     console.warn('Could not load keepers.xlsx — using hardcoded values:', e.message);
   }
@@ -1834,7 +1925,9 @@ function buildPlayers() {
 // (best guess until Sleeper data is available).
 // ══════════════════════════════════════════════
 
-// Full 150-pick draft order from your Picks sheet (updated).
+// Full 150-pick draft order. Overwritten at load time by the Picks sheet
+// in keepers.xlsx (see loadKeepersXLSX); the list below is the last-resort
+// fallback for when that file can't be fetched.
 // Base slot: Web(1) Iack(2) Phil(3) Ben(4) Hugo(5) Fred(6) Jerome(7) Kev(8) JF(9) Thomas(10)
 // Traded picks sit at the original owner's slot position.
 let KNOWN_ORDER = [
@@ -5159,38 +5252,10 @@ function importPicks(event) {
 
       if (rows.length < 2) { toast('❌ Picks sheet is empty'); return; }
 
-      // Header row = team display names
-      var headers = rows[0].map(h => h ? String(h).trim() : '');
-
-      var shortLookup = SHORT_NAMES; // single source of truth for display→short names
-      var BASE_SLOT = {Web:1,Iack:2,Phil:3,Ben:4,Hugo:5,Fred:6,Jerome:7,Kev:8,JF:9,Thomas:10};
-
-      // Parse each cell
-      var roundPicks = {}; // round -> [{slot, currentOwner}]
-      headers.forEach((hdr, colIdx) => {
-        var colTeam = shortLookup[hdr] || hdr;
-        for (var rowIdx = 1; rowIdx < rows.length; rowIdx++) {
-          var cell = rows[rowIdx][colIdx];
-          if (!cell) continue;
-          var mRound = String(cell).match(/(\d+)(?:st|nd|rd|th)\s*Rd/i);
-          if (!mRound) continue;
-          var rnd = parseInt(mRound[1]);
-          var mOrig = String(cell).match(/\((.+?)\)/);
-          var original = mOrig ? (shortLookup[mOrig[1].trim()] || mOrig[1].trim()) : colTeam;
-          var slot = BASE_SLOT[original] || 99;
-          if (!roundPicks[rnd]) roundPicks[rnd] = [];
-          roundPicks[rnd].push({slot, team: colTeam});
-        }
-      });
-
-      // Build flat ordered list
-      var newOrder = [];
-      Object.keys(roundPicks).map(Number).sort((a,b)=>a-b).forEach(rnd => {
-        var sorted = roundPicks[rnd].sort((a,b) => a.slot - b.slot);
-        sorted.forEach(({team}, i) => {
-          newOrder.push({round: rnd, slot: i+1, teamShort: team});
-        });
-      });
+      // Same parser the automatic keepers.xlsx load uses.
+      var parsed = parsePicksSheet(ws);
+      logPickConflicts(parsed.conflicts);
+      var newOrder = parsed.order;
 
       if (newOrder.length < 10) { toast('❌ Could not parse picks — check sheet name'); return; }
 
