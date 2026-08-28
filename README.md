@@ -46,7 +46,7 @@ CSVs and registers a service worker, both of which require http(s).)
   Sleeper's draft order (hand-authored, updated ~weekly by its author). Sleeper publishes no
   public ADP of its own, so the sheet is the only real Sleeper ADP available
 - **Sleeper API** — league/rosters/draft order (Dynasty), weekly projections
-- **FantasyCalc API** — trade values for the draft report card
+- **FantasyCalc API** — trade values for the draft report card and the keeper value chart
 
 The three NFL CSVs refresh automatically every day at 10:00 UTC via the
 `Update rankings` GitHub Actions workflow
@@ -69,6 +69,12 @@ feeds list him. Names and defenses are canonicalized to `rankings.csv`
 spelling first, so one player never appears twice.
 
 ## Draft logic
+
+In Dynasty mode, **📈 Keepers** charts every team's keeper haul on one scale:
+a stacked bar per team, one segment per keeper, sorted by total. It uses the
+same FantasyCalc trade values the report card grades rosters with, and can be
+flipped to Sleeper projected points (which it also falls back to if FantasyCalc
+is unreachable).
 
 The "Top picks" panel ranks candidates with a composite *iackScore*:
 marginal value-over-replacement weighted by roster need, ECR-vs-ADP steal

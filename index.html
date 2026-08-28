@@ -247,6 +247,11 @@ body.mode-cfl .my-team-2026-only {
   .report-card { max-height: 92vh; border-radius: 16px 16px 0 0; }
   #vor-modal { padding: 0; align-items: flex-end; }
   #vor-modal > div { border-radius: 16px 16px 0 0 !important; max-height: 92vh; }
+  #keeper-value-modal { padding: 0; align-items: flex-end; }
+  .keeper-value-card { max-height: 92vh; border-radius: 16px 16px 0 0; padding: 24px 18px; }
+  .kv-row { gap: 6px !important; }
+  .kv-pills { margin-left: 30px !important; }
+  .kv-avg { display: none; }
 }
 
 /* ── HEADER ── */
@@ -507,6 +512,19 @@ header {
 }
 .report-card::-webkit-scrollbar{width:3px}
 .report-card::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+
+/* ── KEEPER VALUE CHART MODAL ── */
+#keeper-value-modal {
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);
+  z-index:1000;align-items:center;justify-content:center;padding:20px;
+}
+.keeper-value-card {
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--border-radius-lg);max-width:620px;width:100%;
+  max-height:88vh;overflow-y:auto;padding:28px 32px;position:relative;
+}
+.keeper-value-card::-webkit-scrollbar{width:3px}
+.keeper-value-card::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
 .grade-circle {
   width:96px;height:96px;border-radius:50%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -833,6 +851,7 @@ header {
     <select class="team-select" id="strategy-sel" title="Draft strategy — re-tilts your board & recommendations" onchange="setStrategy(this.value)"></select>
   </span>
   <button class="hdr-btn trade-btn my-team-dynasty-only" id="trade-btn" onclick="openTradeModal()" title="Build a hypothetical trade">⇄ Trade</button>
+  <button class="hdr-btn my-team-dynasty-only" id="keeper-value-btn" onclick="openKeeperValueChart()" title="Chart every team's total keeper value">📈 Keepers</button>
   <button class="hdr-btn" onclick="document.getElementById('csv-input').click()" title="Import FantasyPros rankings CSV">📂 Rankings</button>
   <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importCSV(event)">
   <button class="hdr-btn" onclick="document.getElementById('picks-input').click()" title="Import Picks xlsx sheet">📂 Picks</button>
@@ -1536,6 +1555,173 @@ function applyRemoteKeepers(key, val) {
   var rid = parseInt(key);
   if (isNaN(rid)) return;
   applyKeeperSelection(rid, Array.isArray(val) ? val.map(String) : []);
+}
+
+// ══════════════════════════════════════════════
+// KEEPER VALUE CHART (Dynasty)
+// Bar chart of every team's total keeper value, scored with the same
+// FantasyCalc trade values the report card grades rosters on. Falls back
+// to Sleeper projected points when FantasyCalc can't be reached.
+// ══════════════════════════════════════════════
+const KV_POS_COLORS = {QB:'var(--orange)',RB:'var(--green)',WR:'var(--blue)',TE:'var(--accent)',K:'var(--gold)',DST:'var(--muted)'};
+
+// Which metric the chart is currently drawn with: 'fc' | 'proj'
+let kvMetric = 'fc';
+
+// One row per team — keepers resolved to players, valued on the active metric.
+// Rows come back sorted by total value, richest first.
+function keeperValueRows(metric) {
+  var fc = (window._lastFCValues && Object.keys(window._lastFCValues).length) ? window._lastFCValues : fcValueMap;
+  return teams.map(function(t) {
+    var ks = (t.keepers || []).map(function(name) {
+      var p = players.find(function(x) { return x.name === name; });
+      var v = null;
+      if (p) v = (metric === 'proj') ? p.projPts : fcValueFor(p, fc);
+      var ok = (typeof v === 'number' && isFinite(v) && v > 0);
+      return {
+        name:  name,
+        pos:   p ? p.pos : '?',
+        nflTeam: p ? (p.team || '') : '',
+        value: ok ? Math.round(v) : 0,
+        missing: !ok,
+      };
+    }).sort(function(a, b) { return b.value - a.value; });
+    return {
+      rosterId: t.rosterId,
+      short:    t.shortName,
+      keepers:  ks,
+      total:    ks.reduce(function(s, k) { return s + k.value; }, 0),
+    };
+  }).sort(function(a, b) { return b.total - a.total; });
+}
+
+async function openKeeperValueChart() {
+  var modal = document.getElementById('keeper-value-modal');
+  var body  = document.getElementById('keeper-value-body');
+  if (!modal || !body) return;
+  modal.style.display = 'flex';
+  body.innerHTML = '<div style="padding:24px 0;text-align:center;font-size:12px;color:var(--muted)">Fetching FantasyCalc values…</div>';
+  if (!Object.keys(fcValueMap).length) await fetchFantasyCalc();
+  kvMetric = Object.keys(fcValueMap).length ? 'fc' : 'proj';
+  renderKeeperValueChart();
+}
+
+function closeKeeperValueChart() {
+  var modal = document.getElementById('keeper-value-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function setKeeperValueMetric(m) {
+  kvMetric = m;
+  renderKeeperValueChart();
+}
+
+function renderKeeperValueChart() {
+  var body = document.getElementById('keeper-value-body');
+  var sub  = document.getElementById('keeper-value-sub');
+  if (!body) return;
+
+  var hasFC = Object.keys(fcValueMap).length > 0;
+  if (!hasFC) kvMetric = 'proj';
+  var unit = kvMetric === 'fc' ? 'FC' : 'pts';
+
+  if (sub) {
+    sub.innerHTML = (kvMetric === 'fc'
+      ? 'FantasyCalc redraft trade value · 10-team · 1QB · PPR'
+      : 'Sleeper 2026 projected points (' + _projLiveWeeks + '/17 weeks loaded)') +
+      (hasFC ? '' : ' · <span style="color:var(--orange)">FantasyCalc unavailable</span>');
+  }
+
+  var rows = keeperValueRows(kvMetric);
+  var withKeepers = rows.filter(function(r) { return r.keepers.length > 0; });
+  if (!withKeepers.length) {
+    body.innerHTML = '<div style="padding:24px 0;text-align:center;font-size:12px;color:var(--muted)">'+
+      'No keepers set yet — this chart is Dynasty-only.</div>';
+    return;
+  }
+
+  var max   = rows[0].total || 1;
+  var avg   = rows.reduce(function(s, r) { return s + r.total; }, 0) / rows.length;
+  var avgPct = Math.min(100, (avg / max) * 100);
+  var anyMissing = rows.some(function(r) { return r.keepers.some(function(k) { return k.missing; }); });
+
+  var toggle = hasFC
+    ? '<div style="display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px;margin-bottom:14px;width:fit-content">'+
+        ['fc','proj'].map(function(m) {
+          var on = kvMetric === m;
+          return '<button onclick="setKeeperValueMetric(\''+m+'\')" style="font-family:\'Syne\',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.5px;padding:4px 10px;border-radius:4px;cursor:pointer;border:none;'+
+            'background:'+(on?'var(--accent)':'transparent')+';color:'+(on?'#fff':'var(--muted)')+'">'+
+            (m === 'fc' ? 'FC VALUE' : 'PROJ PTS')+'</button>';
+        }).join('')+
+      '</div>'
+    : '';
+
+  var rowsHtml = rows.map(function(r, i) {
+    var isMe   = r.rosterId === myTeamId;
+    var medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+    var vsAvg  = r.total - avg;
+
+    // Stacked segments — one per keeper, width proportional to that keeper's value
+    var segs = r.keepers.map(function(k) {
+      var pct = (k.value / max) * 100;
+      return '<div title="'+escHtml(k.name)+' — '+(k.missing ? 'no value' : k.value + ' ' + unit)+'" '+
+        'style="width:'+pct+'%;background:'+(KV_POS_COLORS[k.pos] || 'var(--muted)')+';opacity:'+(isMe?'1':'0.55')+
+        ';border-right:1px solid var(--surface)"></div>';
+    }).join('');
+
+    var pills = r.keepers.map(function(k) {
+      return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:100px;'+
+        'background:var(--surface2);border:1px solid var(--border2);color:var(--muted)">'+
+        '<span style="color:'+(KV_POS_COLORS[k.pos]||'var(--muted)')+';font-size:9px;font-weight:700">'+escHtml(k.pos)+'</span>'+
+        escHtml(k.name)+
+        '<span style="font-family:\'DM Mono\',monospace;color:'+(k.missing?'var(--orange)':'var(--dim)')+'">'+
+          (k.missing ? '—' : k.value)+'</span></span>';
+    }).join('') || '<span style="font-size:10px;color:var(--dim)">No keepers</span>';
+
+    return '<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">'+
+      '<div class="kv-row" style="display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:12px;min-width:24px">'+medal+'</span>'+
+        '<span style="font-size:12px;min-width:52px;font-weight:'+(isMe?700:400)+';color:'+(isMe?'var(--text)':'var(--muted)')+'">'+
+          (isMe?'★ ':'')+escHtml(r.short)+'</span>'+
+        '<div style="position:relative;flex:1;min-width:90px;height:14px;background:var(--surface3);border-radius:3px;overflow:hidden;display:flex">'+
+          segs+
+          '<div title="League average" style="position:absolute;top:0;bottom:0;left:'+avgPct+'%;border-left:1px dashed var(--dim);opacity:0.8"></div>'+
+        '</div>'+
+        '<span style="font-size:11px;font-family:\'DM Mono\',monospace;min-width:52px;text-align:right;color:'+(isMe?'var(--accent)':'var(--text)')+'">'+
+          r.total.toLocaleString()+'</span>'+
+        '<span class="kv-avg" style="font-size:10px;font-family:\'DM Mono\',monospace;min-width:52px;text-align:right;color:'+
+          (vsAvg >= 0 ? 'var(--green)' : 'var(--red)')+'">'+
+          (vsAvg >= 0 ? '+' : '')+Math.round(vsAvg).toLocaleString()+'</span>'+
+      '</div>'+
+      '<div class="kv-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0 84px">'+pills+'</div>'+
+    '</div>';
+  }).join('');
+
+  var legend = ['QB','RB','WR','TE'].map(function(pos) {
+    return '<span style="display:inline-flex;align-items:center;gap:4px">'+
+      '<span style="width:8px;height:8px;border-radius:2px;background:'+KV_POS_COLORS[pos]+'"></span>'+pos+'</span>';
+  }).join('');
+
+  body.innerHTML =
+    toggle +
+    '<div class="kv-row" style="display:flex;align-items:center;gap:8px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);padding-bottom:6px">'+
+      '<span style="min-width:24px"></span><span style="min-width:52px">Team</span>'+
+      '<span style="flex:1">Keeper value</span>'+
+      '<span style="min-width:52px;text-align:right">Total</span>'+
+      '<span class="kv-avg" style="min-width:52px;text-align:right">vs avg</span>'+
+    '</div>' +
+    rowsHtml +
+    '<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:10px;color:var(--dim);margin-top:12px">'+legend+
+      '<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:0;height:9px;border-left:1px dashed var(--dim)"></span>League avg '+
+      Math.round(avg).toLocaleString()+' '+unit+'</span>'+
+    '</div>' +
+    '<div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.6">'+
+      'Bars stack each team\'s keepers, widest player first, on the same scale — the top team fills the row. '+
+      (kvMetric === 'fc'
+        ? 'Values are FantasyCalc\'s current redraft trade values, the same numbers the draft report card scores rosters with.'
+        : 'Values are Sleeper season projections' + (hasFC ? '.' : ', used because FantasyCalc values weren\'t available.')) +
+      (anyMissing ? ' Players shown with — had no value in the feed and count as 0.' : '') +
+    '</div>';
 }
 
 // ══════════════════════════════════════════════
@@ -6372,6 +6558,16 @@ init();
 <!-- Draft Report Card Modal -->
 <div id="report-modal" onclick="if(event.target===this)this.style.display='none'">
   <div class="report-card" id="report-content"></div>
+</div>
+
+<!-- Keeper Value Chart Modal (Dynasty) -->
+<div id="keeper-value-modal" onclick="if(event.target===this)closeKeeperValueChart()">
+  <div class="keeper-value-card">
+    <button onclick="closeKeeperValueChart()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1">×</button>
+    <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px">Keeper value by team</div>
+    <div id="keeper-value-sub" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px"></div>
+    <div id="keeper-value-body"></div>
+  </div>
 </div>
 
 <!-- VOR Methodology Modal -->
