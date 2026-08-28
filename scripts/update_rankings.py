@@ -5,9 +5,12 @@ Regenerates the bundled NFL ranking CSVs from their live sources:
 
   rankings.csv                    FantasyPros PPR consensus cheatsheet (ECR + tiers)
   adp_rankings.csv                FantasyPros PPR overall ADP
-  {sleeper,espn,yahoo}_rankings.csv  "Abusing Fantasy Draft Rankings 2026" Google
-                                  Sheet, one file per platform PPR tab (site
-                                  draft rank + Landmine score)
+  {sleeper,espn,yahoo}_rankings.csv  one file per platform: that platform's own
+                                  live daily ADP (Sleeper / ESPN / Yahoo public
+                                  APIs) for the draft order, plus the Landmine
+                                  score from the "Abusing Fantasy Draft
+                                  Rankings" sheet, which is the only place that
+                                  hand-authored score exists
 
 Each source is fetched independently — if one fails, its CSV is left
 untouched (stale but valid) and the others still update. The script exits
@@ -218,27 +221,265 @@ def update_adp():
     return len(out)
 
 
-# Sheet tab -> output CSV basename. Each becomes {name}_rankings.csv with the
-# platform's own draft rank + Landmine score (the app loads the one matching
-# the session's ADP source).
+# ── Platform draft order ───────────────────────────────────────────────────
+#
+# {sleeper,espn,yahoo}_rankings.csv carry two different things:
+#
+#   SITE RANK  the order that platform's rooms actually draft in — this moves
+#              every day, so it is pulled live from each platform's own public
+#              API below.
+#   LANDMINE   a hand-authored 0-10 reach-risk score with no API anywhere; it
+#              only exists in the community "Abusing Draft Rankings" sheet,
+#              which its author republishes about once a week.
+#
+# So the sheet is still read (for LANDMINE, and as the fallback SITE RANK when
+# a platform's API is unreachable), but it no longer gates how often the draft
+# order refreshes.
+
+# Sheet tab -> output CSV basename.
 SITE_TABS = {
     "Sleeper PPR": "sleeper",
     "ESPN PPR": "espn",
     "Yahoo PPR": "yahoo",
 }
 
+# NFL seasons span the new year, so Jan/Feb still belong to the previous one.
+SEASON = (lambda d: d.year if d.month >= 3 else d.year - 1)(
+    __import__("datetime").date.today()
+)
 
-def update_site_sheets():
-    """{sleeper,espn,yahoo}_rankings.csv from the Abusing Draft Rankings sheet."""
+# A live feed with a tiny player pool means the endpoint changed shape — keep
+# the sheet's ranks rather than publishing a half-empty draft order.
+MIN_LIVE_ADP = 150
+
+ESPN_POS = {1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "DST"}
+
+# Sleeper lists defenses under a team abbreviation with no full_name, but
+# rankings.csv names them in full and index.html matches by exact name.
+DST_BY_ABBR = {
+    "ARI": "Arizona Cardinals", "ATL": "Atlanta Falcons", "BAL": "Baltimore Ravens",
+    "BUF": "Buffalo Bills", "CAR": "Carolina Panthers", "CHI": "Chicago Bears",
+    "CIN": "Cincinnati Bengals", "CLE": "Cleveland Browns", "DAL": "Dallas Cowboys",
+    "DEN": "Denver Broncos", "DET": "Detroit Lions", "GB": "Green Bay Packers",
+    "HOU": "Houston Texans", "IND": "Indianapolis Colts", "JAX": "Jacksonville Jaguars",
+    "KC": "Kansas City Chiefs", "LAC": "Los Angeles Chargers", "LAR": "Los Angeles Rams",
+    "LV": "Las Vegas Raiders", "MIA": "Miami Dolphins", "MIN": "Minnesota Vikings",
+    "NE": "New England Patriots", "NO": "New Orleans Saints", "NYG": "New York Giants",
+    "NYJ": "New York Jets", "PHI": "Philadelphia Eagles", "PIT": "Pittsburgh Steelers",
+    "SEA": "Seattle Seahawks", "SF": "San Francisco 49ers", "TB": "Tampa Bay Buccaneers",
+    "TEN": "Tennessee Titans", "WAS": "Washington Commanders", "WSH": "Washington Commanders",
+}
+ESPN_TEAMS = {
+    0: "FA", 1: "ATL", 2: "BUF", 3: "CHI", 4: "CIN", 5: "CLE", 6: "DAL",
+    7: "DEN", 8: "DET", 9: "GB", 10: "TEN", 11: "IND", 12: "KC", 13: "LV",
+    14: "LAR", 15: "MIA", 16: "MIN", 17: "NE", 18: "NO", 19: "NYG", 20: "NYJ",
+    21: "PHI", 22: "ARI", 23: "PIT", 24: "LAC", 25: "SF", 26: "SEA", 27: "TB",
+    28: "WSH", 29: "CAR", 30: "JAX", 33: "BAL", 34: "HOU",
+}
+
+
+def sleeper_adp():
+    """Sleeper's live draft order.
+
+    Sleeper publishes no documented ADP endpoint, so this tries their GraphQL
+    ADP feed first and falls back to `search_rank` from the public players
+    endpoint — the order Sleeper's own draft board lists players in.
+    """
+    players = requests.get(
+        "https://api.sleeper.app/v1/players/nfl", headers=UA, timeout=120
+    ).json()
+
+    def record(pid, val):
+        p = players.get(pid) or {}
+        name = (p.get("full_name") or "").strip()
+        if not name and p.get("position") == "DEF":
+            abbr = (p.get("team") or "").strip().upper()
+            name = DST_BY_ABBR.get(abbr, abbr)
+        if not name:
+            return None
+        return {
+            "name": name,
+            "team": p.get("team") or "",
+            "pos": p.get("position") or "",
+            "adp": val,
+        }
+
+    try:
+        resp = requests.post(
+            "https://sleeper.com/graphql",
+            headers={**UA, "Content-Type": "application/json"},
+            json={
+                "query": "query adp { adp_data(sport: \"nfl\", season: \"%d\", "
+                         "adp_type: \"redraft_ppr\") { player_id adp } }" % SEASON
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        rows = (resp.json().get("data") or {}).get("adp_data") or []
+        out = []
+        for r in rows:
+            try:
+                adp = float(r["adp"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            rec = record(str(r.get("player_id")), adp)
+            if rec:
+                out.append(rec)
+        if len(out) >= MIN_LIVE_ADP:
+            return out, "Sleeper ADP"
+        raise RuntimeError(f"only {len(out)} rows in GraphQL ADP")
+    except Exception as e:
+        print(f"     note: Sleeper ADP feed unusable ({e}) — using search_rank",
+              file=sys.stderr)
+
+    out = []
+    for pid, p in players.items():
+        rank = p.get("search_rank")
+        if not isinstance(rank, (int, float)) or rank >= 9999:
+            continue
+        rec = record(pid, float(rank))
+        if rec:
+            out.append(rec)
+    return out, "Sleeper search_rank"
+
+
+def espn_adp():
+    """ESPN's live PPR ADP from the public default-league player endpoint."""
+    url = (f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/"
+           f"{SEASON}/segments/0/leaguedefaults/3")
+    resp = requests.get(
+        url,
+        params={"view": "kona_player_info"},
+        headers={
+            **UA,
+            "Accept": "application/json",
+            "x-fantasy-filter": json.dumps({
+                "players": {
+                    "limit": 1000,
+                    "sortDraftRanks": {
+                        "sortPriority": 100, "sortAsc": True, "value": "PPR",
+                    },
+                }
+            }),
+        },
+        timeout=120,
+    )
+    resp.raise_for_status()
+    out = []
+    for entry in resp.json().get("players") or []:
+        p = entry.get("player") or {}
+        name = (p.get("fullName") or "").strip()
+        if not name:
+            continue
+        adp = (p.get("ownership") or {}).get("averageDraftPosition")
+        if not isinstance(adp, (int, float)) or adp <= 0:
+            # Undrafted in ESPN rooms yet — fall back to their static PPR rank.
+            adp = ((p.get("draftRanksByRankType") or {}).get("PPR") or {}).get("rank")
+        if not isinstance(adp, (int, float)) or adp <= 0:
+            continue
+        pos = ESPN_POS.get(p.get("defaultPositionId"), "")
+        if pos == "DST":
+            name = re.sub(r"\s+D/ST$", "", name)
+        out.append({
+            "name": name,
+            "team": ESPN_TEAMS.get(p.get("proTeamId"), ""),
+            "pos": pos,
+            "adp": float(adp),
+        })
+    return out, "ESPN averageDraftPosition"
+
+
+def _yahoo_consider(p, out):
+    """Record a Yahoo player dict if it carries both a name and an ADP."""
+    name = p.get("name")
+    full = name.get("full") if isinstance(name, dict) else None
+    da = p.get("draft_analysis")
+    if isinstance(da, list):
+        da = next((d for d in da if isinstance(d, dict) and "average_pick" in d), None)
+    if not full or not isinstance(da, dict):
+        return
+    try:
+        adp = float(da.get("average_pick"))
+    except (TypeError, ValueError):
+        return
+    if adp <= 0:
+        return
+    full = full.strip()
+    out[full] = {
+        "name": full,
+        "team": (p.get("editorial_team_abbr") or "").upper(),
+        "pos": p.get("display_position") or "",
+        "adp": adp,
+    }
+
+
+def _merge_fragments(lst):
+    """Merge the dict fragments nested in `lst` into one view.
+
+    Yahoo's v2 JSON splits a single player across sibling dicts inside nested
+    lists (``player: [[{name}, {team}, ...], {draft_analysis}]``). Returns the
+    merged dict and how many fragments carried a name — more than one means
+    this list holds several players, not one player's fragments.
+    """
+    merged, names, stack = {}, 0, list(lst)
+    while stack:
+        cur = stack.pop()
+        if isinstance(cur, list):
+            stack.extend(cur)
+        elif isinstance(cur, dict):
+            if "name" in cur:
+                names += 1
+            for k, v in cur.items():
+                merged.setdefault(k, v)
+    return merged, names
+
+
+def _walk_yahoo(node, out):
+    """Collect {name, team, pos, adp} from Yahoo's variably-nested JSON.
+
+    The wrapping differs by endpoint and format — flat player dicts under
+    ``format=json_f``, fragment lists otherwise — so recurse and handle both
+    rather than indexing into a fixed shape.
+    """
+    if isinstance(node, dict):
+        _yahoo_consider(node, out)
+        for v in node.values():
+            _walk_yahoo(v, out)
+    elif isinstance(node, list):
+        merged, names = _merge_fragments(node)
+        if names == 1:
+            _yahoo_consider(merged, out)
+        for v in node:
+            _walk_yahoo(v, out)
+
+
+def yahoo_adp():
+    """Yahoo's live ADP from the read-only public API their draft app uses."""
+    base = "https://pub-api-ro.fantasysports.yahoo.com/fantasy/v2/game/nfl/players"
+    found = {}
+    for start in range(0, 600, 25):
+        path = (f"{base};position=ALL;start={start};count=25;sort=rank_season;"
+                f"search=;out=draft_analysis;ranks=season/draft_analysis")
+        resp = requests.get(path, params={"format": "json_f"},
+                            headers={**UA, "Accept": "application/json"}, timeout=60)
+        if resp.status_code == 404:
+            break
+        resp.raise_for_status()
+        before = len(found)
+        _walk_yahoo(resp.json(), found)
+        if len(found) == before:
+            break  # page held no new players — end of the list
+    return list(found.values()), "Yahoo average_pick"
+
+
+LIVE_ADP = {"sleeper": sleeper_adp, "espn": espn_adp, "yahoo": yahoo_adp}
+
+
+def read_sheet(canon):
+    """{platform: [row dicts]} from the weekly Abusing Draft Rankings sheet."""
     resp = requests.get(SHEET_XLSX_URL, headers=UA, timeout=120)
     resp.raise_for_status()
     wb = load_workbook(io.BytesIO(resp.content), read_only=True, data_only=True)
-
-    # Canonical spellings from rankings.csv — the app matches by exact name
-    canon = {}
-    with open(f"{REPO_ROOT}/rankings.csv") as f:
-        for row in csv.DictReader(f):
-            canon.setdefault(_norm_name(row["PLAYER NAME"]), row["PLAYER NAME"])
 
     def iv(x):
         try:
@@ -246,7 +487,7 @@ def update_site_sheets():
         except (TypeError, ValueError):
             return ""
 
-    total = 0
+    tables = {}
     for tab_pattern, out_name in SITE_TABS.items():
         tab = next((n for n in wb.sheetnames if n.strip().lower() == tab_pattern.lower()), None)
         if tab is None:
@@ -271,22 +512,96 @@ def update_site_sheets():
             if not r[i_name] or r[i_fp] is None or r[i_site] is None:
                 continue
             name = str(r[i_name]).strip()
-            name = canon.get(_norm_name(name), name)
-            rows.append([
-                name, r[i_team] or "", r[i_pos] or "", iv(r[i_bye]),
-                iv(r[i_fp]), iv(r[i_site]),
-                r[i_lm] if r[i_lm] is not None else "",
-            ])
+            rows.append({
+                "name": canon.get(_norm_name(name), name),
+                "team": r[i_team] or "",
+                "pos": r[i_pos] or "",
+                "bye": iv(r[i_bye]),
+                "fp": iv(r[i_fp]),
+                "site": iv(r[i_site]),
+                "lm": r[i_lm] if r[i_lm] is not None else "",
+            })
 
         if len(rows) < MIN_SHEET_PLAYERS:
             raise RuntimeError(f"only {len(rows)} rows parsed from '{tab}' — refusing to overwrite")
-        write_csv(
-            f"{REPO_ROOT}/{out_name}_rankings.csv",
-            ["PLAYER NAME", "TEAM", "POS", "BYE", "FP RANK", "SITE RANK", "LANDMINE"],
-            rows,
-        )
-        print(f"     {out_name}_rankings.csv: {len(rows)} players")
+        tables[out_name] = rows
+    return tables
+
+
+def write_site_csv(out_name, rows):
+    write_csv(
+        f"{REPO_ROOT}/{out_name}_rankings.csv",
+        ["PLAYER NAME", "TEAM", "POS", "BYE", "FP RANK", "SITE RANK", "LANDMINE", "ADP"],
+        [[r["name"], r["team"], r["pos"], r["bye"], r["fp"], r["site"], r["lm"],
+          r.get("adp", "")] for r in rows],
+    )
+
+
+def merge_live(sheet_rows, live_rows, canon):
+    """Re-rank the platform's players by today's live ADP.
+
+    Ordering comes entirely from the live feed, so SITE RANK is a dense 1..N
+    draft order just like the sheet's was. LANDMINE and FP RANK are carried
+    across by name from the sheet, which is the only place they exist.
+    """
+    by_name = {_norm_name(r["name"]): r for r in sheet_rows}
+    live_rows = sorted(live_rows, key=lambda r: r["adp"])
+
+    merged = []
+    for i, live in enumerate(live_rows, 1):
+        key = _norm_name(live["name"])
+        sheet = by_name.get(key, {})
+        merged.append({
+            "name": canon.get(key, sheet.get("name") or live["name"]),
+            "team": sheet.get("team") or live["team"],
+            "pos": sheet.get("pos") or live["pos"],
+            "bye": sheet.get("bye", ""),
+            "fp": sheet.get("fp", ""),
+            "site": i,
+            "lm": sheet.get("lm", ""),
+            "adp": round(live["adp"], 1),
+        })
+    return merged
+
+
+def update_site_ranks():
+    """{sleeper,espn,yahoo}_rankings.csv — live daily ADP + the sheet's Landmine."""
+    # Canonical spellings from rankings.csv — the app matches by exact name
+    canon = {}
+    with open(f"{REPO_ROOT}/rankings.csv") as f:
+        for row in csv.DictReader(f):
+            canon.setdefault(_norm_name(row["PLAYER NAME"]), row["PLAYER NAME"])
+
+    try:
+        tables = read_sheet(canon)
+    except Exception as e:
+        print(f"     note: Landmine sheet unavailable ({e}) — live ranks only",
+              file=sys.stderr)
+        tables = {name: [] for name in SITE_TABS.values()}
+
+    total, failures = 0, []
+    for out_name in SITE_TABS.values():
+        sheet_rows = tables.get(out_name) or []
+        try:
+            live_rows, source = LIVE_ADP[out_name]()
+            if len(live_rows) < MIN_LIVE_ADP:
+                raise RuntimeError(f"only {len(live_rows)} players from {source}")
+            rows = merge_live(sheet_rows, live_rows, canon)
+            print(f"     {out_name}_rankings.csv: {len(rows)} players (live — {source})")
+        except Exception as e:
+            if not sheet_rows:
+                failures.append(f"{out_name} ({e})")
+                print(f"     FAIL {out_name}: live ADP failed ({e}) and no sheet data",
+                      file=sys.stderr)
+                continue
+            rows = sheet_rows
+            print(f"     {out_name}_rankings.csv: {len(rows)} players "
+                  f"(weekly sheet — live ADP failed: {e})", file=sys.stderr)
+        write_site_csv(out_name, rows)
         total += len(rows)
+
+    if failures:
+        raise RuntimeError("; ".join(failures))
     return total
 
 
@@ -295,7 +610,7 @@ def main():
     for label, fn in [
         ("rankings.csv (FantasyPros ECR)", update_ecr),
         ("adp_rankings.csv (FantasyPros ADP)", update_adp),
-        ("site rank CSVs (Abusing Draft Rankings sheet)", update_site_sheets),
+        ("site rank CSVs (live platform ADP)", update_site_ranks),
     ]:
         try:
             results[label] = fn()

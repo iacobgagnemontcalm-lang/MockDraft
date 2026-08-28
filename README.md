@@ -29,7 +29,7 @@ CSVs and registers a service worker, both of which require http(s).)
 | `sw.js` | Service worker — offline caching for app shell + CDN assets |
 | `manifest.json` | PWA manifest |
 | `rankings.csv` / `adp_rankings.csv` | NFL ECR + ADP data (FantasyPros export format) |
-| `sleeper_rankings.csv` | Sleeper site ranks + Landmine scores ("Abusing Draft Rankings" sheet) |
+| `sleeper_rankings.csv` / `espn_rankings.csv` / `yahoo_rankings.csv` | Each platform's live daily ADP draft order + Landmine scores |
 | `cfl_rankings.csv` / `cfl_adp_rankings.csv` | CFL equivalents (maintained by hand) |
 | `keepers.xlsx` | Dynasty keepers + pick ownership sheet |
 | `scripts/update_rankings.py` | Refreshes the three NFL CSVs from their live sources |
@@ -38,7 +38,8 @@ CSVs and registers a service worker, both of which require http(s).)
 ## Data sources
 
 - **FantasyPros CSV** (bundled or imported via 📂 Rankings) — ECR, ADP, tiers, std-dev
-- **"Abusing Draft Rankings" Google Sheet** — Sleeper's own draft ranks + Landmine scores
+- **Sleeper / ESPN / Yahoo public APIs** — each platform's own live ADP, refreshed daily
+- **"Abusing Draft Rankings" Google Sheet** — Landmine scores (hand-authored, updated ~weekly by its author)
 - **Sleeper API** — league/rosters/draft order (Dynasty), weekly projections
 - **FantasyCalc API** — trade values for the draft report card
 
@@ -49,6 +50,12 @@ The three NFL CSVs refresh automatically every day at 10:00 UTC via the
 also be run on demand from the repo's Actions tab. A source that fails to
 fetch keeps its previous CSV, and a source returning suspiciously few
 players is rejected rather than committed.
+
+The platform draft orders (`SITE RANK`) come from each site's own public API,
+so they move every day. Only the hand-authored `LANDMINE` column depends on
+the community sheet, which its author republishes about once a week — if a
+platform's API is unreachable that day, its CSV falls back to the sheet's
+ranks rather than going stale-blank.
 
 ## Draft logic
 
