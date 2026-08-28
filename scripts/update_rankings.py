@@ -428,7 +428,7 @@ def _walk_yahoo(node, out):
 def yahoo_adp():
     """Yahoo's live ADP from the read-only public API their draft app uses."""
     base = "https://pub-api-ro.fantasysports.yahoo.com/fantasy/v2/game/nfl/players"
-    found = {}
+    found, barren = {}, 0
     for start in range(0, 3 * SITE_POOL, 25):
         path = (f"{base};position=ALL;start={start};count=25;sort=rank_season;"
                 f"search=;out=draft_analysis;ranks=season/draft_analysis")
@@ -438,12 +438,15 @@ def yahoo_adp():
             break
         resp.raise_for_status()
         body = resp.text
+        before = len(found)
         _walk_yahoo(json.loads(body), found)
-        # Deep players often have no usable average_pick, so a page that adds
-        # nothing is normal — only a page with no players at all ends the list.
         if '"full"' not in body:
-            break
-        if len(found) >= SITE_POOL:
+            break  # no players at all — end of the list
+        # Yahoo only publishes a numeric average_pick for the players actually
+        # being drafted (~225); past that every row reads "-". A single barren
+        # page is normal mid-list, a run of them means the ADP has run out.
+        barren = barren + 1 if len(found) == before else 0
+        if barren >= 3 or len(found) >= SITE_POOL:
             break
     return list(found.values()), "Yahoo average_pick"
 
