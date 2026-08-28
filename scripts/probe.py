@@ -1,30 +1,37 @@
 import re, json, requests
-from bs4 import BeautifulSoup
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"}
-URL = "https://www.fantasypros.com/nfl/adp/ppr-overall.php"
-r = requests.get(URL, headers=UA, timeout=60)
-print("HTTP", r.status_code, "len", len(r.text))
-soup = BeautifulSoup(r.text, "html.parser")
 
-print("=" * 15, "TABLES")
-for i, t in enumerate(soup.find_all("table")):
-    hdr = [th.get_text(strip=True) for th in t.select("thead th")] or \
-          [th.get_text(strip=True) for th in (t.find("tr").find_all(["th","td"]) if t.find("tr") else [])]
-    print(f"[{i}] id={t.get('id')!r} class={t.get('class')!r} rows={len(t.select('tbody tr'))} hdr={hdr[:12]}")
+print("="*15, "ecrData player keys (cheatsheets page we already parse)")
+html = requests.get("https://www.fantasypros.com/nfl/rankings/ppr-cheatsheets.php",
+                    headers=UA, timeout=60).text
+m = re.search(r"var\s+ecrData\s*=\s*(\{.*?\})\s*;", html, re.S)
+players = json.loads(m.group(1))["players"]
+print("count:", len(players))
+print("keys:", sorted(players[0].keys()))
+print("sample:", json.dumps({k: players[0][k] for k in sorted(players[0])}, indent=1)[:900])
 
-print("=" * 15, "JS DATA BLOBS")
-for m in re.finditer(r"(?:var|let|const)\s+(\w+)\s*=\s*(\{.{0,120})", r.text, re.S):
-    print(f"  {m.group(1)}: {re.sub(r'[srn]+', ' ', m.group(2))[:110]!r}")
-for key in ["ecrData", "adpData", "__NEXT_DATA__", "playerData"]:
-    print(f"  contains {key}: {key in r.text}")
+print("="*15, "any ADP-ish keys?")
+adpish = [k for k in players[0] if "adp" in k.lower() or "avg" in k.lower() or "ave" in k.lower()]
+print(adpish, "->", {k: players[0][k] for k in adpish})
 
-print("=" * 15, "FIRST DATA-ish ROW")
-for t in soup.find_all("table"):
-    tr = t.select_one("tbody tr")
-    if tr and tr.select_one("a[href*='/players/']"):
-        print("table id:", t.get("id"), "| class:", t.get("class"))
-        print("hdr:", [th.get_text(strip=True) for th in t.select("thead th")])
-        for tr in t.select("tbody tr")[:3]:
-            print("   ", [td.get_text(" ", strip=True)[:28] for td in tr.find_all("td")])
-        break
+print("="*15, "adp cheatsheet page variant")
+for url in ["https://www.fantasypros.com/nfl/adp/ppr-cheatsheets.php",
+            "https://www.fantasypros.com/nfl/adp/ppr-overall.php?print=true"]:
+    try:
+        t = requests.get(url, headers=UA, timeout=60)
+        blobs = re.findall(r"var\s+(\w*[Dd]ata)\s*=\s*\{", t.text)
+        print(f"  {url} -> HTTP {t.status_code} len={len(t.text)} blobs={blobs}")
+    except Exception as e:
+        print(f"  {url} -> EXC {e}")
+
+print("="*15, "FantasyPros public API")
+key = None
+for m2 in re.finditer(r'["\']([0-9a-zA-Z]{20,40})["\']', html):
+    pass
+mk = re.search(r'x-api-key["\']\s*[:=]\s*["\']([^"\']+)["\']', html)
+print("inline x-api-key in page:", mk.group(1) if mk else None)
+api = ("https://api.fantasypros.com/v2/json/nfl/2026/consensus-rankings"
+       "?type=adp&scoring=PPR&position=ALL&week=0")
+r = requests.get(api, headers=UA, timeout=45)
+print("no-key ->", r.status_code, r.text[:200])
