@@ -1,5 +1,5 @@
 PLAYER NAME,TEAM,POS,BYE,FP RANK,SITE RANK,LANDMINE,ADP
-Jahmyr Gibbs,DET,RB,6,2,1,5.5,1.3
+Jahmyr Gibbs,DET,RB,6,2,1,5.5,1.2
 Bijan Robinson,ATL,RB,11,4,2,5.6,2.1
 Ja'Marr Chase,CIN,WR,6,1,3,5.4,3.9
 Puka Nacua,LAR,WR,11,3,4,5.5,5.3
@@ -26,7 +26,7 @@ A.J. Brown,NE,WR,11,12,24,4.9,27.0
 Kyren Williams,LAR,RB,11,41,25,6.4,27.3
 Chris Olave,NO,WR,8,14,26,5.1,28.9
 Trey McBride,ARI,TE,14,17,27,4.6,29.1
-DeVonta Smith,PHI,WR,10,20,28,5.4,29.7
+DeVonta Smith,PHI,WR,10,20,28,5.4,29.8
 Malik Nabers,NYG,WR,8,22,29,5.5,30.1
 Jeremiyah Love,ARI,RB,14,40,30,5.8,30.7
 Javonte Williams,DAL,RB,14,43,31,5.8,31.0
@@ -35,7 +35,7 @@ Zay Flowers,BAL,WR,13,31,33,5.5,34.8
 Breece Hall,NYJ,RB,13,39,34,5.8,34.8
 Lamar Jackson,BAL,QB,13,27,35,4.9,38.5
 Rashee Rice,KC,WR,5,29,36,4.7,38.7
-Jaylen Waddle,DEN,WR,10,34,37,5.8,39.2
+Jaylen Waddle,DEN,WR,10,34,37,5.8,39.3
 Colston Loveland,CHI,TE,10,35,38,5.6,41.3
 Tetairoa McMillan,CAR,WR,5,37,39,5.3,42.1
 Cam Skattebo,NYG,RB,8,60,40,5.9,42.9
@@ -73,7 +73,7 @@ Parker Washington,JAC,WR,7,59,71,6.1,72.2
 Dak Prescott,DAL,QB,14,80,72,5.5,72.4
 Rhamondre Stevenson,NE,RB,11,71,73,6.3,73.8
 Kyle Pitts Sr.,ATL,TE,11,77,74,5.1,73.8
-Jaylen Warren,PIT,RB,9,75,75,6.0,74.4
+Jaylen Warren,PIT,RB,9,75,75,6.0,74.3
 George Kittle,SF,TE,8,94,76,5.8,78.2
 Trevor Lawrence,JAC,QB,7,76,77,5.5,79.3
 Marvin Harrison Jr.,ARI,WR,14,68,78,5.5,79.4
@@ -84,17 +84,17 @@ MarShawn Lloyd,GB,RB,11,99,82,9.7,85.6
 Tony Pollard,TEN,RB,9,84,83,5.7,87.3
 Los Angeles Rams,LAR,DEF,,,84,,88.6
 Rico Dowdle,PIT,RB,9,81,85,5.6,88.6
-Chuba Hubbard,CAR,RB,5,100,86,5.8,88.8
+Chuba Hubbard,CAR,RB,5,100,86,5.8,88.7
 Brandon Aubrey,DAL,K,,,87,,89.2
 Jonathon Brooks,CAR,RB,5,87,88,6.8,90.0
 Dalton Kincaid,BUF,TE,7,107,89,5.6,93.4
 Chris Godwin Jr.,TB,WR,10,66,90,5.7,93.9
 Travis Kelce,KC,TE,5,90,91,3.4,94.0
-Brock Purdy,SF,QB,8,92,92,5.3,94.2
+Brock Purdy,SF,QB,8,92,92,5.3,94.1
 J.K. Dobbins,DEN,RB,10,104,93,6.8,94.8
 Jaxson Dart,NYG,QB,8,101,94,4.8,95.4
 Houston Texans,HOU,DEF,,,95,,96.1
-Ollie Gordon II,MIA,RB,,,96,,96.7
+Ollie Gordon II,MIA,RB,,,96,,96.3
 Alec Pierce,IND,WR,13,106,97,5.3,98.3
 Matthew Stafford,LAR,QB,11,110,98,4.9,98.6
 Bo Nix,DEN,QB,10,97,99,5.2,98.7
@@ -121,13 +121,13 @@ Kyler Murray,MIN,QB,6,109,119,5.8,114.0
 Aaron Rodgers,PIT,QB,,,120,,114.5
 Jordan Addison,MIN,WR,6,102,121,5.8,114.9
 Brian Robinson Jr.,ATL,RB,11,165,122,5.2,115.2
-Denzel Boston,CLE,WR,11,148,123,5.5,116.1
+Denzel Boston,CLE,WR,11,148,123,5.5,116.0
 Fernando Mendoza,LV,QB,,,124,,116.4
 Jake Ferguson,DAL,TE,14,122,125,3.3,117.7
 Juwan Johnson,NO,TE,8,128,126,5.3,118.6
 Dontayvion Wicks,PHI,WR,10,172,127,6.7,118.6
 Cooper Kupp,SEA,WR,11,194,128,3.3,118.6
-Devaughn Vele,NO,WR,,,129,,119.1
+Devaughn Vele,NO,WR,,,129,,118.9
 Jordan Love,GB,QB,11,115,130,6.4,119.3
 Ka'imi Fairbairn,HOU,K,,,131,,119.4
 Braelon Allen,NYJ,RB,13,175,132,6.6,119.5
@@ -136,18 +136,18 @@ Matthew Golden,GB,WR,11,124,134,6.6,120.6
 Aaron Jones Sr.,MIN,RB,6,114,135,4.9,120.6
 Makai Lemon,PHI,WR,10,108,136,5.0,120.6
 Sam Darnold,SEA,QB,11,137,137,5.5,121.1
-Tyler Shough,NO,QB,8,116,138,4.7,121.3
+Tyler Shough,NO,QB,8,116,138,4.7,121.2
 Ray Davis,BUF,RB,7,176,139,7.1,121.4
 Kenny Gainwell,TB,RB,10,93,140,4.4,121.5
 Cam Ward,TEN,QB,9,145,141,4.8,121.6
-Darren Waller,CAR,TE,,,142,,121.8
+Darren Waller,CAR,TE,,,142,,121.7
 KC Concepcion Jr.,CLE,WR,11,112,143,6.6,122.0
 Michael Pittman Jr.,PIT,WR,9,73,144,3.4,122.1
 Isaac TeSlaa,DET,WR,,,145,,122.2
 San Francisco 49ers,SF,DEF,,,146,,122.6
 David Njoku,LAC,TE,,,147,,122.6
-Jason Myers,SEA,K,,,148,,122.9
-Jalen Coker,CAR,WR,5,130,149,6.4,122.9
+Jalen Coker,CAR,WR,5,130,148,6.4,122.8
+Jason Myers,SEA,K,,,149,,122.9
 Travis Hunter,JAC,WR,7,181,150,4.3,123.4
 Pat Freiermuth,PIT,TE,,,151,,123.5
 Chicago Bears,CHI,DEF,,,152,,123.8
@@ -163,17 +163,17 @@ Keenan Allen,IND,WR,13,174,161,7.5,124.6
 Cameron Dicker,LAC,K,,,162,,124.6
 Dalton Schultz,HOU,TE,8,151,163,6.7,124.7
 Baker Mayfield,TB,QB,10,119,164,4.9,124.9
-Cincinnati Bengals,CIN,DEF,,,165,,125.0
-New York Giants,NYG,DEF,,,166,,125.0
-Terrance Ferguson,LAR,TE,11,189,167,7.3,125.1
-Nick Folk,ATL,K,,,168,,125.2
-Tre Tucker,LV,WR,13,149,169,5.9,125.3
+Tre Tucker,LV,WR,13,149,165,5.9,125.0
+Cincinnati Bengals,CIN,DEF,,,166,,125.0
+New York Giants,NYG,DEF,,,167,,125.0
+Terrance Ferguson,LAR,TE,11,189,168,7.3,125.1
+Nick Folk,ATL,K,,,169,,125.2
 Kayshon Boutte,HOU,WR,8,158,170,6.0,125.5
 Jake Elliott,PHI,K,,,171,,125.7
 Adonai Mitchell,NYJ,WR,13,167,172,6.9,125.8
 Rachaad White,WAS,RB,7,118,173,5.7,125.9
-Ja'Kobi Lane,BAL,WR,13,190,174,5.8,126.2
-T.J. Hockenson,MIN,TE,6,168,175,1.2,126.3
+T.J. Hockenson,MIN,TE,6,168,174,1.2,126.2
+Ja'Kobi Lane,BAL,WR,13,190,175,5.8,126.2
 Oronde Gadsden II,LAC,TE,7,198,176,4.9,126.5
 Chig Okonkwo,WAS,TE,7,160,177,6.6,126.5
 Buffalo Bills,BUF,DEF,,,178,,126.7
@@ -183,11 +183,11 @@ Kenyon Sadiq,NYJ,TE,13,201,181,4.9,126.9
 Kaelon Black,SF,RB,8,214,182,9.0,126.9
 Jalen Nailor,LV,WR,13,173,183,4.9,126.9
 Harrison Butker,KC,K,,,184,,127.0
-Hunter Henry,NE,TE,11,156,185,3.9,127.2
-Jonah Coleman,DEN,RB,10,147,186,5.7,127.3
+Jonah Coleman,DEN,RB,10,147,185,5.7,127.1
+Hunter Henry,NE,TE,11,156,186,3.9,127.2
 Rashid Shaheed,SEA,WR,11,143,187,5.9,127.5
 Tank Bigsby,PHI,RB,10,161,188,7.2,127.8
-Brenton Strange,JAC,TE,7,154,189,4.9,128.7
+Brenton Strange,JAC,TE,7,154,189,4.9,128.6
 Woody Marks,HOU,RB,8,134,190,5.5,128.9
 Tyler Allgeier,ARI,RB,14,136,191,5.5,129.2
 Khalil Shakir,BUF,WR,7,123,192,4.0,129.3
@@ -213,7 +213,7 @@ Baltimore Ravens,BAL,DEF,,,211,,135.2
 Detroit Lions,DET,DEF,,,212,,135.5
 Dallas Cowboys,DAL,DEF,,,213,,135.8
 Wil Lutz,DEN,K,,,214,,136.0
-Chase McLaughlin,TB,K,,,215,,136.9
+Chase McLaughlin,TB,K,,,215,,136.8
 Jake Bates,DET,K,,,216,,137.1
 Pittsburgh Steelers,PIT,DEF,,,217,,137.4
 Jacksonville Jaguars,JAX,DEF,,,218,,138.2
