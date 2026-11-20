@@ -40,11 +40,11 @@ Colston Loveland,CHI,TE,10,35,38,5.6,41.5
 Tetairoa McMillan,CAR,WR,5,37,39,5.3,42.0
 Cam Skattebo,NYG,RB,8,60,40,5.9,43.0
 D'Andre Swift,CHI,RB,10,52,41,6.4,43.4
-Travis Etienne Jr.,NO,RB,8,46,42,5.7,43.7
+Travis Etienne Jr.,NO,RB,8,46,42,5.7,43.8
 Garrett Wilson,NYJ,WR,13,30,43,5.0,45.3
 Ladd McConkey,LAC,WR,7,33,44,5.2,46.6
 Tyler Warren,IND,TE,13,51,45,5.6,47.6
-Emeka Egbuka,TB,WR,10,42,46,5.4,48.2
+Emeka Egbuka,TB,WR,10,42,46,5.4,48.3
 Drake Maye,NE,QB,11,32,47,4.7,49.5
 Joe Burrow,CIN,QB,6,45,48,5.0,51.1
 Bucky Irving,TB,RB,10,55,49,5.5,51.2
@@ -54,10 +54,10 @@ Quinshon Judkins,CLE,RB,11,62,52,5.4,54.9
 Terry McLaurin,WAS,WR,7,47,53,5.6,56.9
 Luther Burden III,CHI,WR,10,44,54,5.7,57.1
 DJ Moore,BUF,WR,7,53,55,6.0,57.1
-Jayden Daniels,WAS,QB,7,50,56,4.9,59.1
+Jayden Daniels,WAS,QB,7,50,56,4.9,59.2
 Davante Adams,LAR,WR,11,49,57,4.9,59.5
 Tucker Kraft,GB,TE,11,85,58,6.7,59.7
-Bhayshul Tuten,JAC,RB,7,65,59,6.2,60.8
+Bhayshul Tuten,JAC,RB,7,65,59,6.2,60.7
 Sam LaPorta,DET,TE,6,82,60,5.8,62.6
 Jadarian Price,SEA,RB,11,67,61,5.9,63.3
 Jameson Williams,DET,WR,6,48,62,5.4,64.7
@@ -70,12 +70,12 @@ TreVeyon Henderson,NE,RB,11,69,68,5.6,71.1
 Josh Jacobs,GB,RB,11,152,69,4.3,71.2
 Harold Fannin Jr.,CLE,TE,11,70,70,4.9,71.5
 Parker Washington,JAC,WR,7,59,71,6.1,71.8
-Dak Prescott,DAL,QB,14,80,72,5.5,72.4
+Dak Prescott,DAL,QB,14,80,72,5.5,72.3
 Rhamondre Stevenson,NE,RB,11,71,73,6.3,73.8
 Jaylen Warren,PIT,RB,9,75,74,6.0,73.9
 Kyle Pitts Sr.,ATL,TE,11,77,75,5.1,74.2
 George Kittle,SF,TE,8,94,76,5.8,77.9
-Trevor Lawrence,JAC,QB,7,76,77,5.5,79.0
+Trevor Lawrence,JAC,QB,7,76,77,5.5,78.9
 Marvin Harrison Jr.,ARI,WR,14,68,78,5.5,79.4
 Carnell Tate,TEN,WR,9,61,79,4.7,84.1
 DK Metcalf,PIT,WR,9,74,80,5.4,84.9
@@ -83,8 +83,8 @@ Brian Thomas Jr.,JAC,WR,7,78,81,5.9,84.9
 MarShawn Lloyd,GB,RB,11,99,82,9.7,85.6
 Tony Pollard,TEN,RB,9,84,83,5.7,87.0
 Chuba Hubbard,CAR,RB,5,100,84,5.8,88.1
-Rico Dowdle,PIT,RB,9,81,85,5.6,88.8
-Ollie Gordon II,MIA,RB,,,86,,89.0
+Ollie Gordon II,MIA,RB,,,85,,88.8
+Rico Dowdle,PIT,RB,9,81,86,5.6,88.8
 Los Angeles Rams,LAR,DEF,,,87,,89.0
 Brandon Aubrey,DAL,K,,,88,,89.4
 Jonathon Brooks,CAR,RB,5,87,89,6.8,90.0
@@ -111,8 +111,8 @@ Stefon Diggs,WAS,WR,7,95,109,6.4,106.2
 Isaiah Likely,NYG,TE,8,121,110,5.4,106.4
 Jordyn Tyson,NO,WR,8,135,111,4.8,108.3
 Jared Goff,DET,QB,6,103,112,5.3,108.4
-Seattle Seahawks,SEA,DEF,,,113,,108.6
-Kirk Cousins,MIN,QB,,,114,,108.9
+Kirk Cousins,MIN,QB,,,113,,108.6
+Seattle Seahawks,SEA,DEF,,,114,,108.6
 Courtland Sutton,DEN,WR,10,79,115,3.7,109.5
 Jordan Mason,MIN,RB,6,120,116,6.9,110.5
 RJ Harvey,DEN,RB,10,91,117,4.5,112.0
@@ -122,9 +122,9 @@ Mark Andrews,BAL,TE,13,129,120,4.9,113.9
 Kyler Murray,MIN,QB,6,109,121,5.8,114.1
 Braelon Allen,NYJ,RB,13,175,122,6.6,114.3
 Jordan Addison,MIN,WR,6,102,123,5.8,114.8
-Aaron Rodgers,PIT,QB,,,124,,115.0
+Aaron Rodgers,PIT,QB,,,124,,115.1
 Brian Robinson Jr.,ATL,RB,11,165,125,5.2,115.1
-Denzel Boston,CLE,WR,11,148,126,5.5,115.4
+Denzel Boston,CLE,WR,11,148,126,5.5,115.3
 Fernando Mendoza,LV,QB,,,127,,116.3
 Jake Ferguson,DAL,TE,14,122,128,3.3,117.7
 Cooper Kupp,SEA,WR,11,194,129,3.3,118.5
@@ -133,25 +133,25 @@ Juwan Johnson,NO,TE,8,128,131,5.3,118.6
 Dontayvion Wicks,PHI,WR,10,172,132,6.7,118.6
 Devaughn Vele,NO,WR,,,133,,118.9
 Ka'imi Fairbairn,HOU,K,,,134,,119.4
-Matthew Golden,GB,WR,11,124,135,6.6,119.6
+Matthew Golden,GB,WR,11,124,135,6.6,119.5
 Deebo Samuel Sr.,SF,WR,8,140,136,4.2,119.9
 Tyler Shough,NO,QB,8,116,137,4.7,120.1
-Aaron Jones Sr.,MIN,RB,6,114,138,4.9,120.3
-Makai Lemon,PHI,WR,10,108,139,5.0,120.6
-Jonah Coleman,DEN,RB,10,147,140,5.7,120.8
-Sam Darnold,SEA,QB,11,137,141,5.5,121.1
-Tre Tucker,LV,WR,13,149,142,5.9,121.1
+Aaron Jones Sr.,MIN,RB,6,114,138,4.9,120.2
+Jonah Coleman,DEN,RB,10,147,139,5.7,120.5
+Makai Lemon,PHI,WR,10,108,140,5.0,120.6
+Tre Tucker,LV,WR,13,149,141,5.9,121.0
+Sam Darnold,SEA,QB,11,137,142,5.5,121.1
 Ray Davis,BUF,RB,7,176,143,7.1,121.1
 Jalen Coker,CAR,WR,5,130,144,6.4,121.4
 Kenny Gainwell,TB,RB,10,93,145,4.4,121.5
 Cam Ward,TEN,QB,9,145,146,4.8,121.6
-KC Concepcion Jr.,CLE,WR,11,112,147,6.6,121.7
-Emmett Johnson,KC,RB,5,164,148,5.4,122.1
+Emmett Johnson,KC,RB,5,164,147,5.4,121.7
+KC Concepcion Jr.,CLE,WR,11,112,148,6.6,121.7
 Darren Waller,CAR,TE,,,149,,122.1
 Isaac TeSlaa,DET,WR,,,150,,122.1
 Michael Pittman Jr.,PIT,WR,9,73,151,3.4,122.1
-David Njoku,LAC,TE,,,152,,122.6
-C.J. Stroud,HOU,QB,8,138,153,5.0,122.7
+C.J. Stroud,HOU,QB,8,138,152,5.0,122.6
+David Njoku,LAC,TE,,,153,,122.6
 San Francisco 49ers,SF,DEF,,,154,,122.8
 Jason Myers,SEA,K,,,155,,123.0
 Travis Hunter,JAC,WR,7,181,156,4.3,123.2
@@ -165,24 +165,24 @@ Malik Willis,MIA,QB,6,132,163,6.0,124.3
 Mike Washington Jr.,LV,RB,13,150,164,6.9,124.3
 Keenan Allen,IND,WR,13,174,165,7.5,124.5
 Cameron Dicker,LAC,K,,,166,,124.6
-Adonai Mitchell,NYJ,WR,13,167,167,6.9,124.6
-Philadelphia Eagles,PHI,DEF,,,168,,124.6
-Dalton Schultz,HOU,TE,8,151,169,6.7,124.7
-Cincinnati Bengals,CIN,DEF,,,170,,124.9
-Baker Mayfield,TB,QB,10,119,171,4.9,124.9
-New York Giants,NYG,DEF,,,172,,124.9
+Philadelphia Eagles,PHI,DEF,,,167,,124.6
+Dalton Schultz,HOU,TE,8,151,168,6.7,124.7
+Adonai Mitchell,NYJ,WR,13,167,169,6.9,124.7
+Baker Mayfield,TB,QB,10,119,170,4.9,124.9
+New York Giants,NYG,DEF,,,171,,124.9
+Cincinnati Bengals,CIN,DEF,,,172,,125.0
 Nick Folk,ATL,K,,,173,,125.1
 Terrance Ferguson,LAR,TE,11,189,174,7.3,125.2
 Kayshon Boutte,HOU,WR,8,158,175,6.0,125.4
-T.J. Hockenson,MIN,TE,6,168,176,1.2,125.6
-Jake Elliott,PHI,K,,,177,,125.6
+Jake Elliott,PHI,K,,,176,,125.5
+T.J. Hockenson,MIN,TE,6,168,177,1.2,125.6
 Rachaad White,WAS,RB,7,118,178,5.7,125.8
 Ja'Kobi Lane,BAL,WR,13,190,179,5.8,126.2
 Buffalo Bills,BUF,DEF,,,180,,126.5
 Chig Okonkwo,WAS,TE,7,160,181,6.6,126.5
 Oronde Gadsden II,LAC,TE,7,198,182,4.9,126.5
-Daniel Jones,IND,QB,13,142,183,4.6,126.7
-Kaelon Black,SF,RB,8,214,184,9.0,126.7
+Kaelon Black,SF,RB,8,214,183,9.0,126.6
+Daniel Jones,IND,QB,13,142,184,4.6,126.7
 Xavier Worthy,KC,WR,5,125,185,4.9,126.8
 Malik Washington,MIA,WR,6,169,186,3.3,126.9
 Harrison Butker,KC,K,,,187,,126.9
@@ -207,7 +207,7 @@ Chris Rodriguez Jr.,JAC,RB,7,139,205,7.4,130.3
 Romeo Doubs,NE,WR,11,127,206,5.7,130.3
 Cam Little,JAX,K,,,207,,130.4
 Trey Smack,GB,K,,,208,,130.4
-Minnesota Vikings,MIN,DEF,,,209,,130.9
+Minnesota Vikings,MIN,DEF,,,209,,130.8
 Keaton Mitchell,LAC,RB,7,146,210,7.0,130.9
 Harrison Mevis,LAR,K,,,211,,131.1
 Chris Boswell,PIT,K,,,212,,131.2
@@ -222,10 +222,10 @@ Chase McLaughlin,TB,K,,,220,,136.9
 Jake Bates,DET,K,,,221,,137.0
 Pittsburgh Steelers,PIT,DEF,,,222,,137.3
 Jacksonville Jaguars,JAX,DEF,,,223,,137.9
-Tyler Loop,BAL,K,,,224,,139.1
+Tyler Loop,BAL,K,,,224,,139.2
 Los Angeles Chargers,LAC,DEF,,,225,,139.4
 Evan McPherson,CIN,K,,,226,,140.6
-Will Reichard,MIN,K,,,227,,140.8
+Will Reichard,MIN,K,,,227,,140.7
 Andy Borregales,NE,K,,,228,,141.1
 Eddy Pineiro,SF,K,,,229,,142.1
 Cairo Santos,CHI,K,,,230,,143.9
